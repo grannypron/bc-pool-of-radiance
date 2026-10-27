@@ -1,15 +1,15 @@
-{ The native build's Digital Audio driver: the music and any effect without a recording as the Tandy's SN76489 plays
-  them (SSI's own arrangements, emulated by SndChip), and the effects SBSFX.DAT has a recording for as the Sound
-  Blaster's DSP plays them (SndSb's samples: Dark Queen of Krynn's, and the first of Pools of Darkness's step thumps).
-  An effect with a recording silences the Tandy's voices first, so it ends the music as every effect does. Without
-  SBSFX.DAT every effect is the Tandy's. GameBoot installs it when POOL.CFG names T, A or B. Free Pascal only. }
+{ Native Digital Audio driver. Music and unrecorded effects use SSI's Tandy
+  arrangements through SndChip; effects present in SBSFX.DAT use recorded
+  Sound Blaster samples. Starting a recorded effect silences the Tandy voices,
+  matching the way other effects interrupt music. Without SBSFX.DAT all effects
+  fall back to Tandy audio. Free Pascal only. }
 {$F+,I-}
 {$I COMPILER.INC}
 unit SndDig;
 
 interface
 
-{ Make this the sound driver: fill GameVars.sound. }
+{ Installs this driver in GameVars.sound. }
 procedure Install;
 
 implementation

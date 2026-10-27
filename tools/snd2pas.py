@@ -1,30 +1,28 @@
 #!/usr/bin/env python3
-"""Turn the sequencer's data into Pascal for the native build's sequencer (SndSeq).
+"""Convert the DOS sound driver's sequence data for the native SndSeq unit.
 
     tools/snd2pas.py [--src src] [--out obj/SNDIMAGE.INC]
 
-sounddrv.asm's tunes are streams of bytes that point at each other, at envelopes and at the LFO waveforms by their
-offsets in the driver's segment, and the voice blocks they write are in that segment too. The native sequencer runs
-the same streams over a 64 KB image of that segment, so this assembles the data the way TASM does:
+The tune streams use segment-relative pointers to other streams, envelopes, LFO waveforms, and voice blocks. The
+native sequencer runs those same streams against a 64 KB image of the driver's data segment. This tool assembles:
 
-- sounddrv.asm from lfoSine (the LFO waveforms) up to its INCLUDE of sndopl.inc, which the native build does not
-  play; the VOICE structure and the stream macros are read from the same file;
-- sndspk.inc and sndtdy.inc, each up to its tick routine (the code after it is the native sequencer's to port).
+- sounddrv.asm from lfoSine through the point where sndopl.inc is included. The native build does not play the
+  AdLib driver. The VOICE structure and sequence macros also come from this file.
+- sndspk.inc and sndtdy.inc up to their tick routines. SndSeq implements the code that follows those labels.
 
-Code between the data is left out, so the offsets are not the DOS build's, but every pointer is assembled against
-this image, and data that sits together in the DOS segment sits together here (an LFO read past one waveform reaches
-the next, as on DOS). The output is a Pascal include: the image as a typed constant, the offset it loads at, the
-VOICE fields' offsets and the labels the sequencer needs.
+Executable code is omitted, so these offsets differ from the DOS driver. All pointers are resolved against the new
+image, and adjacent data remains adjacent; for example, reading past one LFO waveform still reaches the next. The
+generated Pascal include contains the segment image, load offset, VOICE field offsets, and exported labels.
 """
 import argparse
 import pathlib
 import re
 import sys
 
-# where the image starts in the native sequencer's 64 KB segment: room below for a read before the first table
+# Leave space below the image for code that reads just before the first table.
 ORG = 0x0100
 
-# labels the native sequencer names, and the constant each becomes
+# Map assembly labels used by SndSeq to their generated Pascal constant names.
 EXPORTS = {
     "spkrBlocks": "SPKR_BLOCKS",
     "spkrFreq": "SPKR_FREQ",
@@ -89,7 +87,7 @@ class Assembler:
         return str(int(tok, 10))
 
     def value(self, expr, here, where, final):
-        """The value of a TASM expression: numbers, symbols, SIZE VOICE, $, + - * / SHL OR and parentheses."""
+        """Evaluate the subset of TASM expressions used by the sound data."""
         text = expr.strip()
         text = re.sub(r"\bSIZE\s+VOICE\b", str(self.voice_size), text)
         text = text.replace("$", str(here))
@@ -117,7 +115,7 @@ class Assembler:
         return [a.strip() for a in args.split(",")] if args.strip() else []
 
     def run(self, lines, final):
-        """One pass over (where, text) lines: the bytes, with symbols from the last pass when final."""
+        """Assemble one pass of (source location, text) pairs."""
         out = bytearray()
         here = ORG
 
@@ -195,7 +193,7 @@ class Assembler:
 
 
 def data_lines(src):
-    """(where, text) for every data line, in the order TASM assembles them."""
+    """Return data lines and source locations in TASM assembly order."""
     core = (src / "sounddrv.asm").read_text().splitlines()
     lines = []
     started = False

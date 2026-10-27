@@ -5,29 +5,28 @@ unit Sym8x8;
 
 interface
 
-{ Load 8x8 graphics symbol set: picture fileID of "8X8D<disk>.DAX" -> symbolSetPtrs[setID] (with a transparency mask
-  for color 13, hot pink). No-op when setID is outside 0..4; on load failure prints the file name and fileID, waits for
-  a key and quits to DOS. }
-procedure Load8x8Set(fileID, setID: Byte);
+{ Loads one 8x8 symbol set and builds a transparency mask for hot pink. Ignore
+  invalid destination slots. A missing required set reports the DAX record and
+  exits the game. }
+procedure Load8x8Set(fileID, setId: Byte);
 
-{ Put 8x8 symbol: map symbol 1..286 to its set (symSetFirst) + local index. inCombat=True composites it into the view
-  buffer with Blit.BlitTileCell (other = transparency flag); otherwise copies the glyph to the current-8x8 buffer and
-  draws it straight to the screen with Blit.ShowPic. Nothing is drawn if the set is not loaded, is not 8x1-cell glyphs,
-  or does not hold the symbol. Symbol 0 or above 286 prints an error, waits for a key and quits to DOS. }
+{ Draws a global symbol ID from the loaded 8x8 sets. Combat composites it into
+  the view buffer; other screens draw it directly. Missing or malformed sets
+  draw nothing. An invalid symbol ID reports an error and exits. }
 procedure Put8x8Sym(col, row: ShortInt; symbol: Word; inCombat, other: Boolean);
 
 implementation
 
 uses Crt, GameDefs, GameVars, Blit, GameIo, StrUtil;
 
-procedure Load8x8Set(fileID, setID: Byte);
+procedure Load8x8Set(fileID, setId: Byte);
 var
   s1: String[1];
 begin
-  if setID in [0..4] then begin
-    Str(GameVars.virtualDisk, s1);
-    Blit.LoadPic('8x8d' + s1, fileID, True, LightMagenta, GameVars.symbolSetPtrs[setID]);
-    if GameVars.symbolSetPtrs[setID] = nil then begin
+  if setId in [0..4] then begin
+    Str(GameVars.diskIndex, s1);
+    Blit.LoadPic('8x8d' + s1, fileID, True, LightMagenta, GameVars.symbolSetPtrs[setId]);
+    if GameVars.symbolSetPtrs[setId] = nil then begin
       GameIo.FatalError('Unable to load 8x8D' + s1 + '-' + StrUtil.NumStr(fileID));
     end;
   end;
@@ -52,11 +51,11 @@ begin
     with GameVars.symbolSetPtrs[setIdx]^ do
       if (height <> 8) or (width <> 1) or (symbol >= count) then Exit;
     if inCombat then
-      Blit.BlitTileCell(col, row, symbol, Ord(other), GameVars.symbolSetPtrs[setIdx], GameVars.viewImageBufferPtr)
+      Blit.BlitTileCell(col, row, symbol, Ord(other), GameVars.symbolSetPtrs[setIdx], GameVars.viewBuffer)
     else begin
       with GameVars.symbolSetPtrs[setIdx]^ do
-        Move(data[symbol * imgSize], GameVars.current8x8SymbolPtr2^.data, imgSize);
-      Blit.ShowPic(col, row, GameVars.current8x8SymbolPtr2);
+        Move(data[symbol * imgSize], GameVars.sym8x8Buf^.data, imgSize);
+      Blit.ShowPic(col, row, GameVars.sym8x8Buf);
     end;
   end;
 end;

@@ -1,11 +1,11 @@
-# A fight in the central wilderness (save G, as in wilderness.txt): under NORAND the 32nd step of this walk meets
-# a random encounter. Records the encounter, the fight's start, and the memory there (Ctrl-Y, with the heap and
-# pictures): the wilderness's second tile set and combat's pictures at once, VGA's tightest spot (phase 6).
+# Tests a central-wilderness fight using save G. With NORAND, the 32nd step of this route triggers an encounter.
+# Capture the encounter, the start of combat, and Ctrl-Y memory figures while both the second wilderness tile sheet
+# and combat artwork are loaded. This is VGA's tightest memory point for phase 6.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
 put saves/wild
-# a slot's letter loads it at once (#652)
+# Load the slot directly by pressing its letter (#652).
 press l g
 wait ^CAST VIEW ENCAMP 60
 press up

@@ -11,7 +11,7 @@ var
   { eq, ne, lt, gt, le, ge; cleared together by FillChar }
   cmpFlags: array[0..5] of Boolean;
   { Current icon animation slot. }
-  gIconAnim: Byte;
+  iconAnimId: Byte;
   { Monster display flags used by the ECL VM; EclVm and EclMenu clear both together }
   monsterFlags: Types.TMonFlags;
   { picture-drawn flag: gates ECL animation }
@@ -47,7 +47,8 @@ procedure DisplayMonster(sprId, picId, dist: Byte; var flags: Types.TMonFlags);
 
 { Horizontal '~'-hotkey menu; extended keys switch the current character. Returns the 0-based index of the pressed
   hotkey, 0 for Enter (only when enterOk) and 255 for a letter or digit that is not a hotkey }
-function MenuHorizontalCS(query: Types.TStr40; menu: String; qCol, mCol, hlCol: Byte; enterOk, animate: Boolean): Byte;
+function MenuHorizontalCharacterSelect(query: Types.TStr40; menu: String; qCol, mCol, hlCol: Byte;
+                                       enterOk, animate: Boolean): Byte;
 
 { Set the six comparison flags from s1 and s2. }
 procedure EclCompareStr(s1, s2: String);
@@ -111,10 +112,10 @@ begin
   GameVars.ceilFloorColorSel := 9;
   GameVars.picRegionW := True;
   FillChar(monsterFlags, SizeOf(monsterFlags), 0);
-  gIconAnim := MapTiles.FIRST_MONSTER_ICON;
+  iconAnimId := MapTiles.FIRST_MONSTER_ICON;
   GameVars.eclIp := C_GBVM.SCRIPT_FIRST;
-  GameVars.eclStackTopPtr := nil;
-  GameVars.eclStackSecondPtr := nil;
+  GameVars.scriptReturnStack := nil;
+  GameVars.prevScriptReturnStack := nil;
   FillChar(cmpFlags, SizeOf(cmpFlags), 0);
   { No portrait head (255), so DisplayMonster shows the PIC close-up }
   GameVars.zone1^[C_GBVM.PIC_LOADING] := 255;
@@ -124,7 +125,7 @@ begin
   GameVars.zone0^.antimagic := 0;
   for i := 1 to C_ECL.ENTRY_COUNT do begin
     EclVars.LoadEclVars(1);
-    GameVars.scriptEntryAddrs[i] := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
+    GameVars.scriptEntryAddrs[i] := EclVars.CombineBytesToWord(GameVars.varLo[1], GameVars.varHi[1]);
   end;
   { Select the 3D view (MapView treats view3dFlag <> 0 as location type 1) }
   GameVars.zone0^.view3dFlag := 1;
@@ -152,12 +153,12 @@ var
   found: Boolean;
 begin
   FillChar(GameVars.zone3^, SizeOf(Types.TZone3), 0);
-  GameVars.suppressingInsertDiskFlag := False;
+  GameVars.suppressDiskPrompt := False;
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, White, 'Loading...Please Wait');
-  if not (GameVars.virtualDisk in [1..Types.LAST_DISK]) then
+  if not (GameVars.diskIndex in [1..Types.LAST_DISK]) then
     DaxIo.PushState(1);
-  Str(GameVars.virtualDisk, s);
+  Str(GameVars.diskIndex, s);
   { the merged ECL.DAX holds every disk's scripts, so the search below would not run }
   if DaxIo.ArchiveName('ECL' + s) <> 'ECL' + s then
     if not DaxIo.DiskHasBlock('ECL' + s, scriptId) then begin
@@ -170,16 +171,16 @@ begin
           DaxIo.PushState(disk);
         Inc(disk);
       end;
-      Str(GameVars.virtualDisk, s);
+      Str(GameVars.diskIndex, s);
     end;
   DaxIo.LoadDax('ECL' + s, '.dax', scriptId, sizeRead, data);
   if sizeRead < 2 then begin
     { not on this disk: a script changed area without setting the disk first (Stojanow Gate's flee); take the first disk
       that has the block, without the insert-disk prompt }
-    GameVars.suppressingInsertDiskFlag := True;
+    GameVars.suppressDiskPrompt := True;
     disk := 1;
     while (sizeRead < 2) and (disk <= Types.LAST_DISK) do begin
-      if disk <> GameVars.virtualDisk then begin
+      if disk <> GameVars.diskIndex then begin
         Str(disk, s);
         DaxIo.LoadDax('ECL' + s, '.dax', scriptId, sizeRead, data);
         if sizeRead >= 2 then
@@ -187,7 +188,7 @@ begin
       end;
       Inc(disk);
     end;
-    GameVars.suppressingInsertDiskFlag := False;
+    GameVars.suppressDiskPrompt := False;
     if sizeRead < 2 then begin
       Str(scriptId, s);
       DaxIo.PromptBox(Yellow, 'Script area ' + s + ' is missing');
@@ -243,8 +244,8 @@ end;
 procedure DisplayPortrait(headId, bodyId: Byte);
 begin
   picDrawn := False;
-  CharDisp.currentPortraitHead := headId;
-  CharDisp.currentPortraitHead2 := bodyId;
+  CharDisp.portraitHeadId := headId;
+  CharDisp.portraitBodyId := bodyId;
   Portrait.LoadPortraitBufs(headId, bodyId);
   Portrait.DisplayPortraitBufs(3, 3, True);
 end;
@@ -294,7 +295,8 @@ end;
 { Horizontal menu with character selection; query is limited to 40 characters and menu text to 255. Each script menu
   starts with its first option highlighted, so Enter never takes a highlight another menu left behind; switching
   characters keeps the highlight. }
-function MenuHorizontalCS(query: Types.TStr40; menu: String; qCol, mCol, hlCol: Byte; enterOk, animate: Boolean): Byte;
+function MenuHorizontalCharacterSelect(query: Types.TStr40; menu: String; qCol, mCol, hlCol: Byte;
+                                       enterOk, animate: Boolean): Byte;
 var
   opts: String;
   idx: Byte;
@@ -312,15 +314,15 @@ begin
     end;
   until (ch in ['0'..'9', 'A'..'Z']) or ((ch = C_KEYS.ENTER) and enterOk);
   case ch of
-    C_KEYS.ENTER: MenuHorizontalCS := 0;
+    C_KEYS.ENTER: MenuHorizontalCharacterSelect := 0;
   else begin
     idx := 1;
     while (idx <= Length(opts)) and (opts[idx] <> ch) do
       Inc(idx);
     if idx <= Length(opts) then
-      MenuHorizontalCS := idx - 1
+      MenuHorizontalCharacterSelect := idx - 1
     else
-      MenuHorizontalCS := 255;
+      MenuHorizontalCharacterSelect := 255;
   end;
   end;
 end;
@@ -351,11 +353,11 @@ end;
 { Push IP on the ECL return stack, then jump to the address word in variable varIdx }
 procedure EclGosub(varIdx: Byte);
 begin
-  GameVars.eclStackSecondPtr := GameVars.eclStackTopPtr;
-  GetMem(GameVars.eclStackTopPtr, SizeOf(Types.TEclRet));
-  GameVars.eclStackTopPtr^.next := GameVars.eclStackSecondPtr;
-  GameVars.eclStackTopPtr^.addr := GameVars.eclIp;
-  GameVars.eclIp := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[varIdx], GameVars.gbvmUpperByte[varIdx]);
+  GameVars.prevScriptReturnStack := GameVars.scriptReturnStack;
+  GetMem(GameVars.scriptReturnStack, SizeOf(Types.TEclRet));
+  GameVars.scriptReturnStack^.next := GameVars.prevScriptReturnStack;
+  GameVars.scriptReturnStack^.addr := GameVars.eclIp;
+  GameVars.eclIp := EclVars.CombineBytesToWord(GameVars.varLo[varIdx], GameVars.varHi[varIdx]);
 end;
 
 { Step with 0..15 wraparound, then refresh the event and wall-ahead bytes for the new cell }
@@ -395,7 +397,7 @@ begin
   if mirror = 0 then Exit;
   { after a fifth monster kind the clone shares the last monster slot; SSI loaded it over the first combat sprite
     (#725) }
-  slot := gIconAnim;
+  slot := iconAnimId;
   if slot > MapTiles.LAST_MONSTER_ICON then
     slot := MapTiles.LAST_MONSTER_ICON;
   MapTiles.LoadIconAnim('CPIC', 11, slot);
@@ -482,7 +484,7 @@ var
   pause: Boolean;
 begin
   { a dead, stoned or gone character takes no damage, as in CharHlp.InflictDamage }
-  if creature^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then Exit;
+  if creature^.status in [C_STATUS.DEAD_STATUS, C_STATUS.STONED, C_STATUS.GONE] then Exit;
   if creature^.hpCur + 10 < dmg then
     msg := '  ' + creature^.name + ' dies. '
   else
@@ -511,7 +513,7 @@ var
   i: Byte;
   roll: Byte;
 begin
-  Str(GameVars.virtualDisk, numStr);
+  Str(GameVars.diskIndex, numStr);
   DaxIo.LoadDax('MON' + numStr + 'CHA', '.dax', id, size, data);
   if size < DiskRec.CHAR_DISK_BYTES then begin
     TextRend.DisplayAndPause(White, 'Unable to load monster');
@@ -525,7 +527,7 @@ begin
     combatAddr := nil;
     case race of
       C_RACE.DWARF, C_RACE.GNOME, C_RACE.HALFLING: iconSize := 1;
-      C_RACE.ELF, C_RACE.HALFELF, C_RACE.HALFORC, C_RACE.HUMAN: iconSize := 2;
+      C_RACE.ELF, C_RACE.HALF_ELF, C_RACE.HALF_ORC, C_RACE.HUMAN: iconSize := 2;
     end;
     for i := 1 to 6 do
       if i = 4 then
@@ -536,7 +538,7 @@ begin
       end;
   end;
   FreeMem(data, size);
-  GameVars.suppressingInsertDiskFlag := True;
+  GameVars.suppressDiskPrompt := True;
   DaxIo.LoadDax('MON' + numStr + 'SPC', '.dax', id, size, data);
   if size <> 0 then begin
     if size >= DiskRec.EFFECT_DISK_BYTES then begin
@@ -573,7 +575,7 @@ begin
     end;
     FreeMem(data, size);
   end;
-  GameVars.suppressingInsertDiskFlag := False;
+  GameVars.suppressDiskPrompt := False;
   { the readied special items take effect, as when readied (FxEngine.ToggleReadyItem): SSI skipped this, and a monster
     never had the displacement, Strength or fire resistance of the cloak, gauntlets or ring it wore (#747). An aligned
     weapon's and a boulder's handlers only test whether the creature may ready them, shocking it or printing a message
@@ -648,7 +650,7 @@ end;
 begin
   { Turbo Pascal clears no variable }
   FillChar(cmpFlags, SizeOf(cmpFlags), 0);
-  gIconAnim := 0;
+  iconAnimId := 0;
   FillChar(monsterFlags, SizeOf(monsterFlags), 0);
   picDrawn := False;
   protTextShown := 0;

@@ -29,9 +29,8 @@ begin
   CharDisp.ClearMessageWindow;
 end;
 
-{ PayCureCost: Show "<spell> will only cost <cost> gold pieces." and ask to pay. On Y, pay from the current character's
-  coins if they cover it, else from the pooled treasure, else print "Not enough money." and return N. Returns Y or N.
-  cost is the listed price, which the temple's prices (priceMode) may lower. }
+{ Quotes the adjusted temple price and asks for payment. Pay from the current
+  character first, then the pooled treasure. Returns Y only when payment succeeds. }
 function PayCureCost(spell: String; cost: Word): Char;
 var
   c: Char;
@@ -95,8 +94,8 @@ begin
       if FxEngine.RemoveDiseases(GameVars.curChar) then ;
 end;
 
-{ Why a cure of wounds would do nothing for the current character, as FxEngine.RestoreHitPoints decides it: dead,
-  stoned, gone or otherwise out of the party's reach, mummy rot, or no wound; '' when it would heal. }
+{ Explains why wound healing would fail for the current character. Returns an
+  empty string when RestoreHitPoints can heal them. }
 function NoWoundCure: String;
 var
   effect: Types.PEffectRec;
@@ -108,16 +107,16 @@ begin
         NoWoundCure := 'has mummy rot, which stops healing.'
       else if GameVars.curChar^.hpCur >= GameVars.curChar^.hpMax then
         NoWoundCure := 'is not wounded.';
-    C_STATUS.DEAD: NoWoundCure := 'is dead.';
+    C_STATUS.DEAD_STATUS: NoWoundCure := 'is dead.';
     C_STATUS.STONED: NoWoundCure := 'is stoned.';
   else
     NoWoundCure := 'cannot be healed.';
   end;
 end;
 
-{ CureWounds: spell 1/2/3 = CLW 1d8 100 gp / CSW 2d8+1 350 gp / CCW 3d8+3 600 gp. When the cure would do nothing
-  (NoWoundCure) the temple says why and asks first, as its other cures do; "is cured." follows only a cure that healed.
-  SSI took the fee and said the character was cured whatever RestoreHitPoints did (POR-0226). }
+{ Sells Cure Light, Serious, or Critical Wounds. Warn before charging for a cure
+  that cannot help, and only report success when hit points were restored
+  (POR-0226). }
 procedure CureWounds(spell: Byte);
 var
   hp: Byte;
@@ -161,16 +160,11 @@ begin
     end;
 end;
 
-{ RaiseDead: For 5500 gold, raise a dead or animated character (paying for anyone else changes nothing). A dead or
-  animated elf is refused, uncharged, as AD&D 1st edition has it (half-elves can be raised): "RAISE DEAD cannot restore
-  <name>." then "Elven souls lie beyond its reach." (#61). That comes before the poison test, as nothing raises an elf.
-  A dead or animated character still poisoned "is poisoned, and RAISE DEAD cannot help." and is not charged: the poison
-  would kill the raised body again, so Neutralize Poison comes first (PoR #423, #751). The paid raise removes animation
-  under the effect lock and rolls resurrection survival on d100 (AbilAdj.ConResurrectionSurvival): a failure "does not
-  survive." and is C_STATUS.GONE, dead for good, the fee spent. A success sets one hit point, C_STATUS.OKAY and enabled,
-  lowers Constitution by one unless it is 3 (AbilAdj.SCORE_MIN) or less, and "is cured.". hpMax loses the hit points
-  that point was worth, the Con table's bonus at the old Constitution less the bonus at the new over every hit die
-  (ClassCal.ConHpTotal), keeping at least 1. }
+{ Raises a dead or animated character for 5500 gold. Elves cannot be raised
+  (#61), and poison must be neutralized first (#423, #751). After payment, roll
+  resurrection survival. Failure leaves the character permanently gone. Success
+  restores one hit point and costs one Constitution point, including the
+  resulting maximum-hit-point adjustment. }
 procedure RaiseDead;
 var
   effect: Types.PEffectRec;
@@ -182,7 +176,7 @@ begin
   creature := GameVars.curChar;
   wasDead := False;
   c := 'Y';
-  if (creature^.status = C_STATUS.DEAD) or (creature^.status = C_STATUS.ANIMATED) then
+  if (creature^.status = C_STATUS.DEAD_STATUS) or (creature^.status = C_STATUS.ANIMATED) then
     wasDead := True;
   if not wasDead then
     c := Temple.ConfirmCureAnyway('is not dead.')
@@ -230,11 +224,9 @@ begin
   end;
 end;
 
-{ NeutralizePoison: Checks for C_EFFECT.POISONED (55); for 1000 gp removes C_EFFECT.POISONED, C_EFFECT.SLOW_POISON_END
-  (22) and C_EFFECT.SLOW_POISON_HIT (15), in that order, with the effect lock set. Poison kills on the spot, so a
-  character the poison left dead is brought back with 1 hp, as RaiseDead does but without its cost in Constitution and
-  hit points. A dead character still under Slow Poison was kept up through the poison and died of something else (a
-  wound, bleeding out), so it stays dead: that needs RaiseDead. }
+{ Removes poison and both Slow Poison effects for 1000 gold. A character killed
+  directly by poison returns with one hit point. Someone who died from another
+  cause while Slow Poison was active remains dead and still needs Raise Dead. }
 procedure NeutralizePoison;
 var
   effect: Types.PEffectRec;
@@ -258,7 +250,7 @@ begin
       FxEngine.RemoveEffect(GameVars.curChar, C_EFFECT.SLOW_POISON_END, nil);
       FxEngine.RemoveEffect(GameVars.curChar, C_EFFECT.SLOW_POISON_HIT, nil);
       GameVars.effectLock := 0;
-      if found and not slowed and (GameVars.curChar^.status = C_STATUS.DEAD) then begin
+      if found and not slowed and (GameVars.curChar^.status = C_STATUS.DEAD_STATUS) then begin
         GameVars.curChar^.hpCur := 1;
         GameVars.curChar^.status := C_STATUS.OKAY;
         GameVars.curChar^.enabled := 1;
@@ -268,7 +260,7 @@ begin
 end;
 
 { RemoveCurse: Looks for a cursed item in the inventory, else for C_EFFECT.BESTOW_CURSE (36); for 3500 gp sets
-  targetCreaturePtr[1] to the current character and calls the Remove Curse spell handler, Magic.RemoveCurseSpell
+  spellTargets[1] to the current character and calls the Remove Curse spell handler, Magic.SpellRemoveCurse
   (spell 43) }
 procedure RemoveCurse;
 var
@@ -291,16 +283,15 @@ begin
   if c = 'Y' then begin
     c := Temple.ConfirmCureCost('Remove Curse', 3500);
     if c = 'Y' then begin
-      GameVars.targetCreaturePtr[1] := GameVars.curChar;
-      Magic.RemoveCurseSpell;
+      GameVars.spellTargets[1] := GameVars.curChar;
+      Magic.SpellRemoveCurse;
     end;
   end;
 end;
 
-{ StoneToFlesh: C_STATUS.STONED (7), 2000 gp. A character still stoned once paid for rolls system shock on d100
-  (AbilAdj.SurvivesSystemShock), as AD&D 1st edition has the spell's recipient do and SSI never did (#1004): a failure
-  "DOESN'T SURVIVE THE TRANSFORMATION." and is C_STATUS.DEAD, the fee spent; a success becomes C_STATUS.OKAY and
-  enabled, with hpCur 1, and "is cured.". }
+{ Restores a stoned character for 2000 gold. After payment, roll system shock as
+  required by the tabletop spell (#1004). Failure kills the character; success
+  restores them with one hit point. }
 procedure StoneToFlesh;
 var
   c: Char;
@@ -316,7 +307,7 @@ begin
         Temple.ReportCure('is cured.')
       else if not AbilAdj.SurvivesSystemShock(creature^.conCur, Dice.RollDice(1, 100)) then begin
         { flesh again, and dead: as a death is marked out of combat }
-        creature^.status := C_STATUS.DEAD;
+        creature^.status := C_STATUS.DEAD_STATUS;
         creature^.enabled := 0;
         creature^.hpCur := 0;
         Stats.Death(creature);
@@ -372,7 +363,7 @@ begin
   Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
   { the top divider row }
   Border.DrawWindow(1, 1, 38, 1, 0, White, '');
-  { open on the first cure; MenuVertical also brings a vertTop left by an earlier menu back to it }
+  { open on the first cure; MenuVertical also brings a verticalMenuTop left by an earlier menu back to it }
   idx := 0;
   repeat
     s := GameVars.curChar^.name + ', how can we help you?';

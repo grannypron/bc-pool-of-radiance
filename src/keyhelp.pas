@@ -1,5 +1,6 @@
-{ The Command Keys window (#855): F1 on the map menus and the camp menu lists the keys that work there. The lines come
-  from a table, so a key added later adds its line in one place, as F2's Bestiary (#842) did. }
+{ Implements the Command Keys window opened with F1 from the map and camp
+  menus (#855). Key descriptions live in one table so new commands only need
+  to be added in one place. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit KeyHelp;
@@ -7,20 +8,18 @@ unit KeyHelp;
 interface
 
 const
-  { When a line shows: always; only where the menu takes quick save and load (the map menus); only while the
-    Companion Tools setting is on; only under STING; only when POOL.CFG names a sound device; only while the Combat Log
-    setting is on (#903). }
+  { Conditions that control whether a help line is visible. }
   SHOW_ALWAYS = 0;
   SHOW_QUICK = 1;
   SHOW_COMPANION = 2;
   SHOW_STING = 3;
   SHOW_SOUND = 4;
   SHOW_LOG = 5;
-  { the table's lines }
+  { Number of entries in KEYS. }
   KEY_LINES = 8;
 
 type
-  { A line of the window: the key, padded to where its description starts, the description and when it shows. }
+  { One row in the help window. }
   TKeyLine = record
     key: string[7];
     what: string[24];
@@ -39,13 +38,12 @@ const
     (key: 'CTRL-S '; what: 'Sound On/Off'; show: SHOW_SOUND),
     (key: 'CTRL-Y '; what: 'Memory Stats'; show: SHOW_STING));
 
-{ Whether table line n shows now, on a menu that takes F5 and F8 when quickKeys is set. }
+{ Returns whether help line n applies to the current settings and menu. }
 function LineShown(n: Byte; quickKeys: Boolean): Boolean;
 
-{ Clear the screen and show the Command Keys window full screen, framed as the Quests page and the Load/Save menu are: a
-  title box over a box to the bottom of the screen holding the lines LineShown gives, the function keys and then, after
-  a blank row, the Ctrl keys, until Exit or Escape on the 'Help:' line. quickKeys: the menu it was opened from takes F5
-  and F8. The caller redraws its screen afterwards. }
+{ Shows the full-screen Command Keys window until Exit or Escape. quickKeys is
+  True when the calling menu supports F5/F8 quick save and load. The caller is
+  responsible for redrawing its screen afterward. }
 procedure ShowKeys(quickKeys: Boolean);
 
 implementation

@@ -1,21 +1,19 @@
 #!/usr/bin/env bash
 #
-# fpc-setup.sh -- download and build the Free Pascal toolchain the native build uses.
+# Download and build the pinned Free Pascal toolchain used by native builds.
 #
 #   tools/fpc-setup.sh            build the compiler for this host and the cross compilers build/toolchain lists
 #   tools/fpc-setup.sh --print    print the folder the toolchain is (or would be) installed in, and stop
 #
-# build/toolchain names the source: "fpc=<branch>@<commit>" (the fixes_3_2 branch, pinned) and "fpc_bootstrap=<version>"
-# (the released compiler that compiles it the first time). The toolchain installs into
-# $FPC_PREFIX/<branch>-<first 7 of commit>, FPC_PREFIX being ~/fpc unless set; a second run with the same pin finds it
-# there and does nothing.
+# build/toolchain specifies the source branch and commit, plus the released compiler used to bootstrap it. The
+# result is installed under $FPC_PREFIX/<branch>-<short commit>, with ~/fpc as the default prefix. Re-running the
+# script with the same pins reuses the completed installation.
 #
 # Downloads go to $FPC_PREFIX/cache, each into its own folder. Nothing outside FPC_PREFIX is changed.
 #
-# Cross compilers built on a Linux x86_64 host: i386-linux (the first native target: 4-byte pointers keep the save
-# file's records as TP lays them out), i386-win32 and x86_64-win64. macOS is built on an Apple Silicon Mac, for
-# aarch64-darwin alone: Intel Macs are deprecated as of macOS 26 and Rosetta is being retired, so there is no
-# x86_64-darwin target.
+# An x86-64 Linux host also builds the i386-linux, i386-win32, and x86_64-win64 cross-compilers. The i386 Linux
+# target was the first native port because its four-byte pointers preserve Turbo Pascal's record layouts. Apple
+# Silicon hosts build aarch64-darwin only; Intel Macs are deprecated as of macOS 26 and have no target here.
 
 set -euo pipefail
 
@@ -63,7 +61,7 @@ if [ ${#problems[@]} -gt 0 ]; then
     exit 1
 fi
 
-# written last, so an install a failure cut short is built again
+# Write this marker last so an interrupted installation is rebuilt.
 stamp="$prefix/.complete"
 if [ -f "$stamp" ]; then
     echo "fpc-setup.sh: Free Pascal $pin is already in $prefix"
@@ -76,13 +74,13 @@ jobs="$(getconf _NPROCESSORS_ONLN 2> /dev/null || echo 4)"
 
 # --- the bootstrap compiler ---------------------------------------------------------------------
 
-# Only its compiler binary is used: it compiles the pinned source, which then compiles itself.
+# Only the bootstrap compiler binary is needed. It compiles the pinned source, which then rebuilds itself.
 boot="$cache/bootstrap-$bootstrap-$boot_dist"
 if [ ! -x "$boot/$boot_pp" ]; then
     echo "fpc-setup.sh: downloading the Free Pascal $bootstrap compiler to bootstrap with..."
     rm -rf "$boot" "$boot.download"
     mkdir -p "$boot.download"
-    # the release's tar (Linux and macOS alike): an installer's tar of tars, the compiler in base's
+    # Free Pascal's release archive contains nested component archives; the compiler is in the base component.
     url="https://downloads.freepascal.org/fpc/dist/$bootstrap/$boot_dist/fpc-$bootstrap.$boot_dist.tar"
     curl -fsSL "$url" -o "$boot.download/fpc.tar"
     tar -xf "$boot.download/fpc.tar" -C "$boot.download"
@@ -108,7 +106,7 @@ fi
 
 log="$cache/build-$branch-$commit.log"
 : > "$log"
-# macOS: the C library and the frameworks are in Xcode's SDK, not in /usr/lib, so every link is given its root
+# On macOS, point every link at the Xcode SDK because the C library and frameworks are not in /usr/lib.
 opt=""
 if [ "$host_os" = Darwin ]; then
     sdk="$(xcrun --show-sdk-path)" || { echo "fpc-setup.sh: no macOS SDK: install Xcode or its tools." >&2; exit 1; }
@@ -122,7 +120,7 @@ make -C "$source" PP="$boot/$boot_pp" OPT="$opt" INSTALL_PREFIX="$prefix" instal
 
 version="$(sed -n 's/^version=\([0-9.]*\).*/\1/p' "$source/compiler/Makefile.fpc" | head -n 1)"
 lib="$prefix/lib/fpc/$version"
-# The newly installed compiler builds the cross compilers, so every one comes from the pinned source.
+# Use the newly installed compiler to build every cross-compiler from the same pinned source.
 newpp="$lib/$boot_pp"
 
 for cross in ${crosses[@]+"${crosses[@]}"}; do
@@ -136,11 +134,11 @@ for cross in ${crosses[@]+"${crosses[@]}"}; do
         || { echo "fpc-setup.sh: installing the $1-$2 build failed; see $log" >&2; exit 1; }
 done
 
-# fpc (the driver) finds the compilers in bin/, and its units through etc/fpc.cfg.
+# Put compiler links where the fpc driver expects them; etc/fpc.cfg locates their units.
 for pp in "$lib"/ppc*; do
     ln -sf "$pp" "$prefix/bin/$(basename "$pp")"
 done
-# a cross compiler with no native one of its CPU also under the native name, which the driver may ask for
+# Add the native-style name when a CPU has only a cross-compiler; the fpc driver may request either name.
 for pp in "$lib"/ppcross*; do
     [ -e "$pp" ] || continue
     plain="ppc${pp##*/ppcross}"
@@ -149,8 +147,8 @@ done
 mkdir -p "$prefix/etc"
 "$prefix/bin/fpcmkcfg" -d "basepath=$lib" -o "$prefix/etc/fpc.cfg" >> "$log" 2>&1
 if [ "$host_os" = Darwin ]; then
-    # fpcmkcfg names the Command Line Tools' linker and SDK when they are installed, which an Xcode newer than them
-    # cannot use (ld: tapi error: unknown architecture): Xcode's own linker and SDK instead
+    # fpcmkcfg may select an older Command Line Tools linker and SDK that current Xcode cannot use. Disable those
+    # entries and use Xcode's own linker and SDK instead.
     sed -i '' 's|^\(-F[DlL].*/Library/Developer/CommandLineTools/.*\)|#\1|; s|^\(-XR/Library/Developer/CommandLineTools/.*\)|#\1|' \
         "$prefix/etc/fpc.cfg"
     echo "-FD$(dirname "$(xcrun --find ld)")" >> "$prefix/etc/fpc.cfg"

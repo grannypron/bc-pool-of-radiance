@@ -1,5 +1,5 @@
-# Create a human paladin with fixed dice, name him, keep his portrait and icon, and add him to the party: the .CHA file
-# creation writes, and that adding him (which reads it back) leaves the files alone.
+# Creates a human paladin with fixed dice, names him, keeps the default portrait and icon, and adds him to the party.
+# Compare the .CHA file written at creation and confirm that reading it into the party does not change the files.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
@@ -13,7 +13,7 @@ press end end end end ret ret
 checkpoint rolled
 press y a r n o l d ret
 checkpoint portrait
-# Escape does nothing in character creation's portrait picker (#686): a new character must get a portrait
+# Escape must not leave the portrait picker during character creation; every new character needs a portrait (#686).
 press esc
 checkpoint portrait-escape
 press k y

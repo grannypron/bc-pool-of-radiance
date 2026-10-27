@@ -24,7 +24,7 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 implementation
 
 uses Crt, GameDefs, GameVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
-  C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_MONEY, C_SAVE, Vault, Stats, StrUtil, CharDisp,
+  C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL, C_STATUS, C_IFC, C_STAT, C_MONEY, C_SAVE, Vault, Stats, StrUtil, CharDisp,
   MoneyCal, C_MSG, ClassCal, C_ITEM, C_SPELL, SpellInf;
 
 var
@@ -53,10 +53,8 @@ begin
   TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, clearFirst, s);
 end;
 
-{ The class and level lines of a dual-classed human (#838), from column 1 and 7 of their rows: the class it follows,
-  white, then each class it has left in brackets, dark gray while it rests and white once it is usable again; its level,
-  then each class left's level, in brackets and dark gray while it rests, after a '/' and white once usable ('Level 3
-  (5)', 'Level 6/5'). }
+{ Draws a dual-classed human's current and former classes (#838). A former class
+  is gray and parenthesized while inactive, then white once its abilities return. }
 procedure DrawDualClass(creature: Types.PCharRecord; classRow, levelRow: Byte);
 var
   col: Byte;
@@ -119,7 +117,7 @@ begin
   if not CharHlp.IsDualClass(creature) then
     TextRend.DisplayString(1, 5, White, GameDefs.classNames[creature^.charClass]);
   { the six ability scores }
-  for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do begin
+  for i := C_STAT.STRENGTH to C_STAT.CHARISMA do begin
     TextRend.DisplayString(1, i + 7, LightGreen, GameDefs.abilityNames[i] + ' ');
     ViewChar.PrintStat(i, False);
   end;
@@ -155,7 +153,7 @@ begin
   end;
   Inc(row);
   TextRend.DisplayString(1, row, White, 'Status');
-  TextRend.DisplayString(8, row, LightGreen, GameDefs.statusStrs[creature^.status]);
+  TextRend.DisplayString(8, row, LightGreen, GameDefs.statusNames[creature^.status]);
   if (GameVars.portraitsAll <> 0) and (GameVars.portraitsOn <> 0) and Portrait.PlayerPortraitsHere then
     Portrait.DisplayCharPortrait;
 end;
@@ -183,7 +181,7 @@ end;
 function PaladinReady(p: Types.PCharRecord): Boolean;
 begin
   PaladinReady := (CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) > 0) and (p^.status = C_STATUS.OKAY) and
-    (GameVars.ifcState <> C_IFC.COMBAT);
+    (GameVars.ifcState <> C_IFC.IN_COMBAT);
 end;
 
 { True when paladin p has not laid on hands in the last day. }
@@ -194,8 +192,8 @@ begin
   CanHeal := ViewChar.PaladinReady(p) and not CharHlp.HasEffect(p, C_EFFECT.RECENT_HEAL, effect);
 end;
 
-{ True when paladin p has a cure left this week: one a week, and one more for every five levels after the first. The
-  week starts with the first cure (effect C_EFFECT.RECENT_CURE, whose strength counts the cures made). }
+{ Returns True when the paladin has a weekly cure remaining. The first cure
+  starts RECENT_CURE; its strength counts cures used during that week. }
 function CanCure(p: Types.PCharRecord): Boolean;
 var
   effect: Types.PEffectRec;
@@ -209,8 +207,8 @@ begin
   CanCure := ViewChar.PaladinReady(p) and (allowed > 0) and (used < allowed);
 end;
 
-{ Lay on hands: paladin p restores 2 hit points per paladin level to the party member chosen, and cannot do so again for
-  a day (C_EFFECT.RECENT_HEAL, 1440 minutes, at strength 255). Choosing Exit spends nothing. }
+{ Lets the paladin heal a selected party member for two hit points per level.
+  RECENT_HEAL prevents another use for one day. Cancelling spends nothing. }
 procedure LayOnHands(p: Types.PCharRecord);
 var
   tgt: Types.PCharRecord;
@@ -231,9 +229,9 @@ begin
   FxEngine.AddEffect(p, C_EFFECT.RECENT_HEAL, 1440, 255, False);
 end;
 
-{ Cure disease: paladin p cures the party member chosen (FxEngine.RemoveDiseases, the rule every cure shares),
-  asking first when there are none, and spends one of the week's cures: the first starts C_EFFECT.RECENT_CURE for 10080
-  minutes at strength 1, later ones count up its strength. Choosing Exit, or No to the question, spends nothing. }
+{ Uses one of the paladin's weekly cures on a selected party member. Confirm
+  before spending a use on someone without a disease. RECENT_CURE lasts one
+  week and its strength tracks the number of uses. Cancelling spends nothing. }
 procedure CureDisease(p: Types.PCharRecord);
 var
   tgt: Types.PCharRecord;
@@ -307,7 +305,7 @@ begin
     if b <> nil then
       n := b^.counts[i];
     if i = Stats.COIN_LOOTED then
-      n := n div GameDefs.coinValuationCopper[C_MONEY.GOLD];
+      n := n div GameDefs.coinValues[C_MONEY.GOLD];
     Str(n, s);
     TextRend.DisplayString(3, 5 + i, White, Stats.NAMES[i]);
     TextRend.DisplayString(36 - Length(s), 5 + i, LightGreen, s);
@@ -369,10 +367,9 @@ begin
       end;
 end;
 
-{ The Saves page: the five saving throws from row 6, under its title as on the other pages, each the d20 roll needed
-  (saves[] less saveBonus, held to 2..20 since a 1 always fails and a 20 always succeeds). Situational bonuses, such as
-  a dwarf's or halfling's against magic and poison, apply only at the roll and are not included. The names are literals,
-  in the overlay, rather than a typed constant in the data segment. }
+{ Shows the five saving throws as the minimum d20 roll needed. Clamp results to
+  2..20 because 1 always fails and 20 always succeeds. Situational racial
+  bonuses apply during the roll and are not included here. }
 procedure DrawSaves(p: Types.PCharRecord);
 var
   i: ShortInt;
@@ -415,12 +412,9 @@ begin
   SignedNum := s;
 end;
 
-{ The Thief page (#685): each thief skill's name, then its racial and Dexterity adjustments and its base for the thief
-  level (ClassCal.ThiefSkillParts), and the total the game uses (thiefSkills), which is stopped at 0 and so need not be
-  the sum of the three; armor that bars the skills (ClassCal.ArmorBarsThiefSkills) makes every total 0, which a line
-  under the table explains. All are percentages, shown without the sign, which the game's font does not have. The window
-  has 36 columns where the design has 44: the names start at column 2 and the headings fill 18..37, one space apart,
-  each figure right-aligned under its heading. }
+{ Shows each thief skill's racial, Dexterity, and level contributions alongside
+  the final percentage used by the game (#685). The final value may differ from
+  their sum because it is clamped to zero or disabled by armor. }
 procedure DrawThief(p: Types.PCharRecord);
 var
   j: Byte;
@@ -457,11 +451,9 @@ begin
     TextRend.DisplayString(2, 14, Yellow, 'Most armor or a shield bars the use of thief skills.');
 end;
 
-{ The Cleric page (#904): under its title, Turn Undead, the level the character turns undead at (ClassCal.TurnLevel:
-  the cleric level it can use, or a paladin's level less 2), then for each of the turning table's ten kinds of undead
-  the result combat reads for that level (ClassCal.TurnValue): D destroys automatically, T turns automatically, a
-  number is the least d20 roll that succeeds and a dash is undead the level cannot turn. A key to the letters is under
-  the table. }
+{ Shows the character's effective turning level and result against each undead
+  type (#904). D destroys automatically, T turns automatically, a number is the
+  minimum successful d20 roll, and '-' means the target cannot be turned. }
 procedure DrawCleric(p: Types.PCharRecord);
 var
   i: Byte;
@@ -508,13 +500,10 @@ begin
   TextRend.DisplayString(2, 22, LightGreen, '#  Minimum d20 roll to turn');
 end;
 
-{ The More Info page for the current character (#592, #685, #904): its bottom line, Info: Saves sTats Kills tHief Cler
-  Exit, turns its pages, Saves (where it opens), Game Stats, Kill Count and, only for a character with a thief level it
-  can use, Thief, and only for one that can turn undead (ClassCal.TurnLevel), Cler. "Info:" and "Cler" keep the line
-  within 40 columns when both class pages are offered. On Kill Count, Up and Down scroll the list a row (two entries)
-  at a time and Page Up and Page Down a page. The statistics block is read when Stats or Kills is first chosen, since
-  reading it makes one for the character, which a save then writes. Exit or Escape returns to the character sheet,
-  which the caller redraws. }
+{ Runs the More Info pages (#592, #685, #904). Saves, statistics, and kills are
+  always available; thief and turning pages appear only when usable. The kill
+  page supports row and page scrolling. Statistics are allocated lazily when a
+  statistics page is first opened. }
 procedure MorePage;
 var
   p: Types.PCharRecord;
@@ -557,12 +546,12 @@ begin
                        Dec(top, 2);
           C_KEYS.DOWN: if top + KILLS_SHOWN <= kinds then
                          Inc(top, 2);
-          C_KEYS.PGUP: begin
+          C_KEYS.PAGE_UP: begin
                          Dec(top, KILLS_SHOWN);
                          if top < 1 then
                            top := 1;
                        end;
-          C_KEYS.PGDN: if top + KILLS_SHOWN <= kinds then
+          C_KEYS.PAGE_DOWN: if top + KILLS_SHOWN <= kinds then
                          Inc(top, KILLS_SHOWN);
         end;
     end else
@@ -650,17 +639,17 @@ begin
   if GameVars.curChar^.stats[statIdx] < 10 then
     Inc(col);
   TextRend.DisplayString(col, statIdx + 7, hlCol, StrUtil.NumStr(GameVars.curChar^.stats[statIdx]));
-  if (statIdx = C_ABIL.STRENGTH) and (GameVars.curChar^.strCur = 18) and (GameVars.curChar^.strExc > 0) then begin
+  if (statIdx = C_STAT.STRENGTH) and (GameVars.curChar^.strCur = 18) and (GameVars.curChar^.strExc > 0) then begin
     { 100 shows as 00 }
     s := StrUtil.ZeroPad2(GameVars.curChar^.strExc);
     TextRend.DisplayString(7, 7, hlCol, '(' + s + ')');
   end;
 end;
 
-{ Run the character-sheet menu for items, spells, trading and dropping money, a paladin's Heal (lay on hands) and Cure
-  (cure disease) while each can be used, and the More Info page (M, shown under the portrait rather than on the menu
-  line, which has no room for it), until Escape, Exit or done. The menu line has no prompt, as in Curse: with one, a
-  paladin holding items and money would not fit. Temporarily use the noncombat palette when opened during combat. }
+{ Runs the character-sheet menu until Exit, Escape, or an action sets done.
+  Available commands depend on the character's items, spells, money, and paladin
+  abilities. More Info uses the M shown below the portrait because the menu line
+  is full. During combat, temporarily switch to the noncombat palette. }
 procedure ViewCharMenu(var done: Boolean);
 var
   ch: Char;
@@ -673,7 +662,7 @@ var
   idx: Integer;
   shown: Types.PCharRecord;
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then
+  if GameVars.ifcState = C_IFC.IN_COMBAT then
     CbtMap.SetNoncombatPalette;
   ch := ' ';
   done := False;
@@ -699,7 +688,7 @@ begin
     if hasSpells then
       s := s + 'Spells ';
     if CharHlp.MayTrade(shown) and hasMoney and
-        (GameVars.ifcState <> C_IFC.COMBAT) then
+        (GameVars.ifcState <> C_IFC.IN_COMBAT) then
       s := s + 'Trade ';
     { in the vault, dropped money is deposited there (Money.DropMoney) }
     if hasMoney and (GameVars.ifcState = C_IFC.VAULT) then
@@ -736,7 +725,7 @@ begin
       ViewChar.DrawMoreInfoLabel;
     end;
   end;
-  if GameVars.ifcState = C_IFC.COMBAT then
+  if GameVars.ifcState = C_IFC.IN_COMBAT then
     CbtMap.SetCombatPalette;
   CharDisp.DisplayNoncombatInterface;
 end;
@@ -816,11 +805,9 @@ begin
   TextRend.DisplayAndPause(LightGreen, 'press a key');
 end;
 
-{ The item menu's bottom line for creature's item, without the Exit MenuVertical adds: each action the character's
-  state, the interface state and the item allow. Halve is offered on a stack of 2 or more when there is room for
-  another item, Join when another stack can join it, Id in a shop on an item not yet identified, and Info on one whose
-  Use casts a spell the spell page describes (SpellInf.HasItemPage, #861); Id and Info, which share I, never both. When
-  the line and Exit would pass the bottom line's 40 columns, Halve gives way. }
+{ Builds the selected item's action line. Actions depend on the character,
+  interface, and item state. Identification and spell Info share I but are never
+  offered together. Drop Halve when the complete line would exceed 40 columns. }
 function ItemMenuLine(creature: Types.PCharRecord; item: Types.PItemRec): Types.TStr40;
 const
   { the bottom line's columns, and MenuVertical's ' Exit' }
@@ -833,7 +820,7 @@ begin
   s := 'Ready';
   if CharHlp.CanUseItems(creature) then
     s := s + ' Use';
-  if CharHlp.MayTrade(creature) and (GameVars.ifcState <> C_IFC.COMBAT) then
+  if CharHlp.MayTrade(creature) and (GameVars.ifcState <> C_IFC.IN_COMBAT) then
     s := s + ' Trade';
   if GameVars.ifcState = C_IFC.VAULT then
     s := s + ' Deposit'
@@ -920,7 +907,7 @@ begin
       CharHlp.ItemLabel(p, True);
       p := p^.next;
     end;
-    if needRedraw or (GameVars.redrawInventoryMenuFlag <> 0) then begin
+    if needRedraw or (GameVars.invRedraw <> 0) then begin
       TextRend.ClearScreen;
       Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
       CharDisp.DisplayCreatureName(creature, 1, 1, True);
@@ -929,7 +916,7 @@ begin
       TextRend.DisplayString(1, 3, White, 'Ready Item');
       vmRedraw := True;
       needRedraw := False;
-      GameVars.redrawInventoryMenuFlag := 0;
+      GameVars.invRedraw := 0;
     end;
     { STING: V, not on the menu line, shows the selected item's raw record, as Curse's debug mode does }
     if GameVars.stingArg then
@@ -955,7 +942,7 @@ begin
                ch := ' ';
              end else if CharHlp.ItemReadable(sel) or (CharHlp.ItemSpell(sel) <> C_SPELL.NONE) then begin
                Magic.UseItem(sel, done);
-               if GameVars.ifcState <> C_IFC.COMBAT then
+               if GameVars.ifcState <> C_IFC.IN_COMBAT then
                  { outside combat, using an item does not end the menu }
                  done := False;
                if not done then
@@ -1078,12 +1065,10 @@ begin
   end;
 end;
 
-{ Merge into item every other stack of curChar's that can join it (SameStack). Save the next node before merging, since
-  RemoveItem frees the current node. If the total would exceed 255, fill the destination to 255, keep the excess in the
-  current stack, and continue merging into that stack. A readied stack merged away leaves the stack it joins readied:
-  the two are the same item type, so the slot and hands it held pass over, and no more stacks end up readied than
-  before. An unstacked item (quantity 0) is left alone: merging into it would start the count at 0 and lose the item
-  itself. }
+{ Merges every compatible inventory stack into item. Stacks cap at 255; overflow
+  continues in the source stack. Preserve the readied state when a readied stack
+  is removed. Save next before removal because RemoveItem frees the node. Items
+  with quantity zero are not stacks and are left alone. }
 procedure JoinItem(item: Types.PItemRec);
 var
   cur: Types.PItemRec;

@@ -58,7 +58,7 @@ begin
   TestKit.Check(Typed('1') and Typed('2') and Typed('3') and Typed('4'), 'typing to the limit');
   TestKit.CheckEqualsS('DE:\F123', text, 'stops at 8 characters');
   TestKit.Check(not Typed(C_KEYS.ENTER), 'Enter is the caller''s');
-  TestKit.Check(not Typed(C_KEYS.ESC), 'Escape is the caller''s');
+  TestKit.Check(not Typed(C_KEYS.ESCAPE), 'Escape is the caller''s');
   TestKit.Check(not Moved(C_KEYS.F10), 'F10 is the caller''s');
   TestKit.Done;
 end.

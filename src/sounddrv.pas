@@ -1,9 +1,8 @@
-{ The game's sound controls and clock delays, over whichever driver GameBoot installed in GameVars.sound (the speaker,
-  the Tandy's SN76489, the AdLib's OPL2 or the Sound Blaster). SoundCommand selects tunes, output gating and optional
-  per-command cleanup. SoundSuspend saves the mode and silences the devices; PlayMusic and StopMusic start and end a
-  piece of music; SoundSetAutoStop controls the timer driver's lifetime. The timer stays hooked while a resident window
-  (auto-stop 0), a sound command or the music needs it. SOUNDDRV.OBJ owns the timer sequencer, streams and device voice
-  state; GameVars holds the current and saved modes and the auto-stop setting. }
+{ Common sound controls and timing routines. GameBoot selects the active driver
+  in GameVars.sound: PC speaker, Tandy, AdLib, or Sound Blaster.
+
+  SOUNDDRV.OBJ owns the timer-based sequencer and device state. The timer stays
+  installed while music, a sound command, or a resident window needs it. }
 {$F+}
 {$I COMPILER.INC}
 unit SoundDrv;
@@ -13,79 +12,68 @@ interface
 var
   { Copy of soundMode taken at suspend so the configured mode is not lost. }
   soundSaved: Byte;
-  { Nonzero: SoundDrv.SoundCommand waits a fixed delay after each command, then silences the voices and removes its
-    timer. Zero leaves the timer driver resident for persistent playback. }
+  { A nonzero value makes SoundCommand clean up after each command. Zero keeps
+    the timer handler installed for persistent playback. }
   soundAutoStop: Word;
 
-{ Provides the time base for SoundDelay by reading the DOS clock.
-  @returns(Clock time in centiseconds.) }
+{ Returns the DOS clock in centiseconds for SoundDelay. }
 function SoundTime: LongInt;
 
-{ Paces sound cleanup. While the timer driver is hooked, counts its own ticks, so the wait does not depend on the DOS
-  clock, midnight or the BIOS handler the driver chains. Otherwise busy-waits against SoundTime, ending early if a clock
-  sample precedes the starting value or after MAX_CLOCK_PASSES samples, so neither a clock discontinuity nor a stopped
-  clock can prolong the wait.
-  @param(centiseconds Number of centiseconds to wait.) }
+{ Waits for the requested number of centiseconds. Use the sound driver's ticks
+  while its timer handler is installed. Otherwise poll the DOS clock, with
+  guards against midnight rollover, clock jumps, and a stopped clock. }
 procedure SoundDelay(centiseconds: Word);
 
-{ Single entry point for sound effects: mutes or restores output, silences the devices, or starts a tune on whichever
-  device is configured. Does nothing when sound is disabled. Every command but CMD_ENABLE ends the music, which does not
-  resume. With auto-stop on, hooks the timer driver first, then waits 10 centiseconds before silencing both devices and
-  unhooking it.
-  @param(cmd 0 silences both devices and disables output, 1 enables output, 255 silences both devices; other values
-    select tune cmd minus one for the active device.) }
+{ Handles a sound-effect command for the active device. CMD_DISABLE mutes and
+  silences both devices, CMD_ENABLE restores output, and CMD_STOP only silences
+  them. Other values select tune cmd - 1. Commands other than Enable stop any
+  music currently playing. Auto-stop mode removes the timer after a short delay. }
 procedure SoundCommand(cmd: Word);
 
-{ SoundCommand(cmd) for a sound effect of kind group (C_SOUND.GROUP_FOOTSTEPS..), when the Settings screen has that kind
-  on (GameVars.soundGroups). }
+{ Plays cmd when the requested sound-effect group is enabled in Settings. }
 procedure SoundEffect(cmd: Word; group: Byte);
 
-{ Remembers the configured mode and, unless sound is disabled, ends the music, hooks the timer driver, silences both
-  devices and unhooks it again so the game can leave sound idle. }
+{ Saves the configured mode and leaves the sound hardware idle. }
 procedure SoundSuspend;
 
-{ Starts a piece of music on the configured device and keeps the timer driver hooked while it plays. The piece ends by
-  itself, or earlier at StopMusic or the next sound effect. Does nothing when sound is disabled, the Music setting is
-  off or the tune's own setting is (GameVars.musicGroups).
-  @param(tune A music tune, C_SOUND.MUSIC_TITLE and on.) }
+{ Starts a music tune and keeps the timer handler installed while it plays.
+  Does nothing when sound, music, or that tune's music group is disabled. A
+  sound effect or StopMusic ends the tune early. }
 procedure PlayMusic(tune: Word);
 
-{ Ends the music now and silences the configured device; unhooks the timer driver unless a resident window holds it. }
+{ Stops the music and removes the timer handler unless a resident window still
+  needs it. }
 procedure StopMusic;
 
-{ @returns(True while the piece PlayMusic started is still playing.) }
+{ Returns True while the tune started by PlayMusic is still running. }
 function MusicPlaying: Boolean;
 
 { Ends the music when the Music setting, or the playing tune's own, is now off. }
 procedure ApplyMusicSettings;
 
-{ Chooses between a resident timer driver with persistent playback and per-command cleanup that unhooks the driver after
-  each sound.
-  @param(autoStop Zero installs the timer; nonzero enables fixed-delay cleanup, and a zero-to-nonzero change
-    uninstalls it unless music is playing. When sound is disabled the setting is left unchanged.) }
+{ Selects persistent playback or per-command cleanup. Zero installs the timer
+  handler. A nonzero value removes it after each sound and immediately removes
+  an idle persistent handler. Sound-disabled mode leaves the setting alone. }
 procedure SoundSetAutoStop(autoStop: Word);
 
-{ Loads a tune into the PC-speaker voices, for the speaker's driver (SndSpk).
-  @param(tuneId Tune to play; SILENT_TUNE, or an id past the song table, silences the voices.) }
+{ Loads tuneId into the PC-speaker voices. SILENT_TUNE and invalid IDs silence
+  the voices. }
 procedure ProgramSpeakerVoices(tuneId: Word);
 
-{ Loads a tune into the Tandy SN76489 voices, for the Tandy's driver (SndTdy).
-  @param(tuneId Tune to play; SILENT_TUNE, or an id past the song table, silences the voices.) }
+{ Loads tuneId into the Tandy voices. SILENT_TUNE and invalid IDs silence the
+  voices. }
 procedure ProgramTandyVoices(tuneId: Word);
 
-{ Writes one AdLib (OPL2) register, with the waits the chip needs after the address and the data, for the AdLib's driver
-  (SndOpl).
-  @param(reg The register, 01h to 0F5h.)
-  @param(value Its new value.) }
+{ Writes an OPL2 register, including the required delays after the address and
+  data writes. }
 procedure OplWrite(reg, value: Word);
 
-{ Clears every OPL2 register and sets up the AdLib's voices: the tone patch on channels 0 to 2 and the noise patch on
-  channel 3, all silent, for SndOpl once the chip is found. }
+{ Clears the OPL2 and installs the initial silent patches: tones on channels
+  0..2 and noise on channel 3. }
 procedure OplReset;
 
-{ Chooses the device the timer driver steps and writes, for a driver that plays some sounds on another device (an effect
-  on the speaker beside AdLib music). Leaving the AdLib silences it, and leaving the speaker drops its gate.
-  @param(mode A C_SOUND mode; MODE_DISABLED steps none.) }
+{ Selects the device driven by the timer handler. This allows, for example,
+  AdLib music with PC-speaker effects. Leaving a device also silences it. }
 procedure SetSoundDevice(mode: Word);
 
 implementation
@@ -144,21 +132,19 @@ procedure OplWrite(reg, value: Word); external;
 
 procedure OplReset; external;
 
-{ Gates the sound output without disturbing the loaded tune.
-  @param(enabledValue OUTPUT_ENABLED or OUTPUT_DISABLED; only the low byte is used.) }
+{ Enables or disables output without changing the loaded tune. Only the low
+  byte of enabledValue is used. }
 procedure SetSoundOutputEnabled(enabledValue: Word); external;
 
-{ The timer driver's tick count, which wraps at 65536.
-  @returns(Ticks the timer interrupt has run while hooked.) }
+{ Returns the timer interrupt's tick count, which wraps at 65536. }
 function SoundTimerTicks: Word; external;
 
-{ @returns(True while the timer driver owns the timer interrupt.) }
+{ Returns True while the timer handler is installed. }
 function SoundTimerHooked: Boolean; external;
 
 procedure SetSoundDevice(mode: Word); external;
 
-{ @param(voice A voice, 0 to 3.)
-  @returns(The tune that voice is still playing, 0 once its stream has ended.) }
+{ Returns the tune still playing on voice 0..3, or zero after its stream ends. }
 function SoundVoiceTune(voice: Word): Word; external;
 {$ENDIF}
 
@@ -257,8 +243,8 @@ begin
   soundAutoStop := autoStop;
 end;
 
-{ The GameVars.musicGroups bit of tune: C_SOUND.GROUP_TITLE_MUSIC or GROUP_BATTLE_MUSIC, or 0 for a tune with no setting
-  of its own. }
+{ Returns the Settings bit for tune, or zero when the tune has no independent
+  music setting. }
 function TuneGroup(tune: Word): Byte;
 begin
   case tune of
@@ -312,8 +298,9 @@ begin
     SoundDrv.StopMusic;
 end;
 
-{ Unhooks the timer on every way out of the program, Halt and run-time errors included: an INT 8 vector left pointing
-  into a program that has ended crashes DOS at the next tick. }
+{ Always remove the timer handler when the program exits, including after Halt
+  or a run-time error. Leaving INT 8 pointed into an unloaded program would
+  crash DOS on the next tick. }
 procedure SoundExit;
 begin
   ExitProc := soundExitSaved;

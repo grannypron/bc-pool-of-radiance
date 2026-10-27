@@ -13,11 +13,10 @@ uses Types, GameDefs, GameVars, Crt, TextRend, Blit, Border, C_SOUND, SoundDrv, 
   {$IFDEF FPC}, TpRand, GameDirs{$ENDIF};
 
 const
-  { title picture 2's lightning: a chance of one in FLASH_TICKS on each timer tick (18.2 a second), so a flash comes
-    about every 16 seconds. SSI paced it by loop passes, adding Random(4) a pass and flashing past 50,000; under
-    DOSBox's default 3,000 cycles the loop makes about 2,090 passes a second (measured in DOSBox-X: 10,464 in five
-    seconds), so about 16 seconds, 290 ticks, to a flash. The native build, which sleeps a millisecond a pass, never
-    reached it, and a fast DOS machine flashed far more often (#1011). }
+  { Give title picture 2 a one-in-FLASH_TICKS chance to flash on each 18.2 Hz
+    timer tick, averaging about 16 seconds. SSI tied this to loop speed, which
+    made native builds flash too slowly and fast DOS machines flash too often
+    (#1011). }
   FLASH_TICKS = 290;
 
 { Show the credits screen for 10 seconds or until a keypress; a key still pending from the title ends it at once. }
@@ -62,10 +61,10 @@ begin
   TextRend.DelayOrKey(10);
 end;
 
-{ Show the Brazen Crows picture (RAVFULL.DAX, skipped when the file is missing) for 2 seconds, then TITLE picture 1 for
-  5 seconds or until a key, with the game directory blanked while loading. With the full intro, show picture 2 for
-  another 5 seconds, flashing EGA palette register 1 now and then (FLASH_TICKS), then the credits. No screen reads the
-  key, so one key ends the screen it is pressed on and every screen after it; FixMain discards it afterwards. }
+{ Runs the introduction sequence. RAVFULL.DAX is optional; the title and credit
+  screens continue without it. In full-intro mode the second title picture
+  occasionally flashes its EGA palette. A key skips the current and remaining
+  screens, then FixMain discards it. }
 procedure Introduction;
 var
   pic: Types.PImgBuf;

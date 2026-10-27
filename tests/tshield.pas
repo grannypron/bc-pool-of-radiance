@@ -11,7 +11,7 @@ var
 { The damage left after Shield sees spell's hit of 7. }
 function DamageLeft(spell: Byte): Integer;
 begin
-  GameVars.currentSpellBeing := spell;
+  GameVars.spellId := spell;
   GameVars.pendingDamage := 7;
   EffHndlr.EffShield(c, nil, False);
   DamageLeft := GameVars.pendingDamage;

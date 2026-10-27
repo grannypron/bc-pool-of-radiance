@@ -28,7 +28,7 @@ var
   quickLoadAsked: Boolean;
   { 0 when an ECL script has written a message to the bottom text window; Explore.MapMainMenu clears that window on its
     way out and sets it back to 1 }
-  bottomMsgCleared: Byte;
+  bottomMessageCleared: Byte;
 
 { Put the doors in a new game's state, every way of opening one (bash, pick, knock) still to try
   (GameInit.ResetGameState). }
@@ -462,9 +462,9 @@ begin
     until done;
   end;
   GameVars.locTypePrev := GameVars.gLocType;
-  if bottomMsgCleared = 0 then begin
+  if bottomMessageCleared = 0 then begin
     Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
-    bottomMsgCleared := 1;
+    bottomMessageCleared := 1;
   end;
   MapMainMenu := c;
 end;
@@ -535,10 +535,10 @@ begin
             GameVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
   end;
   Portrait.FreeAnimation(GameVars.animData);
-  Blit.FreePic(GameVars.portraitCache[1].pic);
-  Blit.FreePic(GameVars.portraitCache[2].pic);
-  GameVars.portraitCache[1].pictureId := 255;
-  GameVars.portraitCache[2].pictureId := 255;
+  Blit.FreePic(GameVars.portraits[1].pic);
+  Blit.FreePic(GameVars.portraits[2].pic);
+  GameVars.portraits[1].pictureId := 255;
+  GameVars.portraits[2].pictureId := 255;
 end;
 
 procedure ResetGame;
@@ -548,5 +548,5 @@ end;
 
 begin
   quickLoadAsked := False;
-  bottomMsgCleared := 0;
+  bottomMessageCleared := 0;
 end.

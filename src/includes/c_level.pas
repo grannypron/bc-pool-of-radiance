@@ -17,7 +17,7 @@ const
   { the highest level the experience tables reach (Types.TRuleXp.xp) }
   LEVEL_LAST = 9;
   { One bit per slot, 1 shl the slot: the class masks CharHlp.GetClassLevel takes and TCharExt.formerClasses holds.
-    (GameDefs.classBit is the training hall's, which gives several classes one bit.) }
+    (GameDefs.classBits is the training hall's, which gives several classes one bit.) }
   CLERIC_BIT = $01;
   DRUID_BIT = $02;
   FIGHTER_BIT = $04;

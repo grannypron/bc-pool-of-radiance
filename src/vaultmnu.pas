@@ -7,11 +7,10 @@ interface
 
 uses Types;
 
-{ The vault's menu, entered from the New Phlan script (C_GBVM.ENTER_SHOP set to 2, then a COMBAT with no monsters): the
-  merchant's greeting, then View (where Drop deposits), Take (money and items, while there are any), Pool, Share (while
-  there is money) and Exit. Its money and items are the treasure pool, read from the session vault on entry and written
-  back on Exit. A vault that could not be written keeps them, here to take back, unless the party leaves anyway (the
-  session vault is then as it was on entry). }
+{ Runs the vault menu entered by New Phlan's script. Load the session vault into
+  the shared treasure pool, then offer View/Deposit, Take, Pool, Share, and Exit.
+  Save the pool back on exit. If writing fails, leave the items available so the
+  player can take them back; leaving anyway preserves the old session vault. }
 procedure VaultMenu;
 
 implementation

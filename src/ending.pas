@@ -30,7 +30,7 @@ begin
     Portrait.FreeAnimation(a);
     Exit;
   end;
-  Blit.BlitTileClipped(col - 1, row - 1, 0, 0, a.frames[1].pic, GameVars.viewImageBufferPtr);
+  Blit.BlitTileClipped(col - 1, row - 1, 0, 0, a.frames[1].pic, GameVars.viewBuffer);
   Blit.FlushView;
   repeat
     Portrait.DisplayImageBuf(col, row, True, a.frames[a.current].pic);
@@ -63,7 +63,7 @@ var
   cycles: Byte;
 begin
   cycles := Word(10 - GameVars.gameDelay) * 5 div 2;
-  Str(GameVars.virtualDisk, finalSfx);
+  Str(GameVars.diskIndex, finalSfx);
   savedIfc := GameVars.ifcState;
   GameVars.ifcState := C_IFC.WON_GAME;
   finalPic := nil;
@@ -73,21 +73,21 @@ begin
   TextRend.DisplayString(1, 19, LightGreen, 'from the dragon''s body.');
   CharDisp.DisplayNoncombatInterface;
   Blit.LoadPic('FINAL' + finalSfx, 1, False, 0, finalPic);
-  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GameVars.viewImageBufferPtr);
+  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GameVars.viewBuffer);
   Ending.PlayFinalAnim(3, 5, 2, cycles);
   Blit.LoadPic('FINAL' + finalSfx, 3, False, 0, finalPic);
-  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GameVars.viewImageBufferPtr);
+  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GameVars.viewBuffer);
   if GameVars.zone1^[C_GBVM.PARTY_SIZE] > 1 then begin
     Blit.LoadPic('FINAL' + finalSfx, 4, False, 0, finalPic);
-    Blit.BlitTileClipped(0, 11, 0, 0, finalPic, GameVars.viewImageBufferPtr);
+    Blit.BlitTileClipped(0, 11, 0, 0, finalPic, GameVars.viewBuffer);
   end;
   if GameVars.zone1^[C_GBVM.PARTY_SIZE] > 2 then begin
     Blit.LoadPic('FINAL' + finalSfx, 5, False, 0, finalPic);
-    Blit.BlitTileClipped(13, 9, 0, 0, finalPic, GameVars.viewImageBufferPtr);
+    Blit.BlitTileClipped(13, 9, 0, 0, finalPic, GameVars.viewBuffer);
   end;
   if GameVars.zone1^[C_GBVM.PARTY_SIZE] > 3 then begin
     Blit.LoadPic('FINAL' + finalSfx, 6, False, 0, finalPic);
-    Blit.BlitTileClipped(0, 9, 0, 0, finalPic, GameVars.viewImageBufferPtr);
+    Blit.BlitTileClipped(0, 9, 0, 0, finalPic, GameVars.viewBuffer);
   end;
   TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, '"Fools, you have but slain the body');

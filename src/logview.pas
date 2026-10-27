@@ -1,6 +1,7 @@
-{ The combat log's page (#841): CbtLog's messages, oldest at the top and newest at the bottom, each wrapped to the
-  page's width with its colours, a page of lines at a time. Overlaid: it loads only when the page opens. Nothing here
-  knows the game: the caller gives the title, and redraws its own screen afterwards. }
+{ Displays the combat log one page at a time (#841), preserving each message's
+  colors while wrapping it to the page width. This overlaid unit is loaded only
+  when the page opens. The caller supplies the title and redraws its own screen
+  afterward. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit LogView;
@@ -9,9 +10,9 @@ interface
 
 uses Types;
 
-{ Show the combat log under title until Exit or Escape, opened at its end. Up and Down (the arrows, or the bottom line's
-  Up and Down) scroll it a line, Page Up and Page Down a page; Top (or Home) goes to its start and End (N, or the End
-  key) to its end. }
+{ Shows the log under title until Exit or Escape, initially positioned at the
+  newest entry. Arrow keys scroll by line, Page Up/Down by page, and Home/End
+  jump to the beginning or end. }
 procedure ShowLog(title: Types.TStr40);
 
 implementation
@@ -139,8 +140,8 @@ begin
       case ch of
         C_KEYS.UP: LogView.ScrollTo(top - 1);
         C_KEYS.DOWN: LogView.ScrollTo(top + 1);
-        C_KEYS.PGUP: LogView.ScrollTo(top - PAGE_ROWS);
-        C_KEYS.PGDN: LogView.ScrollTo(top + PAGE_ROWS);
+        C_KEYS.PAGE_UP: LogView.ScrollTo(top - PAGE_ROWS);
+        C_KEYS.PAGE_DOWN: LogView.ScrollTo(top + PAGE_ROWS);
         C_KEYS.HOME: LogView.ScrollTo(1);
         C_KEYS.END_KEY: LogView.ScrollTo(total);
       end

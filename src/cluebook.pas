@@ -1,18 +1,13 @@
-{ The Clue Book's map keys on the Companion Tools' map (#856): each 3D area's numbered keys, on the squares where the
-  Clue Book's map of the area prints their numbers, in the book's own words shortened to fit. A note is the key's name
-  without its number (#878), which means nothing off the book's page, but with the book's 'Maze' or 'Tower' where an
-  area holds part of another's map, as 'Maze: Teleporters'; the teleporter keys of the Pool of Radiance (A0, B1 and so
-  on) keep their labels, which the keys name one another by. A key printed at several places is on each of them; a
-  number printed across a grid line is on each square it straddles. The keys are the book's, not the player's:
-  MapNotes keeps the player's notes apart, and nothing here is saved. The table is string literals in code, as the
-  Journal's text is, so it lives in the overlay and costs no data segment.
+{ Supplies the numbered Clue Book locations shown on the Companion Tools map
+  (#856). Labels use the book's wording, shortened to fit. Repeated labels are
+  attached to every matching square, and a number printed across a grid line is
+  attached to both squares. These built-in labels are separate from the
+  player's saved MapNotes.
 
-  The coordinates were read off the book's maps (the 1988 Clue Book's grid is the game's own: x across from 0 at the
-  left, y down from 0 at the top) and checked against each area's GEO walls and event squares, and the scripts where a
-  label sat between two rooms. Where the book draws a room a square off the game's, the key is on the game's square,
-  and the area's comment says so. Keys go by GEO map, not script: the maps the book draws as one (Valjevo's maze, the
-  inner tower's lower level) are split over the maps that hold them. The wilderness, which has its own map, and the
-  scripts with no GEO map (City Hall, the Training Hall, the silver dragon's den) have none. }
+  Coordinates come from the 1988 Clue Book maps and were checked against the
+  game's GEO walls, events, and scripts. They use the game's 0-based grid, with
+  x increasing right and y increasing down. Entries are keyed by GEO map rather
+  than script because some printed maps span several game maps. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit ClueBook;

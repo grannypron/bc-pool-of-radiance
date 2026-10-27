@@ -92,7 +92,7 @@ begin
   b^.enabled := 1;
   CheckSpared(0, False, False, 'a plain creature');
   CheckSpared(C_EFFECT.ANIMATE_DEAD, True, True, 'animated dead');
-  CheckSpared(C_EFFECT.STINK_COUGH, True, True, 'one coughing already');
+  CheckSpared(C_EFFECT.STINKING_CLOUD_COUGH, True, True, 'one coughing already');
   CheckSpared(C_EFFECT.NO_PARA_POISON, True, True, 'one immune to paralysis and poison');
   CheckSpared(C_EFFECT.NO_CHARM_POISON, True, True, 'one immune to charm and poison');
   CheckSpared(C_EFFECT.HELPLESS, False, True, 'one nauseated already, who may still walk in');

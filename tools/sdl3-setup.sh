@@ -1,22 +1,21 @@
 #!/usr/bin/env bash
 #
-# sdl3-setup.sh -- download and build the SDL3 libraries the native build links into the game.
+# Download and build the pinned SDL3 libraries used by native builds.
 #
 #   tools/sdl3-setup.sh            build SDL3 for this host and the cross targets fpc-setup.sh builds compilers for
 #   tools/sdl3-setup.sh --print    print the folder SDL3 is (or would be) installed in, and stop
 #
-# build/toolchain names the version ("sdl3=<version>"). Each target installs into $FPC_PREFIX/sdl3-<version>/<target>
-# (FPC_PREFIX is ~/fpc unless set), a static library where the platform allows it so the game is a single file:
+# build/toolchain selects the SDL version. Each target installs below $FPC_PREFIX/sdl3-<version>/<target>, using
+# ~/fpc as the default prefix. Static libraries keep the Linux and macOS game builds self-contained:
 #   x86_64-linux    lib/libSDL3.a
 #   i386-win32      lib/libSDL3.a (mingw), and bin/SDL3.dll as the fallback
 #   x86_64-win64    lib/libSDL3.a (mingw), and bin/SDL3.dll as the fallback
 #   aarch64-darwin  lib/libSDL3.a (on an Apple Silicon Mac; there is no Intel Mac target)
 # A target already built is skipped.
 #
-# The build needs cmake and ninja. Linux takes them from its packages. A Mac has neither unless someone installed them,
-# so when either is missing there, the pinned release below is downloaded, checked against its SHA-256 (Kitware's and
-# ninja's published release files) and kept in $FPC_PREFIX/tools/bin, which a later run finds; nothing outside
-# FPC_PREFIX is changed.
+# The build requires CMake and Ninja. Linux uses the system packages. On macOS, missing tools are downloaded at the
+# pinned versions, verified against their published SHA-256 sums, and stored under $FPC_PREFIX/tools/bin. Nothing
+# outside FPC_PREFIX is changed.
 
 set -euo pipefail
 
@@ -38,7 +37,7 @@ case "$(uname -s)-$(uname -m)" in
     *) echo "sdl3-setup.sh: no recipe for this host." >&2; exit 1 ;;
 esac
 
-# macOS: cmake and ninja from their releases when they are not on PATH (the Forgejo runner's account has neither)
+# The Forgejo macOS runner has neither tool on PATH, so install private copies when needed.
 if [ "$(uname -s)" = Darwin ]; then
     bin="$prefix_root/tools/bin"
     cmake_sha=330b9514f5112e5ed4fb08b8b05803b776fd9b539a6ae12927d14dcc0ee2ba8d
@@ -98,7 +97,7 @@ if [ ! -f "$source/CMakeLists.txt" ]; then
     rm -rf "$source.download"
 fi
 
-# Both a static and a shared library: the static one goes into the game, the shared one is the fallback on Windows.
+# Build both forms. Linux and macOS use the static library; Windows ships the DLL.
 common=(-G Ninja -DCMAKE_BUILD_TYPE=Release -DSDL_STATIC=ON -DSDL_SHARED=ON -DSDL_TEST_LIBRARY=OFF
         -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF -DSDL_INSTALL_DOCS=OFF)
 

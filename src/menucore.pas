@@ -54,13 +54,13 @@ var
   { Called on every pass of MenuHorizontal's key wait while set; combat sets it to animate the spell-aim preview. }
   idleHook: Types.TIdleProc;
 
-{ Return member n (0-based) of list, or nil when the list is shorter. }
+{ Returns zero-based member n, or nil when the list is shorter. }
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 
-{ The position of member in list, from 0 (FindListMember's inverse); -1 when it is not there. }
+{ Returns member's zero-based position, or -1 when it is not in list. }
 function ListIndex(list, member: Types.PItemRec): Integer;
 
-{ Return the number of members in list. }
+{ Returns the number of members in list. }
 function ListCount(list: Types.PItemRec): Integer;
 
 { The lines of list a MenuVertical box from ulRow to lrRow shows at once: every row of it, or, under fullPaging (paged)
@@ -95,14 +95,14 @@ function MenuVertical(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; ulCol,
                       list: Types.PItemRec; addExit: Boolean; var redraw: Boolean; var idx: Integer;
                       var sel: Types.PItemRec): Char;
 
-{ Ask a Yes/No question on the bottom line until Y or N is chosen; returns 'Y' or 'N'. }
+{ Prompts for Yes or No and returns 'Y' or 'N'. }
 function YesNoMenu(query: Types.TStr40; qCol, mCol, hlCol: Byte): Char;
 
-{ Add a menu line (a TMenuNode: name, inUse = title, next) after tail, or as head when the list is empty, and make it
-  the new tail. }
+{ Appends a display line and updates head/tail. inUse marks title rows. }
 procedure AppendMenuLine(var head, tail: Types.PItemRec; name: Types.TStr40; title: Boolean);
 
-{ Build a list of n empty members; the head is allocated even when n < 1. }
+{ Allocates n empty list nodes. Historical behavior allocates the head even
+  when n is less than 1. }
 procedure AllocStringList(n: Integer; var list: Types.PItemRec);
 
 { Free every member. The caller's list pointer is left dangling, not set to nil. }
@@ -179,7 +179,7 @@ function HorizontalMenu(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; rein
                         var ext: Boolean): Char;
 const
   { keypad digits 1..9 to scan codes, indexed by Ord(ch) - Ord('1') }
-  keypadScan: array[0..8] of Byte = (
+  keypadScanCodes: array[0..8] of Byte = (
     79, 80, 81, 75, 32, 77, 71, 72, 73);
 var
   frameTick: LongInt;
@@ -259,7 +259,7 @@ var
   { Outside combat, show msg on the bottom line until a key, then the menu again; in combat, nothing. }
   procedure Unavailable(msg: Types.TStr40);
   begin
-    if GameVars.ifcState <> C_IFC.COMBAT then begin
+    if GameVars.ifcState <> C_IFC.IN_COMBAT then begin
       TextRend.DisplayAndPause(Yellow, msg);
       TextRend.ClearBottomLine;
       RedrawLine;
@@ -341,7 +341,7 @@ begin
       end else
         case ch of
           { Escape returns #0. }
-          C_KEYS.ESC: begin
+          C_KEYS.ESCAPE: begin
                  done := True;
                  ch := C_KEYS.NONE;
                end;
@@ -375,7 +375,7 @@ begin
                   { keypad-'*' scan code, not ASCII '7' }
                   ch := #55
                 else
-                  ch := Char(keypadScan[Ord(ch) - Ord('1')]);
+                  ch := Char(keypadScanCodes[Ord(ch) - Ord('1')]);
                 ext := True;
                 done := True;
               end;
@@ -479,7 +479,7 @@ var
     pp := MenuCore.FindListMember(n, list);
     a := FirstNonBlank(pp^.name);
     b := LastNonBlank(pp^.name) - a + 1;
-    TextRend.DisplayString(ulCol + a - 1, ulRow + (n - GameVars.vertTop), hlCol, Copy(pp^.name, a, b));
+    TextRend.DisplayString(ulCol + a - 1, ulRow + (n - GameVars.verticalMenuTop), hlCol, Copy(pp^.name, a, b));
   end;
 
   { Redraw the text of member n, without its surrounding blanks, in its normal color. }
@@ -493,9 +493,9 @@ var
     a := FirstNonBlank(pp^.name);
     b := LastNonBlank(pp^.name) - a + 1;
     if pp^.inUse <> 0 then
-      TextRend.DisplayString(ulCol + a - 1, ulRow + (n - GameVars.vertTop), qCol, Copy(pp^.name, a, b))
+      TextRend.DisplayString(ulCol + a - 1, ulRow + (n - GameVars.verticalMenuTop), qCol, Copy(pp^.name, a, b))
     else
-      TextRend.DisplayString(ulCol + a - 1, ulRow + (n - GameVars.vertTop), mCol, Copy(pp^.name, a, b));
+      TextRend.DisplayString(ulCol + a - 1, ulRow + (n - GameVars.verticalMenuTop), mCol, Copy(pp^.name, a, b));
   end;
 
   { Move idx off label rows in the given direction, wrapping within the visible page; gives up after a page of rows. }
@@ -509,18 +509,18 @@ var
             and (MenuCore.FindListMember(idx, list)^.inUse <> 0) do begin
         Inc(k);
         Inc(idx);
-        if GameVars.vertTop + rows - 1 < idx then
-          idx := GameVars.vertTop;
+        if GameVars.verticalMenuTop + rows - 1 < idx then
+          idx := GameVars.verticalMenuTop;
         if count - 1 < idx then
-          idx := GameVars.vertTop;
+          idx := GameVars.verticalMenuTop;
       end;
     end else
       while (k < rows)
             and (MenuCore.FindListMember(idx, list)^.inUse <> 0) do begin
         Inc(k);
         Dec(idx);
-        if idx < GameVars.vertTop then
-          idx := GameVars.vertTop + rows - 1;
+        if idx < GameVars.verticalMenuTop then
+          idx := GameVars.verticalMenuTop + rows - 1;
         if count - 1 < idx then
           idx := count - 1;
       end;
@@ -531,19 +531,19 @@ var
   var
     rel: Integer;
   begin
-    rel := idx - GameVars.vertTop;
+    rel := idx - GameVars.verticalMenuTop;
     if down then begin
-      Inc(GameVars.vertTop, rows);
-      if count - rows < GameVars.vertTop then
-        GameVars.vertTop := count - rows;
+      Inc(GameVars.verticalMenuTop, rows);
+      if count - rows < GameVars.verticalMenuTop then
+        GameVars.verticalMenuTop := count - rows;
     end else begin
-      Dec(GameVars.vertTop, rows);
-      if GameVars.vertTop < 0 then
-        GameVars.vertTop := 0;
+      Dec(GameVars.verticalMenuTop, rows);
+      if GameVars.verticalMenuTop < 0 then
+        GameVars.verticalMenuTop := 0;
     end;
-    idx := GameVars.vertTop + rel;
+    idx := GameVars.verticalMenuTop + rel;
     SkipLabels(down);
-    DrawPage(GameVars.vertTop);
+    DrawPage(GameVars.verticalMenuTop);
   end;
 
   { Move the cursor one line, wrapping within the visible page and clamped to the list, then skip label rows. }
@@ -551,14 +551,14 @@ var
   begin
     if down then begin
       Inc(idx);
-      if GameVars.vertTop + rows - 1 < idx then
-        idx := GameVars.vertTop;
+      if GameVars.verticalMenuTop + rows - 1 < idx then
+        idx := GameVars.verticalMenuTop;
       if count - 1 < idx then
-        idx := GameVars.vertTop;
+        idx := GameVars.verticalMenuTop;
     end else begin
       Dec(idx);
-      if idx < GameVars.vertTop then
-        idx := GameVars.vertTop + rows - 1;
+      if idx < GameVars.verticalMenuTop then
+        idx := GameVars.verticalMenuTop + rows - 1;
       if count - 1 < idx then
         idx := count - 1;
     end;
@@ -590,25 +590,25 @@ begin
       p := p^.next;
       Inc(headerCnt);
     end;
-    if GameVars.vertTop > idx then begin
-      GameVars.vertTop := idx;
+    if GameVars.verticalMenuTop > idx then begin
+      GameVars.verticalMenuTop := idx;
       redraw := True;
     end;
-    if GameVars.vertTop > count then begin
-      GameVars.vertTop := 0;
+    if GameVars.verticalMenuTop > count then begin
+      GameVars.verticalMenuTop := 0;
       redraw := True;
     end;
-    { vertTop is every list's: an idx past the list, or below the page, brings the page down to it (#975) }
+    { verticalMenuTop is every list's: an idx past the list, or below the page, brings the page down to it (#975) }
     if idx > count - 1 then
       idx := count - 1;
-    if idx > GameVars.vertTop + rows - 1 then begin
-      GameVars.vertTop := idx - rows + 1;
+    if idx > GameVars.verticalMenuTop + rows - 1 then begin
+      GameVars.verticalMenuTop := idx - rows + 1;
       redraw := True;
     end;
     Inc(idx);
     MoveLine(False);
     if redraw then
-      DrawPage(GameVars.vertTop);
+      DrawPage(GameVars.verticalMenuTop);
     redraw := False;
     if listOnly then begin
       listOnly := False;
@@ -623,11 +623,11 @@ begin
       hMenu := menu;
       hasNext := False;
       hasPrev := False;
-      if paged or (count - rows > GameVars.vertTop) then begin
+      if paged or (count - rows > GameVars.verticalMenuTop) then begin
         hMenu := hMenu + ' Next';
         hasNext := True;
       end;
-      if paged or (GameVars.vertTop > headerCnt) then begin
+      if paged or (GameVars.verticalMenuTop > headerCnt) then begin
         hMenu := hMenu + ' Prev';
         hasPrev := True;
       end;
@@ -638,7 +638,7 @@ begin
       ch := MenuCore.HorizontalMenu(query, hMenu, qCol, mCol, hlCol, True, False, False, ext);
       UnhighlightLine(idx);
       oldIdx := idx;
-      oldTop := GameVars.vertTop;
+      oldTop := GameVars.verticalMenuTop;
       if ext then
         case ch of
           { line up }
@@ -646,15 +646,15 @@ begin
           { line down }
           C_KEYS.END_KEY, C_KEYS.DOWN: MoveLine(True);
           { Page Up = previous page, when Prev is offered }
-          C_KEYS.PGUP: if hasPrev then MovePage(False);
+          C_KEYS.PAGE_UP: if hasPrev then MovePage(False);
           { Page Down = next page, when Next is offered }
-          C_KEYS.PGDN: if hasNext then MovePage(True);
+          C_KEYS.PAGE_DOWN: if hasNext then MovePage(True);
         end else
         case ch of
           { as for Page Up and Page Down, only when the bottom line offers Prev or Next }
           'P': if hasPrev then MovePage(False);
           'N': if hasNext then MovePage(True);
-          C_KEYS.ESC, 'E', C_KEYS.NONE:
+          C_KEYS.ESCAPE, 'E', C_KEYS.NONE:
             begin
               sel := nil;
               MenuVertical := C_KEYS.NONE;
@@ -666,7 +666,7 @@ begin
             Exit;
           end;
         end;
-      if toCaller and ((idx <> oldIdx) or (GameVars.vertTop <> oldTop)) then begin
+      if toCaller and ((idx <> oldIdx) or (GameVars.verticalMenuTop <> oldTop)) then begin
         sel := MenuCore.FindListMember(idx, list);
         moved := True;
         MenuVertical := ch;

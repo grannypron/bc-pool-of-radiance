@@ -1,8 +1,9 @@
-{ Statistics kept per character and per game (#611): kills (in all and by kind), damage done and taken, hit points
-  healed, raises, poisonings, loot and spells. Resident, not overlaid, so counting a blow in combat loads no overlay.
-  Counters are LongInts that stop at MaxLongInt rather than wrap. A party member's block is on the heap, found by its
-  record and name as the usual spells are (SaveLoad); the game's block is here. Both are kept in small files beside the
-  saves: <character>.sts beside a character's file, savgam<x>.sts beside a saved game. }
+{ Per-character and whole-game statistics (#611): kills, damage, healing,
+  raises, poisonings, loot, and spells. This unit stays resident so combat can
+  update counters without loading an overlay. Counters saturate at MaxLongInt.
+
+  Character blocks live on the heap and are saved beside character records.
+  The game-wide block is stored here and saved as savgam<x>.sts. }
 {$F+,I-}
 {$I COMPILER.INC}
 unit Stats;
@@ -56,10 +57,9 @@ function BlockOf(creature: Types.PCharRecord): PStatBlock;
 { Add n to counter stat of creature, when it is a party member, and of the game. }
 procedure Count(creature: Types.PCharRecord; stat: Byte; n: LongInt);
 
-{ CharHlp.InflictDamage's report: victim lost hp hit points to actor (curChar, the creature acting; may be nil), and was
-  up (okay or animated) before it. In combat a party member's blow on a creature outside the party counts as damage
-  done, and its fall as a kill of the victim's kind, in the Bestiary too (#842); a party member's loss counts as damage
-  taken, its fall as knocked down, and its death as died. }
+{ Records damage reported by CharHlp.InflictDamage. Party attacks count damage
+  and kills; party victims count damage taken, knockdowns, and deaths. Enemy
+  kills are also recorded in the Bestiary (#842). actor may be nil. }
 procedure Damaged(actor, victim: Types.PCharRecord; hp: Byte; wasUp: Boolean);
 
 { A party member that died other than by InflictDamage's blow (which Damaged counts): bled to death in combat, or
@@ -221,9 +221,9 @@ begin
     Stats.Count(victim, DAMAGE_TAKEN, hp);
     if down then
       Stats.Count(victim, KNOCKED_DOWN, 1);
-    if victim^.status = C_STATUS.DEAD then
+    if victim^.status = C_STATUS.DEAD_STATUS then
       Stats.Count(victim, DIED, 1);
-  end else if (GameVars.ifcState = C_IFC.COMBAT) and (actor <> victim) and Party.IsPartyMember(actor) then begin
+  end else if (GameVars.ifcState = C_IFC.IN_COMBAT) and (actor <> victim) and Party.IsPartyMember(actor) then begin
     Stats.Count(actor, DAMAGE_DONE, hp);
     if down then begin
       Stats.Count(actor, KILLS, 1);
@@ -244,7 +244,7 @@ end;
 procedure Healed(actor, target: Types.PCharRecord; hp: Byte; byPower: Boolean);
 begin
   Stats.Count(target, HEALED_TAKEN, hp);
-  if byPower or (GameVars.currentSpellBeing <> 0) then
+  if byPower or (GameVars.spellId <> 0) then
     Stats.Count(actor, HEALED_GIVEN, hp);
 end;
 

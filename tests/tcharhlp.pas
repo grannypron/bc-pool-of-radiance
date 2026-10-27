@@ -60,7 +60,7 @@ begin
   TestKit.Check(Person('GRISHNAK', C_RACE.MONSTER, 0, $01), 'and Grishnak');
   TestKit.Check(Person('LIZARDMAN', C_RACE.MONSTER, 0, $01), 'and a lizard man');
   TestKit.Check(Person('ACOLYTE', C_RACE.MONSTER, 0, $01), 'and a human whose race byte is 0');
-  TestKit.Check(Person('MACE', C_RACE.HALFORC, 0, $01), 'and a half-orc');
+  TestKit.Check(Person('MACE', C_RACE.HALF_ORC, 0, $01), 'and a half-orc');
   TestKit.Check(Person('TYRANITHRAXUS', C_RACE.HUMAN, 0, $01), 'and the False Tyranthraxus, a hired human');
   TestKit.Check(not Person('TYRANITHRAXUS', C_RACE.MONSTER, 3, $84), 'but not Tyranthraxus the dragon');
   TestKit.Check(not Person('OGRE LEADER', C_RACE.MONSTER, 0, $81), 'nor the ogre leader, Large');
@@ -86,7 +86,7 @@ begin
       SsiCap := (cls = C_LEVEL.FIGHTER) and ((lvl = 7) or ((lvl = 6) and (str = 17)) or ((lvl = 5) and (str < 17)));
     C_RACE.GNOME:
       SsiCap := (cls = C_LEVEL.FIGHTER) and ((lvl = 6) or ((lvl = 5) and (str < 18)));
-    C_RACE.HALFELF:
+    C_RACE.HALF_ELF:
       if (cls = C_LEVEL.CLERIC) and (lvl = 5) then
         SsiCap := True
       else
@@ -114,7 +114,7 @@ const
 begin
   bad := 0;
   for race := C_RACE.DWARF to C_RACE.HUMAN do
-    if race <> C_RACE.HALFORC then
+    if race <> C_RACE.HALF_ORC then
     for k := 1 to 3 do
       for str := 3 to 18 do
         for lvl := 1 to 9 do begin
@@ -255,13 +255,13 @@ begin
   c^.race := C_RACE.HUMAN;
   c^.classLevels[C_LEVEL.FIGHTER] := 8;
   TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'a human has no cap here');
-  c^.race := C_RACE.HALFELF;
+  c^.race := C_RACE.HALF_ELF;
   c^.classLevels[C_LEVEL.CLERIC] := 5;
   TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'a half-elf cleric stops at 5');
 
   { a half-orc's cleric and thief caps by Wisdom and Dexterity (PHB pp. 14-15, #956) }
   ClearCreature;
-  c^.race := C_RACE.HALFORC;
+  c^.race := C_RACE.HALF_ORC;
   c^.wisCur := 14;
   c^.classLevels[C_LEVEL.CLERIC] := 3;
   TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'a half-orc cleric of Wisdom 14 trains past 3');
@@ -318,7 +318,7 @@ begin
   TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'a dwarf fighter 8 whose Strength fell below 17 stays capped');
   { under Enlarge the stored Strength is whole, and a disease's loss (#705) still counts against the cap }
   FillChar(d, SizeOf(d), 0);
-  d.id := C_EFFECT.DISEASE_STR;
+  d.id := C_EFFECT.DISEASE_STRENGTH;
   d.strength := 2 * 16 + 5;
   e.id := C_EFFECT.ENLARGE;
   e.strength := AbilAdj.StrengthModifier(18, 50);
@@ -377,7 +377,7 @@ begin
   GetMem(GameVars.zone1, SizeOf(Types.TGbvmZone1));
   FillChar(GameVars.zone1^, SizeOf(Types.TGbvmZone1), 0);
   GameVars.curChar := nil;
-  GameVars.ifcState := C_IFC.COMBAT;
+  GameVars.ifcState := C_IFC.IN_COMBAT;
   FillChar(cbt, SizeOf(cbt), 0);
   ClearCreature;
   c^.combatAddr := @cbt;
@@ -398,7 +398,7 @@ begin
   TestKit.CheckEqualsL(7, cbt.overkill, 'a hit of 0 leaves it as it was');
   TestKit.Check(c^.status = C_STATUS.DYING, 'and dying');
   CharHlp.InflictDamage(c, 3);
-  TestKit.Check(c^.status = C_STATUS.DEAD, 'past 9 in all it dies');
+  TestKit.Check(c^.status = C_STATUS.DEAD_STATUS, 'past 9 in all it dies');
   GameVars.ifcState := C_IFC.INDOORS;
   FreeMem(GameVars.zone1, SizeOf(Types.TGbvmZone1));
   GameVars.zone1 := nil;

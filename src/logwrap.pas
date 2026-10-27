@@ -1,5 +1,5 @@
-{ Wrapping the combat log's entries (#841, CbtLog) again for a page wider than the combat window, keeping their colour
-  changes. Overlaid, apart from CbtLog: only the log's page (LogView) wraps, so the resident unit stays small. }
+{ Rewraps combat-log entries for the wider LogView page while preserving color
+  changes (#841). Keeping this code overlaid avoids growing resident CbtLog. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit LogWrap;
@@ -15,9 +15,10 @@ type
   TWrapLine = string[WRAP_LEN];
   TWrapLines = array[1..WRAP_LINES] of TWrapLine;
 
-{ Word-wrap entry into lines of at most width characters (not counting colour changes), and return how many. Spaces
-  between words are one space, and none starts a line; a word longer than width is split. Each line starts with the
-  colour in effect where it begins, so it can be drawn alone. Lines past WRAP_LINES are dropped. }
+{ Wraps entry to width visible characters and returns the number of lines.
+  Color codes do not count toward the width, and each line begins with the
+  active color so it can be drawn independently. Long words are split and
+  output beyond WRAP_LINES is discarded. }
 function WrapEntry(entry: string; width: Byte; var lines: TWrapLines): Byte;
 
 implementation

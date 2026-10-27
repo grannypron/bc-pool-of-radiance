@@ -1,30 +1,29 @@
-# The rebuild writes SSI's file formats: run with SSI's own v1.3 as the golden build,
+# Verifies that the reconstruction writes SSI-compatible file formats. Use SSI v1.3 as the golden build:
 #   tests/regress.sh drive_c/POOLRAD/SSI obj tests/scenarios/ssiformat.txt
-# Add Ardith to an empty party and remove him again (the main menu's Remove writes ARDITH.CHA), load
-# saved game A, camp and save it into D (SAVGAMD.DAT and the CHRDATDn .SAV/.ITM/.SPC files), and compare those files.
-# A's party is not on Quick: a loaded party member leaves Quick when "Quick ends with the fight" is on (our default),
-# so a party saved on Quick would differ at the character record's quickfight (271) by design.
-# The two executables want different keys (SSI's save menu is one line, ours a full screen with a description), so
-# the screens are not compared, only the files.
+# Add Ardith to an empty party and remove him again; Remove writes ARDITH.CHA. Then load save A, camp, save to slot D,
+# and compare SAVGAMD.DAT and the CHRDATDn .SAV, .ITM, and .SPC files. Save A is not in Quick mode because the default
+# "Quick ends with the fight" setting clears Quick on loaded characters. A party saved in Quick would therefore differ
+# intentionally at character-record byte 271. The two builds use different save-menu keys, so compare files rather
+# than screens.
 boot NORAND
 screens off
-# heap pointers SSI writes into its records (the rebuild writes 0): the character record's effectsAddr, itemsAddr,
-# the 13 equipped-item pointers, nextCharAddr and combatAddr; an item's next; an effect's next
+# Ignore heap pointers. SSI writes live addresses while the reconstruction writes zero: effectsAddr, itemsAddr, the
+# 13 equipped-item pointers, nextCharAddr, combatAddr, and the next pointers in item and effect records.
 mask *.CHA 127:4 200:4 204:52 260:4 264:4
 mask CHRDAT*.SAV 127:4 200:4 204:52 260:4 264:4
 mask *.ITM every 63 42:4
 mask *.SPC every 9 5:4
-# the party's file names (CHRDATDn, 9 bytes with the length) past their length, and the unused eighth: SSI leaves stack
-# left-overs there, different from one SSI run to the next; the rebuild zeroes them. A's party is six.
+# Ignore bytes after each CHRDATDn filename and the unused eighth filename. SSI leaves varying stack data there; the
+# reconstruction clears it. Save A has six party members.
 mask SAVGAMD.DAT 12818:32 12859:32 12900:32 12941:32 12982:32 13023:32 13055:41 13096:41
-# the area's script (zone 3, $9900..$B6FF): SSI's build saves the copy the loaded game held, ours the area's script as
-# loaded from the data with DataPat's fixes (#609), so it is the data's content, not the file's format; DataPat's
-# tests and the loadsave scenario cover it
+# Ignore saved zone 3 ($9900..$B6FF). SSI saves the copy already in memory, while the reconstruction reloads the area
+# script with DataPat fixes (#609). That difference concerns script content rather than the file format and is covered
+# by the DataPat tests and the loadsave scenario.
 mask SAVGAMD.DAT 5121:7680
 golden: wait CHOOSE A FUNCTION
 candidate: wait RADIANCE
 checkpoint main-menu
-# Add: Add marks Ardith (the first in the list), Exit; then Remove him
+# Add Ardith, the first name in the list, exit the menu, then remove him.
 press a a e
 checkpoint added
 press r
@@ -35,15 +34,16 @@ wait AREA
 press e
 wait CAMP
 press s d
-# ours opens a menu of the slots (D picks it) and asks for a description: Enter takes the default
+# The reconstruction opens a slot menu, where D chooses the slot, then asks for a description. Enter keeps the default.
 candidate: wait ^SAVE: EXIT
 candidate: press ret
-# SSI asks about quitting after a save; ours goes back to the camp menu, its save menu's Quit asking instead (#872)
+# SSI asks about quitting after a save. The reconstruction returns to camp and asks only when Save Menu > Quit is
+# used (#872).
 golden: wait QUIT
 candidate: wait CAMP
 checkpoint saved
 golden: press n
-# SSI's own files only: PoR's sidecars (SAVGAMD.INF, SAVGAMD.STS) are left out, and so is CHARLIST.TXT, whose lines
-# differ by design: a party member stays on ours's roster (#754), where SSI drops Ardith on Add and appends him on
-# Remove
+# Compare only SSI's files. Exclude the reconstruction's SAVGAMD.INF and SAVGAMD.STS sidecars and CHARLIST.TXT.
+# CHARLIST differs intentionally: the reconstruction keeps a party member on the roster (#754), while SSI removes
+# Ardith on Add and appends him again on Remove.
 saves files ARDITH.CHA SAVGAMD.DAT CHRDATD?.SAV CHRDATD?.ITM CHRDATD?.SPC

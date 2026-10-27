@@ -18,7 +18,7 @@ end;
 
 begin
   TestKit.Start('TSAVELAY');
-  TestKit.CheckEqualsL(1, SizeOf(GameVars.virtualDisk), 'the disk number is a byte');
+  TestKit.CheckEqualsL(1, SizeOf(GameVars.diskIndex), 'the disk number is a byte');
   TestKit.CheckEqualsL(2048, SizeOf(GameVars.zone0^), 'zone 0');
   TestKit.CheckEqualsL(2048, SizeOf(GameVars.zone1^), 'zone 1');
   TestKit.CheckEqualsL(1024, SizeOf(GameVars.zone2^), 'zone 2');
@@ -32,7 +32,7 @@ begin
   TestKit.CheckEqualsL(1, SizeOf(GameVars.ifcState), 'ifcState is a byte');
   TestKit.CheckEqualsL(8, Types.MAX_PARTY, 'eight names');
   TestKit.CheckEqualsL(41, SizeOf(Types.TStr40), 'of 41 bytes each');
-  total := SizeOf(GameVars.virtualDisk) + SizeOf(GameVars.zone0^) + SizeOf(GameVars.zone1^) + SizeOf(GameVars.zone2^) +
+  total := SizeOf(GameVars.diskIndex) + SizeOf(GameVars.zone0^) + SizeOf(GameVars.zone1^) + SizeOf(GameVars.zone2^) +
            C_GBVM.SAVED_SCRIPT_BYTES + mapPos + SizeOf(GameVars.gLocType) + SizeOf(GameVars.ifcState) + 1 +
            Types.MAX_PARTY * SizeOf(Types.TStr40);
   TestKit.CheckEqualsL(13137, total, 'a saved game is SSI''s 13,137 bytes');

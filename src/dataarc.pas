@@ -1,7 +1,7 @@
-{ The merged data archives: which per-disk archives each data family gathers into one archive, and the file checks the
-  game and DataBld share. A merged archive is an ordinary DAX archive whose last blocks are the reserved ones named in
-  C_DATA. The file checks open the file read-only, whatever FileMode is, so a read-only file is not taken for a missing
-  one. }
+{ Describes the per-disk archives that make up each merged data family and
+  provides the archive checks shared by the game and DataBld. A merged archive
+  is a normal DAX file with the reserved C_DATA blocks appended. Checks always
+  open files read-only, regardless of FileMode. }
 {$I COMPILER.INC}
 unit DataArc;
 
@@ -18,15 +18,14 @@ type
     packedSize: Word;
   end;
 
-{ The per-disk archive name of a data family's disk, without extension: SourceName(10, 5) = 'MON5CHA'. Empty for a
-  family or disk out of range. }
+{ Returns a per-disk archive name without its extension. For example,
+  SourceName(10, 5) is 'MON5CHA'. Invalid family or disk values return ''. }
 function SourceName(family, disk: Byte): Types.TStr20;
 
-{ The per-disk archive's file name: SourceFile(10, 5) = 'MON5CHA.DAX'. Empty for a family or disk out of range. }
+{ Returns the per-disk archive filename, including .DAX. }
 function SourceFile(family, disk: Byte): Types.TStr20;
 
-{ The merged archive name of a data family, without extension: MergedName(10) = 'MONCHA'. Empty for a family out of
-  range. }
+{ Returns a family's merged archive name without its extension. }
 function MergedName(family: Byte): Types.TStr20;
 
 { The family whose per-disk archive fileName (any case, no extension) names, with that archive's disk,
@@ -37,7 +36,8 @@ function MatchFamily(fileName: Types.TStr20; var disk: Byte): Byte;
   and the file ends exactly where that block does. A file cut short while being written fails this. }
 function ArchiveIntact(path: Types.TPathStr): Boolean;
 
-{ True when the DAX archive at path lists block id. False, with no prompt, when the file cannot be read. }
+{ Returns whether the DAX archive at path lists block id. Read failures return
+  False without prompting for another disk. }
 function HasBlock(path: Types.TPathStr; id: Byte): Boolean;
 
 { The size in bytes of the file at path; -1 when it cannot be opened. }

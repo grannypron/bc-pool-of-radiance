@@ -6,7 +6,7 @@ interface
 
 const
   { Stinking Cloud terrain. The AI avoids it unless the mover is animated, coughing or immune to poison. }
-  STINK_CLOUD = 30;
+  STINKING_CLOUD = 30;
   { Corpse terrain. Save the previous terrain before replacing it; restoration ignores a saved corpse value to avoid
     leaving a second corpse marker. }
   CORPSE = 31;

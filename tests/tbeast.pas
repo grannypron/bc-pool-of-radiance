@@ -1,7 +1,6 @@
-{ Tests for Bestiary (#842): meeting creatures once an encounter, facts learned only from the party's side, the armor
-  class narrowed from attack rolls, the most damage in a blow, kills and hit dice, the full table, and BESTIARY.DAT
-  written and read back, missing, damaged (set aside when next written) and of a newer format (read, never written);
-  and an entry filled in from a creature's record (BeastFil.Tell, the sage's, #868). }
+{ Tests Bestiary discovery, learned combat facts, capacity limits, and
+  BESTIARY.DAT persistence (#842). Also covers damaged and newer-format files,
+  plus the sage filling an entry from a creature record (#868). }
 {$I COMPILER.INC}
 program TBeast;
 
@@ -118,7 +117,7 @@ begin
   { facts: only in combat, only on the party's side }
   Bestiary.Learn(troll, a, C_BEAST.REGENERATES);
   TestKit.Check(not Bestiary.Knows(Troll_^, C_BEAST.REGENERATES), 'nothing is learned outside combat');
-  GameVars.ifcState := C_IFC.COMBAT;
+  GameVars.ifcState := C_IFC.IN_COMBAT;
   Bestiary.Learn(troll, kobold, C_BEAST.REGENERATES);
   TestKit.Check(not Bestiary.Knows(Troll_^, C_BEAST.REGENERATES), 'nor from a monster''s side');
   Bestiary.Learn(a, nil, C_BEAST.REGENERATES);
@@ -137,7 +136,7 @@ begin
   TestKit.Check(Bestiary.Knows(b^, C_BEAST.SIZE_KNOWN) and not Bestiary.Knows(b^, C_BEAST.LARGE), 'not Large');
 
   { armor class: AC = 60 - acCur; a hit with reach r shows AC >= 60 - r, a miss AC <= 59 - r }
-  GameVars.gAttackAvoided := False;
+  GameVars.forcedMiss := False;
   GameVars.gAttackRoll := 12;
   Bestiary.LearnArmor(troll, a, 55, True);
   TestKit.CheckEqualsL(5, Troll_^.acLo, 'a hit bounds the armor class below');
@@ -155,9 +154,9 @@ begin
   GameVars.gAttackRoll := 100;
   Bestiary.LearnArmor(troll, a, 80, True);
   GameVars.gAttackRoll := 12;
-  GameVars.gAttackAvoided := True;
+  GameVars.forcedMiss := True;
   Bestiary.LearnArmor(troll, a, 40, False);
-  GameVars.gAttackAvoided := False;
+  GameVars.forcedMiss := False;
   Bestiary.LearnArmor(kobold, troll, 40, False);
   TestKit.Check((Troll_^.acLo = 6) and (Troll_^.acHi = 6), 'natural 1 and 20, a displaced miss show nothing');
   b := Bestiary.Entry(Bestiary.Find('KOBOLD'));

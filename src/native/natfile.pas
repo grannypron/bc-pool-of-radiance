@@ -1,9 +1,8 @@
-{ The native build's file names as DOS took them: a backslash is a separator, and case does not matter. The game names
-  its files in either case ('pool.cfg', 'POOL.CFG', 'savgam' + letter + '.dat') and the files of a DOS install are in
-  capitals, which a case-sensitive file system (Linux; macOS's can be) tells apart. Each unit that opens a file uses
-  this one last, so its Assign, Rename and MkDir, which find a name's file whatever its case, are the ones it calls; a
-  file or folder that is not there yet is named in capitals, as DOS stored it. Objfpc mode: its routines must have
-  System's own parameters (out, const) to be taken over System's. Free Pascal only. }
+{ Gives native builds DOS-style filename behavior: backslashes are separators
+  and case is ignored. Existing path components are resolved with their actual
+  case; new files and directories use uppercase names. Units import NatFile
+  after System so these Assign, Rename, and MkDir overloads handle their file
+  operations. Free Pascal only. }
 {$MODE OBJFPC}
 {$H-}
 { the callers check IOResult (they are compiled $I-), so an error stays there rather than raising }
@@ -12,11 +11,11 @@ unit NatFile;
 
 interface
 
-{ name as this system has it: separators made '/', and each part that exists in another case given that case; a part
-  that does not exist (a file about to be made) in capitals }
+{ Converts a DOS name to its native path. Existing components keep their actual
+  case; components that do not yet exist are uppercased. }
 function NativeName(const name: ShortString): ShortString;
 
-{ True when a and b are one name to DOS: equal but for case }
+{ Returns whether two names are equal under DOS's case-insensitive rules. }
 function SameName(const a, b: ShortString): Boolean;
 
 procedure Assign(out f: File; const name: ShortString); overload;

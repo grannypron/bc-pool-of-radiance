@@ -14,41 +14,30 @@ unit JrnlList;
 
 interface
 
-{ What kind of item this is.
-  @param(index The item's place in the list.)
-  @returns(One of C_JRNL.KIND_PROCLAMATION, KIND_ENTRY or KIND_TALE, or KIND_NONE outside the list.) }
+{ Returns the kind of the 1-based list item, or KIND_NONE outside the list. }
 function EntryKind(index: Integer): Byte;
 
-{ The number the book gives the item, which the game refers to.
-  @param(index The item's place in the list.)
-  @returns(The number, or 0 outside the list.) }
+{ Returns the number assigned to the item in the printed journal, or 0 outside
+  the list. }
 function EntryNumber(index: Integer): Integer;
 
-{ The item that is proclamation number in the Journal's list.
-  @param(number The proclamation's number, 59 for LIX.)
-  @returns(Its place in the list, or 0 when the Journal holds no such proclamation.) }
+{ Finds a proclamation by its numeric value (59 for LIX). Returns its list
+  index, or 0 when it is not in the Journal. }
 function ProclamationItem(number: Integer): Integer;
 
-{ The item's label for the list column: LIX (a proclamation's numeral), ENTRY 5 or TALE 1, at most 10 characters.
-  @param(index The item's place in the list.)
-  @returns(The label, or an empty string outside the list.) }
+{ Returns the short list label, such as LIX, ENTRY 5, or TALE 1. Labels are at
+  most 10 characters; an invalid index returns an empty string. }
 function EntryLabel(index: Integer): string;
 
 { The item's heading for the title box: PROCLAMATION LIX, JOURNAL ENTRY 11 or TAVERN TALE 1, at most
-  C_JRNL.JOURNAL_WIDTH characters.
-  @param(index The item's place in the list.)
-  @returns(The title, or an empty string outside the list.) }
+  C_JRNL.JOURNAL_WIDTH characters. An invalid index returns an empty string. }
 function EntryTitle(index: Integer): string;
 
-{ The number of display lines the item's text takes.
-  @param(index The item's place in the list.)
-  @returns(The line count, or 0 outside the list.) }
+{ Returns the item's display-line count, or 0 outside the list. }
 function LineCount(index: Integer): Integer;
 
-{ One display line of an item's text.
-  @param(index The item's place in the list.)
-  @param(line The line, from 1 to LineCount.)
-  @returns(The line, or an empty string outside the item.) }
+{ Returns one 1-based display line from an item. Returns an empty string when
+  either index is out of range. }
 function TextLine(index, line: Integer): string;
 
 implementation
@@ -59,9 +48,8 @@ const
   { Lines in each literal of the text units }
   LINES_PER_CHUNK = 9;
 
-{ A number in capital Roman numerals, as the City Council numbers its proclamations.
-  @param(value The number, from 1.)
-  @returns(The numeral.) }
+{ Converts a positive number to the uppercase Roman numerals used by the City
+  Council. }
 function RomanNumeral(value: Integer): string;
 var
   numeral: string;
@@ -93,10 +81,8 @@ begin
   RomanNumeral := numeral;
 end;
 
-{ Fetches one run of an item's lines from the overlaid unit that holds it.
-  @param(index The item's place in the list.)
-  @param(chunk Which run of LINES_PER_CHUNK lines, from 0.)
-  @returns(The run's lines separated by #13, or an empty string outside the list.) }
+{ Fetches a zero-based chunk of lines from whichever overlay contains the
+  item. Returns an empty string outside the list. }
 function TextChunk(index, chunk: Integer): string;
 begin
   case index of
@@ -155,9 +141,8 @@ begin
       ProclamationItem := i;
 end;
 
-{ The item's label (long False) or title (long True): the words for its kind, then its numeral or number.
-  @param(index The item's place in the list.)
-  @returns(The heading, or an empty string outside the list.) }
+{ Builds either the item's short label or its full title. Returns an empty
+  string outside the list. }
 function Heading(index: Integer; long: Boolean): string;
 var
   digits: string[5];

@@ -1,6 +1,6 @@
-{ The VGA video driver's cold routines, which convert and recolour pictures at a byte a pixel: run when pictures load,
-  icons are built, the data archives are built, and at start-up, so kept in an overlay. VidVga installs them into
-  GameVars.video (phase 6 of docs/refactor-plan.md). }
+{ Less frequently used VGA picture-conversion routines. VGA stores one byte per
+  pixel. Keeping these routines overlaid saves resident memory; VidVga installs
+  them in GameVars.video. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit PicVga;

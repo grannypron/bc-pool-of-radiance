@@ -1,16 +1,16 @@
-{ What happens on an event square (phase 8 of docs/refactor-plan.md, the Companion Tools' map), read from the loaded
-  area script without running it.
+{ Classifies event squares for the Companion Tools map without executing their
+  area scripts.
 
-  Each area script dispatches on the square's event byte (GBVM CELL_EVENT) in one of two ways: the byte masked into a
-  variable (AND [C04F] #mask [v]) and an ON GOTO on that variable, the k-th address for event k; or a COMPARE of the
-  byte, or of such a variable, with a number, then IF = and the instruction to run. A variable compared equal to such a
-  variable stands for it too: New Phlan counts one up from 0 until it equals the event and goes ON GOTO on the count. A
-  variable holds the event only until the script writes it (Podal Plaza's goes on to hold menu choices). Prepare walks
-  the script's control flow from its entry points, never running an instruction (EclVars.SkipEclCmd decodes each one),
-  and from each read of the event byte follows where it goes to find those dispatches. Kind follows an event's code from
-  its address a bounded way and names the strongest thing it does: an area change, a shop, temple or training hall, a
-  fight, treasure, a trap (damage), or a message. A square whose code does none of these (New Phlan's building squares,
-  say, which only clear flags) is KIND_NONE, and one whose dispatch is not found KIND_EVENT. }
+  Prepare walks control flow from the script entry points and follows reads of
+  GBVM CELL_EVENT to find each event's dispatch address. Scripts may dispatch
+  through a masked ON GOTO value or through COMPARE and IF instructions, so the
+  analysis also tracks variables derived from the event byte until they are
+  overwritten.
+
+  Kind follows an event's code for a bounded distance and reports its strongest
+  visible action: area change, shop, temple, training hall, combat, treasure,
+  trap, or message. Code with no such action is KIND_NONE. An event whose
+  dispatch cannot be found remains KIND_EVENT. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit EvtKind;
@@ -82,11 +82,11 @@ var
 { Operand i of the instruction last decoded, as an address (a GBVM read) when isAddr. }
 function Operand(i: Byte; var isAddr: Boolean): Word;
 begin
-  isAddr := GameVars.gbvmType[i] in [1, 3];
-  if GameVars.gbvmType[i] in [1, 2, 3] then
-    Operand := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[i], GameVars.gbvmUpperByte[i])
+  isAddr := GameVars.varTypes[i] in [1, 3];
+  if GameVars.varTypes[i] in [1, 2, 3] then
+    Operand := EclVars.CombineBytesToWord(GameVars.varLo[i], GameVars.varHi[i])
   else
-    Operand := GameVars.gbvmLowerByte[i];
+    Operand := GameVars.varLo[i];
 end;
 
 { The first operand and the count of the ON GOTO, ON GOSUB or menu at a, read from the script itself: decoding loads the
@@ -140,9 +140,9 @@ var
 begin
   WrittenVar := 0;
   case op of
-    C_ECL.SAVE, C_ECL.RANDOM_NUMBER, C_ECL.INPUT_NUM, C_ECL.INPUT_STR: WrittenVar := Operand(2, isAddr);
-    C_ECL.DIVIDE, C_ECL.MULTIPLY, C_ECL.GETTABLE, C_ECL.BIT_AND, C_ECL.BIT_OR: WrittenVar := Operand(3, isAddr);
-    C_ECL.VMENU, C_ECL.HMENU: begin
+    C_ECL.SAVE, C_ECL.OP_RANDOM, C_ECL.INPUT_NUMBER, C_ECL.INPUT_STRING: WrittenVar := Operand(2, isAddr);
+    C_ECL.DIVIDE, C_ECL.MULTIPLY, C_ECL.GET_TABLE, C_ECL.OP_AND, C_ECL.OP_OR: WrittenVar := Operand(3, isAddr);
+    C_ECL.VERTICAL_MENU, C_ECL.HORIZONTAL_MENU: begin
           ListHead(a, v, isAddr, n);
           WrittenVar := v;
         end;
@@ -266,17 +266,17 @@ begin
     Inc(head);
     op := Decode(a, next);
     case op of
-      C_ECL.EXIT_SCRIPT, C_ECL.RETURN, C_ECL.NEWECL: next := 0;
-      C_ECL.JUMP: begin
+      C_ECL.OP_EXIT, C_ECL.RETURN, C_ECL.NEW_ECL: next := 0;
+      C_ECL.OP_GOTO: begin
             Follow(Operand(1, isAddr), live);
             next := 0;
           end;
-      C_ECL.ONGOTO, C_ECL.ONGOSUB: begin
+      C_ECL.ON_GOTO, C_ECL.ON_GOSUB: begin
             ListHead(a, v1, isAddr, n);
             if isAddr and LiveVar(v1, live, mask, offset) then
               for i := 1 to n do
                 AddDispatch(mask, i - 1 + offset, Operand(i, isAddr2), False);
-            if op = C_ECL.ONGOTO then
+            if op = C_ECL.ON_GOTO then
               next := 0;
           end;
       C_ECL.COMPARE: begin
@@ -372,17 +372,17 @@ begin
     Inc(head);
     op := Decode(a, next);
     case op of
-      C_ECL.EXIT_SCRIPT, C_ECL.RETURN, C_ECL.NEWECL: { the path ends };
-      C_ECL.JUMP: Push(Operand(1, isAddr));
+      C_ECL.OP_EXIT, C_ECL.RETURN, C_ECL.NEW_ECL: { the path ends };
+      C_ECL.OP_GOTO: Push(Operand(1, isAddr));
       C_ECL.GOSUB: begin
             Push(Operand(1, isAddr));
             Push(next);
           end;
-      C_ECL.ONGOTO, C_ECL.ONGOSUB: begin
+      C_ECL.ON_GOTO, C_ECL.ON_GOSUB: begin
             ListHead(a, v1, isAddr, n);
             for i := 1 to n do
               Push(Operand(i, isAddr2));
-            if op = C_ECL.ONGOSUB then
+            if op = C_ECL.ON_GOSUB then
               Push(next);
           end;
       C_ECL.IF_EQ..C_ECL.IF_GE: begin
@@ -392,7 +392,7 @@ begin
             Push(afterIf);
           end;
     else begin
-        if op in [C_ECL.BIT_AND, C_ECL.COMPARE] then begin
+        if op in [C_ECL.OP_AND, C_ECL.COMPARE] then begin
           v1 := Operand(1, isAddr);
           v2 := Operand(2, isAddr2);
           if (isAddr and (v1 = C_GBVM.CELL_EVENT)) or (isAddr2 and (v2 = C_GBVM.CELL_EVENT)) then begin
@@ -472,13 +472,13 @@ begin
     Inc(head);
     op := Decode(a, next);
     case op of
-      C_ECL.EXIT_SCRIPT, C_ECL.RETURN: next := 0;
-      C_ECL.NEWECL: begin
+      C_ECL.OP_EXIT, C_ECL.RETURN: next := 0;
+      C_ECL.NEW_ECL: begin
             sawExit := True;
             next := 0;
           end;
-      C_ECL.START_COMBAT, C_ECL.ENCOUNTER, C_ECL.LOAD_MON: sawFight := True;
-      C_ECL.RUN_PROGRAM: sawService := True;
+      C_ECL.OP_COMBAT, C_ECL.ENCOUNTER_MENU, C_ECL.LOAD_MONSTER: sawFight := True;
+      C_ECL.OP_PROGRAM: sawService := True;
       C_ECL.SAVE: begin
             { a shop's or temple's flag: the COMBAT after it opens the shop }
             v := Operand(2, isAddr);
@@ -487,17 +487,17 @@ begin
           end;
       C_ECL.TREASURE: sawTreasure := True;
       C_ECL.DAMAGE: sawTrap := True;
-      C_ECL.PRINT, C_ECL.PRINTCLEAR, C_ECL.PRINT_RET: sawMessage := True;
-      C_ECL.JUMP: begin
+      C_ECL.PRINT, C_ECL.PRINT_CLEAR, C_ECL.PRINT_RETURN: sawMessage := True;
+      C_ECL.OP_GOTO: begin
             Follow(Operand(1, isAddr));
             next := 0;
           end;
       C_ECL.GOSUB: Follow(Operand(1, isAddr));
-      C_ECL.ONGOTO, C_ECL.ONGOSUB: begin
+      C_ECL.ON_GOTO, C_ECL.ON_GOSUB: begin
             ListHead(a, v, isAddr, n);
             for i := 1 to n do
               Follow(Operand(i, isAddr2));
-            if op = C_ECL.ONGOTO then
+            if op = C_ECL.ON_GOTO then
               next := 0;
           end;
       C_ECL.IF_EQ..C_ECL.IF_GE:
@@ -509,7 +509,7 @@ begin
           Follow(afterIf);
         end;
     end;
-    if single and (a = only) and not (op in [C_ECL.JUMP, C_ECL.GOSUB]) then
+    if single and (a = only) and not (op in [C_ECL.OP_GOTO, C_ECL.GOSUB]) then
       next := 0;
     if next <> 0 then
       Follow(next);

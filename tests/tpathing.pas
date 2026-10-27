@@ -1,7 +1,6 @@
-{ Tests for Pathing's line stepping and direction tests, which need no arena: SignOf, PathFind and NextPathStep (2 a
-  straight step, 3 a diagonal one), IsDirToward, DirToward and GetIconTileDelta; and RouteStep's walks on an arena of
-  the test's own, with walls and bodies (#668), and the hard cases of #769; and BuildTargetList on it (#807); and
-  OnArena, LastSlot, SaveTargets and RestoreTargets. }
+{ Tests Pathing's line stepping, directions, arena bounds, target-list state,
+  and route finding. The test arena covers walls, bodies (#668), blocked and
+  dead-end routes (#769), and target visibility and ordering (#807). }
 {$I COMPILER.INC}
 program TPathing;
 
@@ -190,14 +189,14 @@ begin
   WallColumn(8, 0, 4);
   WallColumn(8, 6, 19);
   WallColumn(8, 21, 24);
-  GameVars.arenaPtr^.cells[5, 8] := C_TERR.STINK_CLOUD;
+  GameVars.arenaPtr^.cells[5, 8] := C_TERR.STINKING_CLOUD;
   Place(WALKER, 5, 5, 1);
   Place(TARGET, 11, 5, 1);
   TestKit.Check(RouteToTarget and (dir = C_DIR.EAST),
                 'a walker that does not mind the cloud goes through it');
-  TestKit.Check(Pathing.RouteStep(WALKER, [TARGET], [], C_TERR.STINK_CLOUD, TestOccupant, dir, goal) and
+  TestKit.Check(Pathing.RouteStep(WALKER, [TARGET], [], C_TERR.STINKING_CLOUD, TestOccupant, dir, goal) and
                 (dir in [C_DIR.SOUTHWEST, C_DIR.SOUTH, C_DIR.SOUTHEAST]), 'one that keeps out heads for the far gap');
-  TestKit.CheckEqualsL(29, WalkSteps([TARGET], [], C_TERR.STINK_CLOUD, 60), 'and goes round by it');
+  TestKit.CheckEqualsL(29, WalkSteps([TARGET], [], C_TERR.STINKING_CLOUD, 60), 'and goes round by it');
 end;
 
 { BuildTargetList from WALKER's cell: every creature it sees, nearest first, with the doubled distance and the facing

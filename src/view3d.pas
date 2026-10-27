@@ -11,13 +11,13 @@ var
   { the wall types' symbol slices, by wall type 1..15 (View3D.LoadWallSet fills a slot's five) }
   wallGfx: Types.PWallSlices;
   { the sky or ceiling band's color (rows 16..58 of the view) }
-  colorSkyCeiling: Byte;
+  skyCeilingColor: Byte;
   { the horizon line's color (row 59) }
-  wallColorA: Byte;
+  ceilingBandColor: Byte;
   { the horizon band's color (rows 60..61) }
-  wallColorB: Byte;
+  midBandColor: Byte;
   { the floor band's color (rows 62..103) }
-  wallColorC: Byte;
+  floorBandColor: Byte;
 
 { Stores the four 3D-view band colours (sky, horizon line, horizon band, floor). FixMain's boot sequence passes
   (11,0,7,6) for the default palette; MapView re-sets them for each 3D view }
@@ -41,9 +41,8 @@ procedure LoadWallSet(fileId, wsSlot: Byte);
 { Load GEO map mapId into the 3D map }
 procedure Load3DMap(mapId: Byte);
 
-{ Bring a square off the 16 by 16 map back on from the other edge, as the party walks off one side of a map and on at
-  the other: x or y of -1 becomes MAP_LAST, MAP_LAST + 1 becomes 0, and so on for squares further off, which the 3D
-  view's far rows read (POR-0227). }
+{ Wraps coordinates around the 16x16 map. The renderer can ask for cells several
+  squares beyond an edge while drawing its far rows (POR-0227). }
 procedure WrapCoords(var x, y: ShortInt);
 
 implementation
@@ -66,10 +65,9 @@ const
 
 procedure DisplayViewBuf; forward;
 
-{ The 11x11 automap, drawn at char (2,2) of the view buffer and then flushed: wall symbols 260 + N|E*2|S*4|W*8 from the
-  wall-TYPE nibbles, then the party arrow 256 + facing div 2. 256 is symSetFirst[4], so the four arrows are 256..259 and
-  the sixteen wall combinations 260..275, all inside 8x8 symbol set 4. The window origin clamps to 0..5 (16-wide map,
-  11-wide window). }
+{ Draws the 11x11 automap into the view buffer. Symbol set 4 contains party
+  arrows 256..259 and the sixteen wall combinations 260..275. Clamp the origin
+  to 0..5 so the window remains inside the 16x16 map. }
 procedure DrawAutoMap(x, y: ShortInt; facing: Byte);
 var
   pwx: ShortInt;
@@ -108,20 +106,20 @@ end;
 
 procedure SetView3DColors(cSky, cHorz1, cHorz2, cFloor: Byte);
 begin
-  colorSkyCeiling := cSky;
-  wallColorA := cHorz1;
-  wallColorB := cHorz2;
-  wallColorC := cFloor;
+  skyCeilingColor := cSky;
+  ceilingBandColor := cHorz1;
+  midBandColor := cHorz2;
+  floorBandColor := cFloor;
 end;
 
 { Fill the four 3D-view bands into the view buffer: sky rows 16..58, horizon rows 59 and 60..61, floor rows 62..103;
   x=2, width=11 chars. }
 procedure DrawBackdrop;
 begin
-  Blit.FillPicRect(2, 16, 11, 43, colorSkyCeiling, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 59, 11, 1, wallColorA, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 60, 11, 2, wallColorB, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 62, 11, 42, wallColorC, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 16, 11, 43, skyCeilingColor, GameDefs.iconColorMap, GameVars.viewBuffer);
+  Blit.FillPicRect(2, 59, 11, 1, ceilingBandColor, GameDefs.iconColorMap, GameVars.viewBuffer);
+  Blit.FillPicRect(2, 60, 11, 2, midBandColor, GameDefs.iconColorMap, GameVars.viewBuffer);
+  Blit.FillPicRect(2, 62, 11, 42, floorBandColor, GameDefs.iconColorMap, GameVars.viewBuffer);
 end;
 
 { Blit view slot slot's symbol rectangle for wallType at char (x+2, y+2), walking the 156-cell slice from
@@ -153,8 +151,8 @@ begin
   y := y and Types.MAP_LAST;
 end;
 
-{ The square GetBarrierType, GetWallType and GetMapEvent read: False for a square off the map in the areas of scripts
-  0 (New Phlan) and 10 (Valhingen Graves), which read as 0 there; otherwise True, with (x, y) wrapped onto the map. }
+{ Resolves the square read by the map accessors. Most areas wrap coordinates.
+  New Phlan and Valhingen Graves instead treat off-map cells as empty. }
 function MapSquare(var x, y: ShortInt): Boolean;
 const
   SCRIPT_NEW_PHLAN = 0;
@@ -398,7 +396,7 @@ var
   setFile: Byte;
 begin
   if (wsSlot < 1) or (wsSlot > 3) then Exit;
-  DaxIo.LoadDax('WALLDEF' + StrUtil.NumStr(GameVars.virtualDisk), '.dax', fileId, sizeRead, data);
+  DaxIo.LoadDax('WALLDEF' + StrUtil.NumStr(GameVars.diskIndex), '.dax', fileId, sizeRead, data);
   if (sizeRead = 0) or (sizeRead mod SizeOf(Types.TView3dWallDef) <> 0) or
       (sizeRead div SizeOf(Types.TView3dWallDef) + wsSlot > 4) or
       ((sizeRead > SizeOf(Types.TView3dWallDef)) and (fileId > 25)) then begin
@@ -439,15 +437,15 @@ begin
   GameVars.wallSetCache[wsSlot].symbolSlot := wsSlot;
 end;
 
-{ Load GEO<disk>.DAX record mapId (must decompress to exactly 1026 = 2-byte header + the four 256-byte planes of a
-  TGeoMap), copy the planes, free the record, and record the map id in the GBVM mapId variable. }
+{ Loads mapId from GEO<disk>.DAX. A valid map is exactly 1026 bytes: a two-byte
+  header followed by four 256-byte planes. Also updates the GBVM map ID. }
 procedure Load3DMap(mapId: Byte);
 var
   sizeRead: Word;
   data: Types.PByteArr;
   offset: Word;
 begin
-  DaxIo.LoadDax('GEO' + StrUtil.NumStr(GameVars.virtualDisk), '.dax', mapId, sizeRead, data);
+  DaxIo.LoadDax('GEO' + StrUtil.NumStr(GameVars.diskIndex), '.dax', mapId, sizeRead, data);
   if (sizeRead = 0) or (sizeRead <> SizeOf(Types.TGeoMap) + 2) then begin
     GameIo.FatalError('Unable to load geo in Load3DMap.');
   end;
@@ -466,8 +464,8 @@ end;
 begin
   { Turbo Pascal clears no variable }
   wallGfx := nil;
-  colorSkyCeiling := 0;
-  wallColorA := 0;
-  wallColorB := 0;
-  wallColorC := 0;
+  skyCeilingColor := 0;
+  ceilingBandColor := 0;
+  midBandColor := 0;
+  floorBandColor := 0;
 end.

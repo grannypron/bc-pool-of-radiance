@@ -1,5 +1,5 @@
-{ Random items: what EclVm's treasure opcode makes from an item kind. Overlaid, and its own unit so treasure loads it
-  without Money. }
+{ Generates the random items requested by EclVm's treasure opcode. This unit is
+  overlaid separately so treasure generation does not also load Money. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit RandItem;
@@ -9,7 +9,7 @@ interface
 uses Types;
 
 const
-  { the last of randomItemTemplates, 1..TEMPLATE_LAST }
+  { Highest valid index in randomItemTemplates. }
   TEMPLATE_LAST = 19;
   { Random item templates }
   randomItemTemplates: array[1..TEMPLATE_LAST] of Types.TRandomItemTemplate = (
@@ -73,8 +73,8 @@ const
 
 procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 
-{ Make item the magic item of randomItemTemplates[template]: its name parts, weight, value and properties, plus
-  1 (the Cloak of Displacement's 2). }
+{ Copies a magic-item template into item. Most templates are +1; the Cloak of
+  Displacement is +2. }
 procedure ApplyTemplate(item: Types.PItemRec; template: Byte);
 
 implementation

@@ -1,11 +1,12 @@
-{ The records SSI's files hold a pointer in, as the files have them: a character (TCharRecord, 285 bytes in a .CHA or
-  .SAV and in MONxCHA.DAX), an item (TItemRec, 63 in .ITM, vault files, ITEMx.DAX and MONxITM.DAX) and an effect
-  (TEffectRec, 9 in .SPC and MONxSPC.DAX). On disk each pointer is a 4-byte far pointer; in a 32-bit or 16-bit program
-  the record in memory is the same bytes, but a 64-bit one's pointers are 8, so every field after one moves. These
-  routines copy between the two: natively a pointer goes to disk as 4 zero bytes and comes back nil. Under Turbo Pascal
-  both forms are one and each routine is a Move, so a pointer goes as it is: the game clears them before saving, and
-  rebuilds its lists on loading. A character's disk form ends where the port's own fields (TCharRecord.portExt) start:
-  they are not written, and a record read from disk has them zero (CharExt keeps them in a file of their own). }
+{ Converts records between their in-memory and SSI disk layouts. Character,
+  item, and effect records contain four-byte far pointers on disk. That layout
+  matches 16- and 32-bit builds but not a 64-bit build, where pointers are eight
+  bytes and move every following field.
+
+  Native writes replace pointers with four zero bytes and native reads restore
+  them as nil. Turbo Pascal can copy the records directly. Port-specific fields
+  after TCharRecord.portExt are not part of the SSI character record; CharExt
+  stores them separately. }
 {$I COMPILER.INC}
 unit DiskRec;
 

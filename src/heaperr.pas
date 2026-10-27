@@ -6,12 +6,10 @@ unit HeapErr;
 
 interface
 
-{ Installed as the System.HeapError hook so that a failed heap allocation gives the player a chance to save instead of
-  crashing with a runtime error. Never returns normally when a real allocation failed; it ends by exiting the game. A
-  request that fails while the handler runs (the save itself) returns 0, the runtime error the game had before.
-
-  @param(size Size in bytes of the failed request. Zero requests are ignored.)
-  @returns(0, which the heap manager treats as a failure; a real request never gets back, since the game exits.) }
+{ System.HeapError hook. A failed allocation frees the emergency reserve and
+  gives the player a chance to save before exiting. A zero-byte request, or an
+  allocation that fails while the handler is already running, returns 0 to the
+  heap manager. Any other call exits the game instead of returning. }
 function HeapErrorHandler(size: Word): Integer;
 
 { Take the reserve the save needs once the heap is exhausted: Vault's copy buffer, a new statistics block and the menu
@@ -37,11 +35,9 @@ begin
     GetMem(reserve, RESERVE_BYTES);
 end;
 
-{ Free the reserve, then ask until the player saves or chooses to quit: Enter opens the save menu, Escape quits. A save
-  that is backed out of or fails asks again. The game exits to DOS either way.
-
-  @param(size Size in bytes of the failed request. Zero requests are ignored.)
-  @returns(0, which the heap manager treats as a failure; a real request never gets back, since the game exits.) }
+{ Handles an allocation failure. Free the reserve, then keep asking until the
+  player saves or chooses to quit. Backing out of the save menu or failing to
+  save returns to the prompt. The game exits to DOS either way. }
 function HeapErrorHandler(size: Word): Integer;
 var
   ch: Char;
@@ -62,8 +58,8 @@ begin
     repeat
       { an extended key's scan byte is read and passed over }
       ch := GameIo.ReadAnyKey;
-    until (ch = C_KEYS.ENTER) or (ch = C_KEYS.ESC);
-    if ch = C_KEYS.ESC then
+    until (ch = C_KEYS.ENTER) or (ch = C_KEYS.ESCAPE);
+    if ch = C_KEYS.ESCAPE then
       done := True
     else begin
       done := SaveLoad.SaveGame;

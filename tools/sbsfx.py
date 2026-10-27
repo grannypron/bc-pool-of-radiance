@@ -1,25 +1,22 @@
 #!/usr/bin/env python3
-"""Build SBSFX.DAT, the Sound Blaster driver's recorded effects (docs/refactor-plan.md, phase 7, step 4).
+"""Build the Sound Blaster sample archive, SBSFX.DAT (refactor plan, phase 7, step 4).
 
     tools/sbsfx.py [--pools ZOUNDS.DAX] [--dqk SFXDQ.VOC] [--out drive_c/POOLRAD/SBSFX.DAT]
 
-No Gold Box game plays its effects through FM. Dark Queen of Krynn plays them on a Sound Blaster from SFXDQ.VOC (the
-same file FRUA ships), and Pools of Darkness from ZOUNDS.DAX. PoR's effects take Dark Queen's, as SSI shipped them,
-all but the footstep: Dark Queen's is not the owner's favourite and Pools' is three thumps, the first itself a heel and
-a toe, so the step is that first thump's stronger hit alone.
+Gold Box games do not play their sound effects through FM synthesis. Dark Queen of Krynn reads Sound Blaster samples
+from SFXDQ.VOC, the same file shipped with FRUA, while Pools of Darkness reads ZOUNDS.DAX. Pool of Radiance uses Dark
+Queen's effects except for the footstep. That sound comes from the stronger half of the first footstep in Pools.
 
-- Dark Queen's sounds are blocks of SFXDQ.VOC, in FRUA's order (Cast, Blast, Sorcery, Death, Missile, Hit, Lightning,
-  Swish, Footstep, Fireball, Bowstring, Sploosh, Crackle), each 4-bit Creative ADPCM with its reference byte first.
-  They are kept as they are: the Sound Blaster's DSP plays that format itself (command 75h), at half the size of the
-  samples decoded.
-- Pools' ZOUNDS.DAX blocks are Amiga IFF 8SVX files with every byte XOR 80h. A sample is found by the name in its NAME
-  chunk, and its BODY (signed 8-bit) becomes unsigned 8-bit, played at 9000 Hz as Pools plays every effect.
+- SFXDQ.VOC stores 4-bit Creative ADPCM blocks in FRUA's effect order. Each block starts with its reference byte.
+  Keep this encoding because the Sound Blaster DSP plays it directly with command 75h and it uses half the decoded
+  space.
+- ZOUNDS.DAX stores Amiga IFF 8SVX files with every byte XOR 80h. Samples are selected through their NAME chunks.
+  BODY contains signed 8-bit PCM, which is converted to unsigned PCM and played at Pools' 9000 Hz rate.
 
-SBSFX.DAT: 'SBFX', a version byte (2), the entry count; then per entry the tune (SoundDrv's tune id, the sound command
-less one), the format (0 unsigned 8-bit PCM, 1 4-bit ADPCM with its reference byte), the DSP time constant (256 -
-1000000 / rate), and the length and the offset of its bytes from the start of the file (Words, little endian); then
-the samples, each stored once however many tunes play it. Needs goldbox-re-tools (GBRE_SRC, by default
-~/repos/goldbox-re-tools/src) for the DAX reader.
+SBSFX.DAT starts with 'SBFX', format version 2, and the entry count. Each entry contains the SoundDrv tune ID, sample
+format, DSP time constant, byte length, and file offset. Lengths and offsets are little-endian Words. Sample data
+follows the table and is stored only once even when multiple tunes share it. Reading ZOUNDS.DAX requires
+goldbox-re-tools; GBRE_SRC defaults to ~/repos/goldbox-re-tools/src.
 """
 import argparse
 import os
@@ -35,19 +32,18 @@ from goldbox import dax_tool as D  # noqa: E402
 POOLS_RATE = 9000
 PCM8 = 0
 ADPCM4 = 1
-# Dark Queen's blocks in SFXDQ.VOC, by FRUA's names
+# Map FRUA's effect names to their block numbers in SFXDQ.VOC.
 DQK = {"Cast": 0, "Blast": 1, "Sorcery": 2, "Death": 3, "Missile": 4, "Hit": 5, "Lightning": 6, "Swish": 7,
        "Footstep": 8, "Fireball": 9, "Bowstring": 10, "Sploosh": 11, "Crackle": 12}
-# Pools' "pad2" is three thumps, the first itself two hits (heel and toe: 0-8 ms, then 14-25 ms); the step is the
-# stronger second hit alone, faded in and out so it neither clicks nor doubles
+# Pools' pad2 contains three footsteps, and its first footstep has separate heel and toe hits. Keep the stronger toe
+# and fade both ends to avoid a click or a doubled step.
 STEP_FROM_MS = 13
 STEP_TO_MS = 33
 STEP_FADE_MS = 2
-# Pools recorded its step near full scale (peaks about 120 of 128), Dark Queen its effects far lower: measured in the
-# owner's recording, the step peaked about four times higher than Dark Queen's hits and misses, so it is scaled to a
-# quarter
+# Pools recorded the footstep near full scale, roughly four times louder than Dark Queen's hit and miss effects.
+# Reduce it to one quarter of its original amplitude.
 STEP_GAIN = 0.25
-# tune -> source: ('dqk', name) or ('pools-first-step', NAME)
+# Map each SoundDrv tune to its source sample.
 TUNES = {
     1: ("dqk", "Cast"),                     # a spell is cast
     2: ("dqk", "Blast"),                    # non-weapon damage
@@ -88,7 +84,7 @@ def pools_samples(path: pathlib.Path) -> dict:
 
 
 def voc_blocks(data: bytes) -> list:
-    """SFXDQ.VOC's sound blocks (type 1): (time constant, pack, data) each."""
+    """Return each type 1 sound block as (time constant, packing method, data)."""
     if not data.startswith(b"Creative Voice File\x1a"):
         raise SystemExit("sbsfx.py: not a Creative Voice File")
     pos = struct.unpack("<H", data[20:22])[0]
@@ -104,7 +100,7 @@ def voc_blocks(data: bytes) -> list:
 
 
 def dqk_sample(blocks: list, name: str) -> tuple:
-    """(format, time constant, bytes) for Dark Queen's sound name: its 4-bit ADPCM block as it is."""
+    """Return Dark Queen's named effect as (format, time constant, encoded bytes)."""
     tc, pack, body = blocks[DQK[name]]
     if pack != 1:
         raise SystemExit("sbsfx.py: SFXDQ.VOC's %s is packed %d, not 4-bit ADPCM" % (name, pack))
@@ -112,8 +108,7 @@ def dqk_sample(blocks: list, name: str) -> tuple:
 
 
 def first_step(pools: dict, name: str) -> tuple:
-    """(format, time constant, bytes): STEP_FROM_MS to STEP_TO_MS of Pools' sample name at 9000 Hz, one hit, at
-    STEP_GAIN of its recorded level and faded in and out over STEP_FADE_MS so it ends without a click."""
+    """Extract and fade one footstep, returning (format, time constant, sample bytes)."""
     pcm = bytearray(round(128 + (x - 128) * STEP_GAIN)
                     for x in pools[name][POOLS_RATE * STEP_FROM_MS // 1000:POOLS_RATE * STEP_TO_MS // 1000])
     fade = POOLS_RATE * STEP_FADE_MS // 1000

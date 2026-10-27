@@ -1,9 +1,7 @@
-{ Tests for Protection from Evil and from Good (EffHndlr.EffProtEvil, EffProtGood, triggered through FxEngine): a
-  paladin's aura (eff 45) reaches only his own side (#782), and a protection applies once however many sources there
-  are, a spell (eff 8) and an aura together giving +2 to saves, not +4 (#783), and its -2 to be hit is taken off the
-  rolled d20, not before it (#789). Prayer applies once from each side in reach (#801), and its side is the caster's
-  team, hostile and 1, whatever larger hostile byte a damaged save holds (#827). A protection aura or Prayer lapses
-  while its carrier is out of action (POR-0220, #941). }
+{ Tests Protection from Evil/Good and Prayer. Coverage includes aura teams,
+  overlapping sources, save and attack modifiers, damaged team values, range,
+  and effects lapsing while their source is out of action (#782, #783, #789,
+  #801, #827, #941). }
 {$I COMPILER.INC}
 program TProtect;
 
@@ -59,9 +57,9 @@ end;
 function SaveBonus: Integer;
 begin
   GameVars.curChar := att;
-  FxEngine.gSaveRoll := 10;
+  FxEngine.saveRoll := 10;
   FxEngine.TriggerEffectsWithCondition(C_COND.SAVING_THROW, def);
-  SaveBonus := Integer(FxEngine.gSaveRoll) - 10;
+  SaveBonus := Integer(FxEngine.saveRoll) - 10;
 end;
 
 { What the defender's protection takes off the attacker's (GameVars.curChar's) d20 }
@@ -97,7 +95,7 @@ begin
   FillChar(GameVars.zone1^, SizeOf(GameVars.zone1^), 0);
   GameVars.effectFns[C_EFFECT.BLESS] := NoteNatural;
   GameVars.effectFns[C_EFFECT.DISPLACED] := NoteSeen;
-  GameVars.effectFns[C_EFFECT.PROT_EVIL] := EffHndlr.EffProtEvil;
+  GameVars.effectFns[C_EFFECT.PROTECTION_FROM_EVIL] := EffHndlr.EffProtEvil;
   GameVars.effectFns[C_EFFECT.PROT_GOOD] := EffHndlr.EffProtGood;
   GameVars.effectFns[C_EFFECT.PROT_EVIL_10FT] := EffHndlr.EffProtEvil;
   GameVars.effectFns[C_EFFECT.PROT_GOOD_10FT] := EffHndlr.EffProtGood;
@@ -115,19 +113,19 @@ begin
   FxEngine.AddEffect(att, C_EFFECT.BLESS, 0, 0, False);
   FxEngine.AddEffect(def, C_EFFECT.DISPLACED, 0, 0, False);
   TestKit.CheckEqualsL(0, SaveBonus, 'no protection, no bonus');
-  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL, 10, 1, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROTECTION_FROM_EVIL, 10, 1, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'Protection from Evil: +2 to saves against an evil attacker');
   att^.alignment := C_ALIGN.TRUE_NEUTRAL;
   TestKit.CheckEqualsL(0, SaveBonus, 'and none against a neutral one');
   att^.alignment := C_ALIGN.CHAOTIC_EVIL;
-  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL, 10, 1, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROTECTION_FROM_EVIL, 10, 1, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'two spells give +2');
   TestKit.CheckEqualsL(2, HitPenalty, 'and -2 to be hit, off the rolled d20');
   ClearEffects(def);
   FxEngine.AddEffect(def, C_EFFECT.DISPLACED, 0, 0, False);
 
   { a script's attack has no attacker: curChar is a party member, evil or not }
-  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL, 10, 1, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROTECTION_FROM_EVIL, 10, 1, False);
   ally^.alignment := C_ALIGN.CHAOTIC_EVIL;
   TestKit.CheckEqualsL(100, ScriptAttackHighest(ally), 'no penalty to a script''s attack');
   TestKit.CheckEqualsL(98, ScriptAttackHighest(att), 'which an evil foe would have');
@@ -146,12 +144,12 @@ begin
   { one protection from any number of sources (#783) }
   FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL_10FT, 0, 255, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'a paladin''s own aura gives +2');
-  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL, 10, 1, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROTECTION_FROM_EVIL, 10, 1, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'and with the spell as well, still +2');
   TestKit.CheckEqualsL(2, HitPenalty, 'and -2 to be hit');
   ClearEffects(def);
   FxEngine.AddEffect(def, C_EFFECT.DISPLACED, 0, 0, False);
-  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL, 10, 1, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROTECTION_FROM_EVIL, 10, 1, False);
   FxEngine.AddEffect(ally, C_EFFECT.PROT_EVIL_10FT, 0, 255, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'the spell and an ally''s aura: +2');
   TestKit.CheckEqualsL(2, HitPenalty, 'and -2 to be hit');
@@ -164,7 +162,7 @@ begin
   FxEngine.AddEffect(def, C_EFFECT.PROT_GOOD, 10, 1, False);
   FxEngine.AddEffect(ally, C_EFFECT.PROT_GOOD_10FT, 0, 255, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'Protection from Good: +2 against a good attacker, once');
-  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL, 10, 1, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROTECTION_FROM_EVIL, 10, 1, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'and Protection from Evil adds nothing against him');
   TestKit.CheckEqualsL(2, HitPenalty, 'nor to the -2 to be hit');
   ClearEffects(def);
@@ -213,7 +211,7 @@ begin
   { Protection's sides are teams too (2026-10-25 review): an attacker with hostile 2 is on side 0 }
   att^.alignment := C_ALIGN.CHAOTIC_EVIL;
   att^.hostile := 2;
-  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL, 10, 1, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROTECTION_FROM_EVIL, 10, 1, False);
   TestKit.CheckEqualsL(0, SaveBonus, 'no protection against an evil attacker with hostile 2, on the defender''s side');
   att^.hostile := 3;
   TestKit.CheckEqualsL(2, SaveBonus, 'but against one with hostile 3, on the other');

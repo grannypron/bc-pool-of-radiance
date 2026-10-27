@@ -1,8 +1,8 @@
-{ Dual Class (#838, #879): the training hall's screen where a human leaves its class and starts again as a level 1
-  character of another, as the 1st-edition PHB ("Characters With Two Classes", p.33) and Curse of the Azure Bonds let
-  it, and the powers that follow a class as it rests and wakes again. The rules are ClassCal's (CanChangeClass,
-  CanTakeClass, ChangeClass) and CharHlp's (GetClassLevel, ClassResting). Overlaid; CharGen, CharEdit, EffHndlr and
-  Magic use it. }
+{ Implements dual-classing at the training hall (#838, #879). An eligible human
+  leaves the current class and begins another at level 1, following the
+  first-edition rules used by Curse of the Azure Bonds. ClassCal applies the
+  transition rules, while CharHlp determines when the former class's abilities
+  become available again. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit ChgClass;
@@ -41,7 +41,7 @@ function Refusal(creature: Types.PCharRecord; atHall: Boolean): Types.TStr40;
   human can take, each with its prime requisites one to a line, what each needs and what the character has, white for
   one it qualifies for here and dark gray for one it does not; the explanation of the rule; and a status line for the
   highlighted class. Up and Down move the yellow highlight through the classes. A class qualifies when
-  ClassCal.CanTakeClass allows it, this hall trains it (C_GBVM.TRAIN_CLASS_MASK, GameDefs.classBit) and the character
+  ClassCal.CanTakeClass allows it, this hall trains it (C_GBVM.TRAIN_CLASS_MASK, GameDefs.classBits) and the character
   has the CHANGE_FEE; freeTraining (CharGen's STING switch) waives the hall and the fee. The status line says which of
   these fails, or what choosing it costs. Choose, offered on a qualifying class, asks Yes or No, takes the fee and
   changes the class (ClassCal.ChangeClass, SyncClassPowers). A character whose current class's prime requisites are too
@@ -50,7 +50,7 @@ procedure ChangeClassMenu(freeTraining: Boolean);
 
 implementation
 
-uses Crt, C_ABIL, C_EFFECT, C_GBVM, C_KEYS, C_LEVEL, C_MSG, C_RACE, C_STATUS, GameDefs, GameVars, Border,
+uses Crt, C_STAT, C_EFFECT, C_GBVM, C_KEYS, C_LEVEL, C_MSG, C_RACE, C_STATUS, GameDefs, GameVars, Border,
   CharDisp, CharHlp, ClassCal, FxEngine, MenuCore, Money, MoneyCal, StrUtil, TextRend;
 
 const
@@ -176,7 +176,7 @@ var
   n: Byte;
 begin
   n := 0;
-  for ab := C_ABIL.STRENGTH to C_ABIL.CHARISMA do
+  for ab := C_STAT.STRENGTH to C_STAT.CHARISMA do
     if ClassCal.primeRequisites[cls] and (1 shl ab) <> 0 then
       Inc(n);
   PrimeCount := n;
@@ -190,9 +190,9 @@ var
   score: Byte;
 begin
   TextRend.DisplayString(LABEL_COL, row, color, GameDefs.classNames[cls]);
-  for ab := C_ABIL.STRENGTH to C_ABIL.CHARISMA do
+  for ab := C_STAT.STRENGTH to C_STAT.CHARISMA do
     if ClassCal.primeRequisites[cls] and (1 shl ab) <> 0 then begin
-      if ab = C_ABIL.STRENGTH then
+      if ab = C_STAT.STRENGTH then
         score := CharHlp.PermanentStrength(creature)
       else
         score := creature^.stats[ab];
@@ -211,7 +211,7 @@ begin
     Obstacle := RULES_OBSTACLE
   else if freeTraining then
     Obstacle := NO_OBSTACLE
-  else if GameDefs.classBit[cls] and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] = 0 then
+  else if GameDefs.classBits[cls] and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] = 0 then
     Obstacle := HALL_OBSTACLE
   else if MoneyCal.CreatureGold(creature) < CHANGE_FEE then
     Obstacle := FEE_OBSTACLE

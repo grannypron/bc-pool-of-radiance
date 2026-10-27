@@ -19,12 +19,12 @@ function SignOf(v: Integer): Integer;
 { True when cell (x, y) is on the combat arena: x in 0..Types.ARENA_LAST_X and y in 0..Types.ARENA_LAST_Y. }
 function OnArena(x, y: ShortInt): Boolean;
 
-{ The last combat slot to scan: GameVars.arenaCount, the next free slot, kept within Types.ARENA_SLOTS (a full arena
-  leaves arenaCount one past the table). }
+{ Returns the last valid combat slot to scan. arenaCount normally points to the
+  next free slot, and may be one past the table when the arena is full. }
 function LastSlot: Byte;
 
-{ Copy the target list and its count to snap, and put them back from it: for a caller that builds a list of its own
-  (CbtMap.CalcDistance, the spell-aim preview's count) in the middle of someone else's. }
+{ Saves and restores the global target list around code that needs a temporary
+  list of its own. }
 procedure SaveTargets(var snap: Types.TTargetSnapshot);
 procedure RestoreTargets(var snap: Types.TTargetSnapshot);
 
@@ -35,19 +35,18 @@ procedure PathFind(var req: Types.TPathReq);
   direction. Return False once the endpoint has been reached. }
 function NextPathStep(var req: Types.TPathReq): Boolean;
 
-{ True when dir (0..7) is a best direction from (x,y) toward (tx,ty), by a 90-degree cone test around the cell one step
-  in dir; 8 and above (no direction) is always True. False if either cell is off the arena (OnArena). }
+{ Returns whether dir points within a 90-degree cone toward the target. Values
+  8 and above mean no direction and always match. Off-arena cells never match. }
 function IsDirToward(x, y, tx, ty: ShortInt; dir: Byte): Boolean;
 
 { The first direction 0..7 that IsDirToward holds from (x,y) toward (tx,ty), 0 for the same cell, or C_DIR.CENTER when
   none does (a cell off the arena): a creature turns to face its target this way (#922). }
 function DirToward(x, y, tx, ty: ShortInt): Byte;
 
-{ Walk a line until terrain or the distance budget blocks it. On entry dist is the budget in cells; the walk fails once
-  the doubled distance (2 per straight step, 3 per diagonal) exceeds dist * 2 + 1, or, when the arena's distMode is 0,
-  at a cell whose terrain blocks it (blocking above 0). On failure, return the blocking cell in tx,ty and the doubled
-  distance in dist; reaching the target returns True with the doubled distance. An endpoint off the arena (OnArena)
-  fails at once, with dist 0 and tx,ty unchanged. }
+{ Walks a line until it reaches the target, exceeds the distance budget, or
+  encounters blocking terrain. dist enters as a cell budget and returns the
+  doubled cost (2 straight, 3 diagonal). On failure tx/ty identify the blocking
+  cell. An off-arena endpoint fails immediately with dist set to 0. }
 function WalkLine(x, y: ShortInt; var tx, ty: ShortInt; var dist: Word; view: Pointer): Boolean;
 
 { Build the potential-target list by testing icon-tile pairs for direction, line of sight and range. Keep each
@@ -58,21 +57,21 @@ procedure BuildTargetList(x, y: ShortInt; range: Word; filter: Byte; size: Byte;
   with a negative X offset. }
 function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
 
-{ Build GameVars.targetList as an area spell gathers its targets: every creature within radius of cell (x, y), as
-  BuildTargetList walks it from a one-tile body there, nearest first. TargetArea, CbtActs.AreaHitsNonEnemy and the
-  spell-aim preview's count (CbtMap, #840) all gather through it, so they agree on who is in the area. }
+{ Builds the nearest-first target list for an area centered on (x, y). Damage,
+  friendly-fire checks, and the spell preview all use this routine so they
+  agree about which creatures are inside the area (#840). }
 procedure BuildAreaList(x, y: ShortInt; radius: Byte);
 
-{ Make the spell's targets everyone within radius of cell (x, y) (BuildAreaList): targetCreaturePtr and
+{ Make the spell's targets everyone within radius of cell (x, y) (BuildAreaList): spellTargets and
   spellTargetCount. }
 procedure TargetArea(x, y: ShortInt; radius: Byte);
 
-{ The first step of a shortest walk that brings the creature in arena slot slot next to one of the creatures in goals
-  (some cell of each body within one step of the other's), found breadth first over the arena (#668); goal returns which
-  one. A cell the creature's body would cover must be on the arena, not a wall (terrain cost 255), not terrain avoid (0
-  for none) and not another creature's (occupant) unless that one is in open (#769); the steps are the eight directions,
-  the ones nearest the heading straight at the nearest goal tried first. False, with dir and goal unchanged, when the
-  creature is next to a goal already or no walk reaches one. }
+{ Uses breadth-first search to find the first step of the shortest route from
+  slot to any creature in goals (#668). The moving body must remain on the
+  arena and avoid walls, the requested terrain type, and occupied cells unless
+  their occupants are in open (#769). goal receives the destination slot and
+  dir receives the first step. Returns False without changing them when already
+  adjacent to a goal or when no route exists. }
 function RouteStep(slot: Byte; goals, open: TSlotSet; avoid: Byte; occupant: TOccupant;
                    var dir, goal: Byte): Boolean;
 
@@ -399,7 +398,7 @@ var
 begin
   Pathing.BuildAreaList(x, y, radius);
   for k := 1 to GameVars.targetCount do
-    GameVars.targetCreaturePtr[k] := GameVars.creatureArr[GameVars.targetList[k].idx];
+    GameVars.spellTargets[k] := GameVars.creatureArr[GameVars.targetList[k].idx];
   GameVars.spellTargetCount := GameVars.targetCount;
 end;
 

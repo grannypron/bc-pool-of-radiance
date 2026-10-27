@@ -11,9 +11,9 @@ uses Types;
 
 var
   { Portrait head ID. }
-  currentPortraitHead: Byte;
+  portraitHeadId: Byte;
   { Portrait body ID. }
-  currentPortraitHead2: Byte;
+  portraitBodyId: Byte;
   { Set while the party menu is a training hall's in a game in play, the two-column one, and clear while it is SSI's
     start-up menu (CharGen.MainMenu, #885): DisplayParty draws the roster of the one or the other. }
   hallMenu: Boolean;
@@ -210,7 +210,7 @@ begin
   end;
   row := GameVars.curRow + 1;
   if creature^.enabled = 0 then
-    TextRend.DisplayString(23, row + 1, White, GameDefs.statusStrs[creature^.status])
+    TextRend.DisplayString(23, row + 1, White, GameDefs.statusNames[creature^.status])
   else if CharHlp.IsHelpless(creature) then
     TextRend.DisplayString(23, row + 1, White, '(Helpless)');
 end;
@@ -229,7 +229,7 @@ end;
   In combat it is a combat log message of its own (#841). }
 procedure PrintBottomLine(s: Types.TStr40);
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then begin
+  if GameVars.ifcState = C_IFC.IN_COMBAT then begin
     CbtLog.NewEntry;
     CbtLog.Add(LightGreen, s);
     CbtLog.NewEntry;
@@ -239,7 +239,7 @@ end;
 
 procedure PrintActionLine(creature: Types.PCharRecord; s: Types.TStr40; logged: string);
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then begin
+  if GameVars.ifcState = C_IFC.IN_COMBAT then begin
     CbtLog.NewEntry;
     CharDisp.LogCreatureName(creature);
     CbtLog.NextLine;
@@ -273,7 +273,7 @@ procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pau
 var
   top: Byte;
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then begin
+  if GameVars.ifcState = C_IFC.IN_COMBAT then begin
     if row >= C_MSG.COMBAT_MESSAGE_TOP then begin
       CbtLog.NewEntry;
       CharDisp.LogCreatureName(creature);
@@ -305,7 +305,7 @@ end;
 
 procedure MessageText(s: string; color: Byte; first: Boolean);
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then begin
+  if GameVars.ifcState = C_IFC.IN_COMBAT then begin
     if first then
       CbtLog.NewEntry;
     CbtLog.Add(color, s);
@@ -331,7 +331,7 @@ procedure PrintTwoLines(line1, line2: string);
 var
   left: Byte;
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then
+  if GameVars.ifcState = C_IFC.IN_COMBAT then
     left := C_MSG.COMBAT_LEFT
   else
     left := C_MSG.TEXT_LEFT;
@@ -341,7 +341,7 @@ begin
     GameVars.curCol := left;
     Inc(GameVars.curRow);
   end;
-  if GameVars.ifcState = C_IFC.COMBAT then
+  if GameVars.ifcState = C_IFC.IN_COMBAT then
     CbtLog.NextLine;
   CharDisp.MessageText(line2, LightGreen, False);
   TextRend.PauseOnly;
@@ -351,7 +351,7 @@ end;
 { Clear whichever message window is active (combat or bottom), leaving its border alone. }
 procedure ClearMessageWindow;
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then
+  if GameVars.ifcState = C_IFC.IN_COMBAT then
     Border.ClearBox(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM)
   else
     Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP + 1, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
@@ -500,10 +500,10 @@ begin
     done := False;
     repeat
       if (pace > 0) or (pixX mod 3 = 0) or (pixY mod 3 = 0) then begin
-        Blit.BlitTileClipped(pixX, pixY, frame, 5, GameVars.moveIconSheet, GameVars.viewImageBufferPtr);
+        Blit.BlitTileClipped(pixX, pixY, frame, 5, GameVars.moveIconSheet, GameVars.viewBuffer);
         Blit.FlushView;
         Delay(pace);
-        Blit.BlitTileClipped(pixX, pixY, 0, 0, GameVars.iconImageBufferPtr, GameVars.viewImageBufferPtr);
+        Blit.BlitTileClipped(pixX, pixY, 0, 0, GameVars.saveUnder, GameVars.viewBuffer);
         Inc(frame);
         if frame >= frames then
           frame := 0;
@@ -552,11 +552,11 @@ begin
         CbtMap.ScrollView(endX, endY, 3, 8);
       pixX := (endX - GameVars.arenaPtr^.ox) * 3;
       pixY := (endY - GameVars.arenaPtr^.oy) * 3;
-      Blit.BlitTileClipped(pixX, pixY, frame, 5, GameVars.moveIconSheet, GameVars.viewImageBufferPtr);
+      Blit.BlitTileClipped(pixX, pixY, frame, 5, GameVars.moveIconSheet, GameVars.viewBuffer);
       if pace > 0 then begin
         Blit.FlushView;
         Delay(pace);
-        Blit.BlitTileClipped(pixX, pixY, 0, 0, GameVars.iconImageBufferPtr, GameVars.viewImageBufferPtr);
+        Blit.BlitTileClipped(pixX, pixY, 0, 0, GameVars.saveUnder, GameVars.viewBuffer);
       end;
     end;
   until lastPass;
@@ -592,7 +592,7 @@ var
   reps: Byte;
   slot: Byte;
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then begin
+  if GameVars.ifcState = C_IFC.IN_COMBAT then begin
     SoundDrv.SoundSetAutoStop(0);
     if effect then
       cell := 22
@@ -603,7 +603,7 @@ begin
       CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 3, 8);
     if effect then
       SoundDrv.SoundEffect(GameDefs.soundIds.combat[0], C_SOUND.GROUP_SPELL)
-    else if GameVars.currentSpellBeing <> C_SPELL.NONE then
+    else if GameVars.spellId <> C_SPELL.NONE then
       SoundDrv.SoundEffect(GameDefs.soundIds.damage, C_SOUND.GROUP_SPELL)
     else
       SoundDrv.SoundCommand(GameDefs.soundIds.damage);
@@ -619,10 +619,10 @@ begin
       gy := CbtMap.gridY[slot] * 3;
       for i := 0 to reps do
         for j := 0 to 3 do begin
-          Blit.BlitTileClipped(gx, gy, j, 5, GameVars.moveIconSheet, GameVars.viewImageBufferPtr);
+          Blit.BlitTileClipped(gx, gy, j, 5, GameVars.moveIconSheet, GameVars.viewBuffer);
           Blit.FlushView;
           Delay(70);
-          Blit.BlitTileClipped(gx, gy, 0, 0, GameVars.iconImageBufferPtr, GameVars.viewImageBufferPtr);
+          Blit.BlitTileClipped(gx, gy, 0, 0, GameVars.saveUnder, GameVars.viewBuffer);
         end;
     end;
     SoundDrv.SoundSetAutoStop(10);
@@ -648,7 +648,7 @@ end;
 
 procedure RedrawPartyOutOfCombat;
 begin
-  if GameVars.ifcState <> C_IFC.COMBAT then
+  if GameVars.ifcState <> C_IFC.IN_COMBAT then
     CharDisp.DisplayParty(GameVars.curChar);
 end;
 
@@ -673,7 +673,7 @@ begin
                                        0, White, '');
     C_IFC.SHOP_TEMPLE, C_IFC.VAULT: begin
       CharDisp.DrawNoncombatWindows(True);
-      Portrait.LoadPortraitBufs(currentPortraitHead, currentPortraitHead2);
+      Portrait.LoadPortraitBufs(portraitHeadId, portraitBodyId);
       Portrait.DisplayPortraitBufs(3, 3, True);
     end;
     C_IFC.CAMPING: begin
@@ -691,7 +691,7 @@ begin
       CharDisp.DisplayParty(GameVars.curChar);
       CharDisp.PrintMiscInfo;
     end;
-    C_IFC.OUTDOORS: begin
+    C_IFC.OVERLAND: begin
       CharDisp.DrawNoncombatWindows(False);
       MapView.DisplayMapView;
       CharDisp.DisplayParty(GameVars.curChar);
@@ -753,7 +753,7 @@ end;
 { Switch to the outdoor interface and draw it: the wilderness windows and map views, status line and party. }
 procedure DisplayWildernessInterface;
 begin
-  GameVars.ifcState := C_IFC.OUTDOORS;
+  GameVars.ifcState := C_IFC.OVERLAND;
   Wilds.DrawWildWindows;
   MapView.DisplayMapView;
   MapView.DisplayWildMapView;
@@ -825,6 +825,6 @@ end;
 
 begin
   { Turbo Pascal clears no variable }
-  currentPortraitHead := 0;
-  currentPortraitHead2 := 0;
+  portraitHeadId := 0;
+  portraitBodyId := 0;
 end.

@@ -1,10 +1,10 @@
-"""Report the overlaid units' sizes, for build.sh.
+"""Report overlay sizes for build.sh.
 
 usage: ovlsizes.py FIXMAIN.EXE FIXMAIN.MAP [--units]   (--units: every overlay's size too)
 
-Each overlaid unit has a stub segment in the linked (unpacked) FIXMAIN.EXE: it starts with INT 3Fh (CD 3F), then the
-return offset, the overlay's file offset (LongInt), its code size and its fixup size (Words). FIXMAIN.MAP gives each
-code segment's start. A unit's load size is code plus fixups: what the overlay buffer must hold to run it.
+Each overlaid unit has a stub segment in the linked, unpacked FIXMAIN.EXE. The stub starts with INT 3Fh (CD 3F),
+followed by the return offset, overlay file offset, code size, and fixup size. FIXMAIN.MAP identifies each code
+segment's starting address. The overlay buffer must hold both the unit's code and its fixups.
 """
 import re
 import struct

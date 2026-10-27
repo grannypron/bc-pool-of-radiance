@@ -1,18 +1,14 @@
-{ The native build's sound sequencer: sounddrv.asm and its speaker and Tandy parts (sndspk.inc, sndtdy.inc) in Pascal,
-  whose routines SoundDrv forwards to. The tunes are the assembly's own bytes: tools/snd2pas.py assembles them into an
-  image of the driver's segment (SNDIMAGE.INC, in obj), and the sequencer steps the streams and keeps the voice blocks
-  in that image as the assembly does in its segment, so the streams' pointers and field offsets work unchanged. Each
-  routine follows its assembly line by line, registers as variables, 16-bit arithmetic wrapping as the 8086's does.
+{ Pascal port of sounddrv.asm's speaker and Tandy sequencer. SoundDrv forwards
+  native calls here. tools/snd2pas.py stores the original tune bytes and voice
+  blocks in SNDIMAGE.INC so their offsets and stream pointers remain unchanged.
+  The routines intentionally follow the assembly closely, including 16-bit
+  wraparound.
 
-  The port writes go to PortWrite (SndChip's speaker and SN76489 emulation, which SdlSound sets up), or, once
-  SetTraceBuffer has been called, into its buffer, as the TASM trace build's do: tests/sndtrc.pas forwards to the trace
-  entries here, so TSndSeq checks this sequencer against the record taken from SSI's.
-
-  The timer interrupt is Tick, which the sound output runs 236.7 times a second of sound (SndChip.Render); it runs only
-  while InstallSoundTimer has the timer "hooked". With no sound output (Rendered False: no audio device, or the tests),
-  SoundTimerTicks and SoundVoiceTune run the ticks the clock owes instead, so the game's waits and its music's end still
-  come. The output runs on its own thread: Lock and Unlock (SdlSound's) keep a tick out of the entries, as seqBusy does
-  on DOS. Objfpc mode for the procedure variables' nil. Free Pascal only. }
+  Port writes normally go to SndChip. Trace mode records them instead, allowing
+  TSndSeq to compare this implementation with output captured from SSI's driver.
+  Audio output calls Tick at 236.7 Hz. Without an audio device, public timing
+  queries advance any ticks owed by the clock. SdlSound supplies Lock/Unlock to
+  serialize game calls with its audio thread. Free Pascal only. }
 {$MODE OBJFPC}
 {$H-}
 {$R-}
@@ -26,12 +22,12 @@ type
   TLockProc = procedure;
 
 var
-  { where the sequencer's port writes go outside a trace (SndChip.Write); nil drops them }
+  { Destination for normal port writes; nil discards them. }
   PortWrite: TPortWrite;
-  { serialise the entries with Tick on the output's thread (SdlSound's stream lock); nil when there is no thread }
+  { Audio-stream lock used to serialize entry points with Tick. }
   Lock: TLockProc;
   Unlock: TLockProc;
-  { True while a sound output runs Tick; False runs the ticks the clock owes when SoundTimerTicks is read }
+  { True when an audio output is responsible for calling Tick. }
   Rendered: Boolean;
 
 procedure InstallSoundTimer;
@@ -46,11 +42,11 @@ function SoundTimerHooked: Boolean;
 procedure SetSoundDevice(mode: Word);
 function SoundVoiceTune(voice: Word): Word;
 
-{ The timer interrupt, for the sound output: count the tick and, while the timer is hooked, run the device's tick. }
+{ Advances the timer and, when installed, the selected sound device. }
 procedure Tick;
 
-{ The trace build's entries (SndTrc): record the port writes into buf, capacity words (the port high, the value low),
-  from its start, instead of sending them to PortWrite; the words recorded; one tick's sequencing on demand. }
+{ Trace support used by SndTrc. Port writes are packed as port/value words in
+  buf instead of being sent to PortWrite. }
 procedure SetTraceBuffer(buf: Pointer; capacity: Word);
 function TraceCount: Word;
 procedure TraceTick;

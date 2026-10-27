@@ -1,10 +1,7 @@
-{ Tests for FxEngine.RemoveEffect when the removed effect's own handler removes the node first, as Fight On's does
-  (eff 95: the creature falls dead, and RemoveEffectsHp0 takes its 0-HP effects, Fight On among them). The outer
-  removal must leave the freed node alone: it once walked off the list and wrote through nil, into the interrupt
-  vectors, and freed the node twice. And for FxEngine.HoldTarget, which lets a hold go once its victim is free,
-  FxEngine.HasEffectNode, FxEngine.EffectImmune, and the Strength a disease takes (CharHlp.DiseaseStrLoss,
-  AdjustForNewStrength). And the one cure of disease (FxEngine.RemoveDiseases, HasDisease, #922) and what Friends
-  gives back as it ends (FxEngine.FriendsEndCha, #920). }
+{ Tests effect removal when an effect's own handler has already freed its node,
+  preventing the old double-free and nil write. Also covers hold release,
+  immunity checks, disease-related Strength loss and cures (#922), and restoring
+  Charisma when Friends ends (#920). }
 {$I COMPILER.INC}
 program TFxRemov;
 
@@ -39,10 +36,10 @@ begin
   FxEngine.RemoveEffect(creature, C_EFFECT.FIGHT_ON, nil);
 end;
 
-{ A paralysis ward, as EffNoParalysis is (eff 109): it refuses paralysis under the immunity check. }
+{ A paralysis ward, as EffImmuneParalysis is (eff 109): it refuses paralysis under the immunity check. }
 procedure WardsParalysis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GameVars.pendingEffectId = C_EFFECT.PARALYSIS then
+  if GameVars.pendingEffectId = C_EFFECT.PARALYZED then
     GameVars.pendingEffectId := 0;
 end;
 {$F-}
@@ -175,17 +172,17 @@ begin
     effect and lets others through }
   GameVars.effectFns[C_EFFECT.NO_PARALYSIS] := WardsParalysis;
   c^.effectsAddr := NewEffect(C_EFFECT.NO_PARALYSIS, nil);
-  TestKit.Check(FxEngine.EffectImmune(c, C_EFFECT.PARALYSIS), 'a paralysis ward refuses paralysis');
+  TestKit.Check(FxEngine.EffectImmune(c, C_EFFECT.PARALYZED), 'a paralysis ward refuses paralysis');
   TestKit.Check(not FxEngine.EffectImmune(c, C_EFFECT.POISONED), 'but not poison');
   FreeMem(c^.effectsAddr, SizeOf(Types.TEffectRec));
   c^.effectsAddr := nil;
-  TestKit.Check(not FxEngine.EffectImmune(c, C_EFFECT.PARALYSIS), 'with no ward, paralysis is not refused');
+  TestKit.Check(not FxEngine.EffectImmune(c, C_EFFECT.PARALYZED), 'with no ward, paralysis is not refused');
 
   { a disease that has taken 3 Strength from 18/76 (#705): its node counts the loss, a Strength effect stores the
     creature's own Strength with the loss given back, and sets the new one less the loss }
   c^.strCur := 15;
   c^.strExc := 76;
-  c^.effectsAddr := NewEffect(C_EFFECT.DISEASE_STR, nil);
+  c^.effectsAddr := NewEffect(C_EFFECT.DISEASE_STRENGTH, nil);
   c^.effectsAddr^.strength := 3 * 16 + 5;
   TestKit.CheckEqualsL(3, CharHlp.DiseaseStrLoss(c), 'the disease has taken 3 Strength');
   TestKit.Check(not FxEngine.AdjustForNewStrength(c, 17, 0, enc), '17 is weaker than the 18/76 under the disease');
@@ -202,8 +199,8 @@ begin
 
   { the one cure of disease (#922): the Strength drain takes its hit-point drain and helplessness with it, rot takes
     mummy rot, a stray hit-point drain or mummy rot goes, and helplessness alone (a Stinking Cloud's nausea) stays }
-  SetEffects(Chr(C_EFFECT.BLESS) + Chr(C_EFFECT.DISEASE_STR) + Chr(C_EFFECT.DISEASE_HP) + Chr(C_EFFECT.HELPLESS) +
-             Chr(C_EFFECT.DISEASED));
+  SetEffects(Chr(C_EFFECT.BLESS) + Chr(C_EFFECT.DISEASE_STRENGTH) + Chr(C_EFFECT.DISEASE_HIT_POINTS) +
+             Chr(C_EFFECT.HELPLESS) + Chr(C_EFFECT.DISEASED));
   TestKit.Check(FxEngine.HasDisease(c), 'the Strength drain is a disease');
   TestKit.Check(FxEngine.RemoveDiseases(c), 'and is cured');
   TestKit.CheckEqualsS(IdList(Chr(C_EFFECT.BLESS)), IdList(EffectIds), 'with its drains and helplessness');
@@ -214,7 +211,7 @@ begin
   TestKit.Check(not FxEngine.HasDisease(c), 'helplessness alone is no disease');
   TestKit.Check(not FxEngine.RemoveDiseases(c), 'and nothing is cured');
   TestKit.CheckEqualsS(IdList(Chr(C_EFFECT.HELPLESS)), IdList(EffectIds), 'it is left');
-  SetEffects(Chr(C_EFFECT.DISEASE_HP) + Chr(C_EFFECT.MUMMY_ROT));
+  SetEffects(Chr(C_EFFECT.DISEASE_HIT_POINTS) + Chr(C_EFFECT.MUMMY_ROT));
   TestKit.Check(FxEngine.HasDisease(c), 'a stray drain is a disease');
   TestKit.Check(FxEngine.RemoveDiseases(c) and (c^.effectsAddr = nil), 'a stray drain and mummy rot are cured');
   TestKit.CheckEqualsL(0, GameVars.effectLock, 'the effect lock is let go');

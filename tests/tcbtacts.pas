@@ -11,9 +11,9 @@ begin
 
   { cursor keys }
   TestKit.CheckEqualsL(C_DIR.NORTH, CbtActs.DirOfKey(C_KEYS.UP), 'Up is north');
-  TestKit.CheckEqualsL(C_DIR.NORTHEAST, CbtActs.DirOfKey(C_KEYS.PGUP), 'Page Up is north-east');
+  TestKit.CheckEqualsL(C_DIR.NORTHEAST, CbtActs.DirOfKey(C_KEYS.PAGE_UP), 'Page Up is north-east');
   TestKit.CheckEqualsL(C_DIR.EAST, CbtActs.DirOfKey(C_KEYS.RIGHT), 'Right is east');
-  TestKit.CheckEqualsL(C_DIR.SOUTHEAST, CbtActs.DirOfKey(C_KEYS.PGDN), 'Page Down is south-east');
+  TestKit.CheckEqualsL(C_DIR.SOUTHEAST, CbtActs.DirOfKey(C_KEYS.PAGE_DOWN), 'Page Down is south-east');
   TestKit.CheckEqualsL(C_DIR.SOUTH, CbtActs.DirOfKey(C_KEYS.DOWN), 'Down is south');
   TestKit.CheckEqualsL(C_DIR.SOUTHWEST, CbtActs.DirOfKey(C_KEYS.END_KEY), 'End is south-west');
   TestKit.CheckEqualsL(C_DIR.WEST, CbtActs.DirOfKey(C_KEYS.LEFT), 'Left is west');

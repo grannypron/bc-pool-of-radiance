@@ -78,8 +78,8 @@ function CombatSlot(creature: Types.PCharRecord): Byte;
 
 { Probe the cells one step in dir from each of the creature's icon tiles. crIdx returns an adjacent creature (0 = none;
   the creature itself is ignored and the last one found wins). terrIdx returns the dominant terrain: 0 (off the arena)
-  beats everything, then C_TERR.STINK_CLOUD, otherwise the highest cost wins (the later tile on a tie). The preset pair
-  is terrIdx 23 / best 1: terrainInfo[23] is a cost-1 passable entry, so any real terrain of cost >= 1 replaces it.
+  beats everything, then C_TERR.STINKING_CLOUD, otherwise the highest cost wins (the later tile on a tie). The preset
+  pair is terrIdx 23 / best 1: terrainInfo[23] is a cost-1 passable entry, so any real terrain of cost >= 1 replaces it.
   Combat.MoveMenu uses it for bump attacks and terrain cost; IsValidCreatureLoc probes dir 8, the creature's own
   cells. }
 procedure ProbeDirection(creature: Types.PCharRecord; dir: Byte; var crIdx, terrIdx: Byte);
@@ -108,7 +108,7 @@ procedure DisplayMapViewCentered(creature: Types.PCharRecord; delta: Byte; curso
   the cycle repeats. AimBlast reaches every cell within radius of the cursor cell by the Pathing.WalkLine test
   Pathing.BuildTargetList applies, so walls cut it the same way; radius 0 is the cursor cell alone. AimBolt follows
   spell's bolt (Lightning Bolt's, or the Javelin of Lightning's) from the cursor cell (boltTracer). AimCloud covers the
-  passable cells of Magic.StinkingCloudHandler's 2x2 block and draws them with the stinking-cloud terrain tile instead
+  passable cells of Magic.SpellStinkingCloud's 2x2 block and draws them with the stinking-cloud terrain tile instead
   of areaCell. The frames are drawn from MenuCore.MenuHorizontal's idle hook. With report set, each restart also hands
   aimReport the creatures the spell will catch there (#840): for a blast everyone Pathing.BuildAreaList gathers at
   radius, over the whole arena and not just the view, as the spell gathers them; for a bolt or cloud the creatures on
@@ -123,7 +123,7 @@ procedure TickSpellPreview;
 procedure StopSpellPreview;
 
 { Build the potential-target list around creature within range, keep only creatures on the opposing team, and copy their
-  indices into GameVars.potentialTargetCreature. Return the remaining count. }
+  indices into GameVars.combatTargetSlots. Return the remaining count. }
 function CountTargets(creature: Types.PCharRecord; range: Byte): Byte;
 
 { Find the distance to another creature by temporarily rebuilding the target list with terrain ignored (distMode 1).
@@ -253,7 +253,7 @@ begin
     relX := areaX[i] - GameVars.arenaPtr^.ox;
     relY := areaY[i] - GameVars.arenaPtr^.oy;
     if CbtMap.ViewCoordsValid(relX, relY) then begin
-      MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[C_TERR.STINK_CLOUD].tileId);
+      MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[C_TERR.STINKING_CLOUD].tileId);
       DrawCellTop(areaX[i], areaY[i], relX, relY);
     end;
   end else
@@ -799,8 +799,8 @@ begin
         crIdx := c;
       if (t = 0) or (terrIdx = 0) then
         terrIdx := 0
-      else if (t = C_TERR.STINK_CLOUD) or (terrIdx = C_TERR.STINK_CLOUD) then
-        terrIdx := C_TERR.STINK_CLOUD
+      else if (t = C_TERR.STINKING_CLOUD) or (terrIdx = C_TERR.STINKING_CLOUD) then
+        terrIdx := C_TERR.STINKING_CLOUD
       else if GameDefs.terrainInfo[t].cost >= best then begin
         best := GameDefs.terrainInfo[t].cost;
         terrIdx := t;
@@ -826,7 +826,7 @@ begin
     free := GameVars.downedCount;
   end;
   GameVars.downed[free].terrain := GameVars.arenaPtr^.cells[y, x];
-  if GameVars.arenaPtr^.cells[y, x] <> C_TERR.STINK_CLOUD then
+  if GameVars.arenaPtr^.cells[y, x] <> C_TERR.STINKING_CLOUD then
     GameVars.arenaPtr^.cells[y, x] := C_TERR.CORPSE;
   GameVars.downed[free].cr := creature;
   GameVars.downed[free].x := x;
@@ -845,7 +845,7 @@ var
   cellY: ShortInt;
 begin
   SoundDrv.SoundSetAutoStop(0);
-  if GameVars.ifcState <> C_IFC.COMBAT then begin
+  if GameVars.ifcState <> C_IFC.IN_COMBAT then begin
     SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.DOWNED], C_SOUND.GROUP_DEATH);
     TextRend.PauseOnly;
   end else begin
@@ -871,7 +871,7 @@ begin
       if Pathing.GetIconTileDelta(GameVars.arenaLoc[slot].size, k, tdx, tdy) then
         Blit.BlitTileClipped((gridX[slot] + tdx) * 3, (gridY[slot] + tdy) * 3, 0, 5,
                              GameVars.iconAnimation[24, 0],
-                             GameVars.viewImageBufferPtr);
+                             GameVars.viewBuffer);
     Blit.FlushView;
     if creature^.combatAddr^.notPcNpc = 0 then
       CbtMap.RegisterDowned(creature, cellX, cellY);
@@ -901,7 +901,7 @@ var
   t: Byte;
   found: Boolean;
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then begin
+  if GameVars.ifcState = C_IFC.IN_COMBAT then begin
     IsValidCreatureLoc := False;
     slot := CbtMap.CombatSlot(creature);
     { not in the combat arrays }
@@ -967,7 +967,7 @@ begin
   end;
   CountTargets := n;
   for i := 1 to n do
-    GameVars.potentialTargetCreature[i] := GameVars.targetList[i].idx;
+    GameVars.combatTargetSlots[i] := GameVars.targetList[i].idx;
 end;
 
 function CalcDistance(creature, other: Types.PCharRecord): Byte;

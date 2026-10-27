@@ -18,72 +18,47 @@ var
   picBytes: LongInt;
   picPeak: LongInt;
 
-{ Translates a logical color through a picture's color map into the device color used by the active video mode. The map
-  packs two colors per byte: even colors use the high nibble, odd colors the low nibble. CGA consumers expect the result
-  to fall in 0..3; neither that nor the input range is checked here.
-  @param(color Logical color index, nominally 0..15.)
-  @param(map Color map of the picture being drawn.)
-  @returns(The mapped color, 0..15.) }
+{ Translates logical color 0..15 through a picture's color map. The map packs
+  two colors per byte: even colors use the high nibble and odd colors use the
+  low nibble. CGA callers expect a result in 0..3. This routine does not check
+  either range. }
 function SrcNibble(color: Byte; map: Types.TColorMap): Byte;
 
-{ Switches the display to a BIOS video mode, remembering the mode it replaces so RestoreVideoMode can go back. The BIOS
-  result is not checked, so an unsupported mode fails silently while the current-mode bookkeeping still records it.
-  @param(mode BIOS INT 10h mode number to select.) }
+{ Switches to the requested BIOS video mode and remembers the previous mode for
+  RestoreVideoMode. The BIOS result is not checked, so an unsupported mode
+  fails silently even though the bookkeeping records the change. }
 procedure SetVideoMode(mode: Byte);
 
 { Returns the display to the mode saved by the last SetVideoMode call. That call also saves the mode being replaced, so
   calling this twice in a row toggles between two modes. }
 procedure RestoreVideoMode;
 
-{ Loads a picture from <name>.dax into a freshly allocated, display-ready image buffer, replacing any buffer already
-  held in pic. If the file yields no data, pic is left nil. The raw data block is released once the image has been
-  expanded.
-  @param(name Base file name, without the .dax extension.)
-  @param(fileId Identifier passed to the DAX loader to select the block within the file.)
-  @param(hasMask True to build a transparency mask for the picture.)
-  @param(transpColor Color index treated as transparent in that mask.)
-  @param(pic Receives the new image buffer; any previous buffer is freed first.) }
+{ Loads block fileId from <name>.dax into a display-ready image buffer. The old
+  pic buffer is freed first. When hasMask is True, transpColor becomes
+  transparent. If the file supplies no data, pic is left nil. }
 procedure LoadPic(name: string; fileId: Byte; hasMask: Boolean; transpColor: Byte; var pic: Types.PImgBuf);
 
-{ Draws one frame of a graphic into a destination buffer at a character-cell position and marks the touched scanlines
-  dirty so FlushView will push them to the screen. Each span records the first and inclusive last byte changed on its
-  scanline. With transparency, the background is kept wherever the mask is set (on VGA, wherever the pixel is PIC_KEY);
-  otherwise rows are copied straight across. On EGA one mask byte covers all four plane bytes of a cell; CGA and Tandy
-  masks match the pixel data byte for byte. The tile is not clipped, so the caller must keep it inside dest.
-  @param(screenX Left edge, in character columns.)
-  @param(screenY Top edge, in character rows of eight scanlines.)
-  @param(tileIdx Frame within gfx to draw.)
-  @param(flag Bit 0 requests transparent drawing; ignored when gfx has no mask.)
-  @param(gfx Source graphic.)
-  @param(dest Buffer drawn into, normally the view buffer.) }
+{ Draws frame tileIdx from gfx into dest at a character-cell position. Bit 0 of
+  flag enables transparency when gfx has a mask. The changed scanlines are
+  marked dirty for FlushView. The tile is not clipped, so the caller must keep
+  it inside dest. }
 procedure BlitTileCell(screenX, screenY: Integer; tileIdx, flag: Byte; gfx, dest: Types.PImgBuf);
 
-{ Draws one frame of a graphic like BlitTileCell, but clips it against the destination edges and can save the pixels it
-  is about to cover. A tile that lies entirely outside the destination, or that has inconsistent geometry, is skipped.
-  Saved pixels go to the save-under buffer at the clipped source position, independent of tileIdx, so the caller can
-  restore the background later.
-  @param(screenX Left edge, in character columns; may be negative.)
-  @param(screenY Top edge, in character rows of eight scanlines; may be negative.)
-  @param(tileIdx Frame within gfx to draw.)
-  @param(flag Bit 0 requests transparent drawing (ignored when gfx has no mask); bit 2 saves the covered destination
-    pixels first.)
-  @param(gfx Source graphic; nothing is drawn if nil.)
-  @param(dest Buffer drawn into; nothing is drawn if nil.) }
+{ Draws frame tileIdx from gfx like BlitTileCell, but clips it to dest. Bit 0 of
+  flag enables transparency; bit 2 saves the covered pixels so the caller can
+  restore them later. Negative screen coordinates are allowed. Invalid or nil
+  buffers and tiles wholly outside dest are ignored. }
 procedure BlitTileClipped(screenX, screenY: Integer; tileIdx, flag: Byte; gfx, dest: Types.PImgBuf);
 
-{ Produces a left-right reflected copy of the first frame of a graphic, including its color map and any transparency
-  mask. The destination must already be large enough, must not overlap unread source data, and must have a mask if the
-  source does. The source width must be nonzero.
-  @param(src Graphic to reflect; nothing happens if nil.)
-  @param(dst Buffer receiving the reflection; nothing happens if nil.) }
+{ Copies the first frame of src into dst, reflected left to right. The color map
+  and transparency mask are copied too. dst must be large enough, must not
+  overlap unread source data, and must have a mask when src does. Nil buffers
+  are ignored. }
 procedure MirrorPic(src, dst: Types.PImgBuf);
 
-{ Draws the first frame of a picture straight to video memory at a character-cell position, bypassing the view buffer
-  and its dirty-span staging. No clipping or transparency is applied. CGA and Tandy copy whole rows through the segment
-  table, VGA through the row offsets; EGA writes each of the four planes separately through the sequencer map mask.
-  @param(screenX Left edge, in character columns.)
-  @param(screenY Top edge, in character rows of eight scanlines.)
-  @param(pic Picture to show; nothing happens if nil.) }
+{ Draws pic's first frame directly to video memory at a character-cell
+  position, bypassing the view buffer and dirty spans. No clipping or
+  transparency is applied. A nil pic is ignored. }
 procedure ShowPic(screenX, screenY: Integer; pic: Types.PImgBuf);
 
 { Copies every dirty span of the view buffer to video memory through the driver's FlushSpans, then resets the span
@@ -97,51 +72,32 @@ procedure FlushView;
 { Mark no scanline of the view dirty: every row inactive, its first offset past any and its last 0. }
 procedure ClearSpans;
 
-{ Recolors a picture by replacing pixels of each source color with the matching destination color. Every replacement is
-  matched against the original pixels, not the partly remapped result, so remaps do not cascade (swapping two colors
-  works). The work is done in a temporary image that is copied back at the end. Only one frame is remapped, unless frame
-  is negative: then every frame of the picture is remapped, starting at frame zero. A frame past the picture's last is
-  left alone.
-  @param(fromColors Colors to replace, indexed by slot 0..15.)
-  @param(toColors Replacement for the same slot; slots where both tables agree are skipped.)
-  @param(frame Frame to remap; a negative value remaps every frame.)
-  @param(isDithered True to recolor only a random subset of matching pixels, for a partial or blended effect.)
-  @param(pic Picture modified in place; nothing happens if nil.) }
+{ Recolors pic by replacing each fromColors entry with the matching toColors
+  entry. Replacements are matched against the original pixels, so remaps do not
+  cascade and colors can be swapped. A negative frame remaps every frame;
+  otherwise only that frame is changed. isDithered changes only a random subset
+  of matching pixels. A nil pic or an out-of-range frame is ignored. }
 procedure RemapPic(fromColors, toColors: Types.TColorTab; frame: Integer; isDithered: Boolean; pic: Types.PImgBuf);
 
-{ Allocates a zero-filled image buffer with room for a number of frames in the layout of the active video mode,
-  optionally with a transparency mask (MaskBytes). Frames past what one heap block holds go to a further block,
-  pic^.more.
-  @param(height Frame height, in scanlines.)
-  @param(width Frame width, in eight-pixel cells.)
-  @param(count Number of frames.)
-  @param(flag Bit 0 requests a transparency mask.)
-  @param(pic Receives the new buffer.) }
+{ Allocates a zero-filled image buffer for count frames. height is in scanlines
+  and width is in eight-pixel cells. Bit 0 of flag requests a transparency
+  mask. Frames that do not fit in one heap block continue in pic^.more. }
 procedure AllocPic(height, width: Word; count: Byte; flag: Byte; var pic: Types.PImgBuf);
 
-{ Releases an image buffer and its transparency mask, if any, and sets the pointer to nil. The mask size is derived from
-  the current video mode, so it must be freed in the mode it was allocated in. Does nothing if the pointer is already
-  nil.
-  @param(pic Buffer to free; nil on return.) }
+{ Frees pic and its transparency mask, then sets pic to nil. The mask size
+  depends on the current video mode, so a picture must be freed in the mode in
+  which it was allocated. }
 procedure FreePic(var pic: Types.PImgBuf);
 
-{ Fills a rectangle of a destination buffer with one solid color and marks the touched scanlines dirty for FlushView.
-  The rectangle is clipped to the destination, so it may be partly off-screen; one wholly outside it fills nothing. The
-  driver's CellFill gives a cell row in the colour: packed fill bytes on CGA and Tandy, four plane bytes on EGA, eight
-  pixels on VGA. A negative y fills from row 0, as much of the rectangle as the picture holds.
-  @param(x Left edge, in character columns; may be negative.)
-  @param(y Top edge, in scanlines; may be negative.)
-  @param(width Rectangle width, in eight-pixel cells.)
-  @param(height Rectangle height, in scanlines.)
-  @param(color Color to fill with, 0..15. CGA translates it through colorMap.)
-  @param(colorMap Color map used to translate color on CGA.)
-  @param(pic Buffer filled, normally the view buffer; nothing happens if nil.) }
+{ Fills a clipped rectangle in pic and marks its scanlines dirty. x and width
+  use eight-pixel cells; y and height use scanlines. Negative coordinates are
+  allowed. color is 0..15 and is translated through colorMap on CGA. A nil pic
+  or a rectangle wholly outside it is ignored. }
 procedure FillPicRect(x, y: Integer; width, height: Word; color: Byte; colorMap: Types.TColorMap; pic: Types.PImgBuf);
 
-{ Gives palette register registerIndex the colour color, through the video driver: EGA's palette registers, VGA's
-  DAC. Does nothing in a mode without a palette (HasPalette).
-  @param(registerIndex Palette register to change.)
-  @param(color Logical color to assign to that register, 0..15.) }
+{ Assigns logical color 0..15 to registerIndex through the video driver. This
+  changes an EGA palette register or a VGA DAC entry and does nothing in modes
+  without a programmable palette. }
 procedure SetPaletteRegister(registerIndex, color: Byte);
 
 { What the game asks of the video mode instead of naming it (phase 6, step 1). }
@@ -368,7 +324,7 @@ begin
     Inc(destOff, leftSkip);
     firstOfs := destOff;
     if saveRequested then
-      Move(dest^.data[destOff], GameVars.iconImageBufferPtr^.data[saveOff], rowBytes);
+      Move(dest^.data[destOff], GameVars.saveUnder^.data[saveOff], rowBytes);
     Inc(saveOff, rowBytes);
     if useMask and GameVars.video.keyed then begin
       { a colour key (VGA): every pixel but PIC_KEY is drawn }

@@ -1,7 +1,7 @@
-{ The player's notes on the map's squares (phase 8 of docs/refactor-plan.md, the Companion Tools): up to MAX_NOTES
-  notes of up to NOTE_LEN characters, each on a square of a 3D area keyed as Explored keys areas (the script, and the
-  map). Written and read from the Companion Tools' Notes; saved beside each save as savgam<x>.nts. Resident, as
-  Explored is, so its initialization clears the notes before any save is read. }
+{ Stores notes attached to map squares for the Companion Tools. An area is
+  identified by the same script/map pair used by Explored. Notes are saved
+  beside each game as savgam<x>.nts. This unit remains resident so a new game
+  can clear all notes before loading a save. }
 {$I COMPILER.INC}
 unit MapNotes;
 
@@ -16,24 +16,27 @@ const
 type
   TNoteText = string[NOTE_LEN];
 
-{ Forget every note: a new game, or a save without a .nts file. }
+{ Clears every note for a new game or a save without a .nts file. }
 procedure Clear;
 
-{ The note on square (x, y) of the area of script and map; '' for none, and for a square off the map (Types.OnMap). }
+{ Returns the note at a square, or an empty string if none exists or the square
+  is outside the map. }
 function Note(script, map: Byte; x, y: ShortInt): TNoteText;
 
-{ Set the note on square (x, y) of the area of script and map; '' removes it (ClearNote). False when the notes are
-  full, or the square is off the map (Types.OnMap), which leaves the notes as they were (#918). }
+{ Sets a square's note; an empty string removes it. Returns False without
+  changing anything when the square is invalid or the note table is full
+  (#918). }
 function SetNote(script, map: Byte; x, y: ShortInt; text: TNoteText): Boolean;
 
 { Remove the note on square (x, y) of the area of script and map, if it has one. }
 procedure ClearNote(script, map: Byte; x, y: ShortInt);
 
-{ Write the notes as file name of save s (FileUtil.WriteToSet): True when they were written. }
+{ Writes the notes to a save's file set and reports whether it succeeded. }
 function WriteSlot(var s: FileUtil.TFileSet; name: FileUtil.TSetName): Boolean;
 
-{ Read the notes from file fn; a missing, short or foreign file leaves none. A note off the map, or whose text's length
-  byte is past NOTE_LEN, is dropped, the rest kept (#917, #918). }
+{ Reads notes from fn. Missing, truncated, or foreign files leave the list
+  empty. Invalid individual records are discarded while valid ones are kept
+  (#917, #918). }
 procedure ReadSlot(fn: String);
 
 implementation

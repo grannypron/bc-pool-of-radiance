@@ -10,16 +10,16 @@ const
   CURSE = 2;
   UNDEAD_SLAYER = 3;
   TRAIN_START = 4;
-  { EffNull handler; item labels mark magic items while any creature has it }
+  { EffNone handler; item labels mark magic items while any creature has it }
   DETECT_MAGIC = 5;
   FLAME_TONGUE = 6;
   TRAIN_MANUAL = 7;
-  PROT_EVIL = 8;
+  PROTECTION_FROM_EVIL = 8;
   PROT_GOOD = 9;
   RESIST_COLD = 10;
   CHARM = 11;
   ENLARGE = 12;
-  { EffNull handler. }
+  { EffNone handler. }
   REDUCE = 13;
   FRIENDS = 14;
   { a Friends effect's strength: this flag plus the Charisma it gave (FxEngine.FriendsEndCha, #920); one saved before
@@ -28,21 +28,21 @@ const
   SLOW_POISON_HIT = 15;
   READ_MAGIC = 16;
   SHIELD = 17;
-  GNOME_THAC0 = 18;
-  { EffNull handler. }
+  GNOME_ATTACK_BONUS = 18;
+  { EffNone handler. }
   FIND_TRAPS = 19;
   RESIST_FIRE = 20;
   SILENCE = 21;
   SLOW_POISON_END = 22;
-  SPIRIT_HAMMER = 23;
+  SPIRITUAL_HAMMER = 23;
   SEE_INVISIBLE = 24;
   INVISIBLE = 25;
-  DWARF_THAC0 = 26;
-  { EffNull handler; readying the Ring of Feather Falling adds it }
+  DWARF_ATTACK_BONUS = 26;
+  { EffNone handler; readying the Ring of Feather Falling adds it }
   FEATHER_FALL = 27;
   MIRROR_IMAGE = 28;
   ENFEEBLE = 29;
-  STINK_COUGH = 30;
+  STINKING_CLOUD_COUGH = 30;
   HELPLESS = 31;
   ANIMATE_DEAD = 32;
   BLIND = 33;
@@ -54,24 +54,24 @@ const
   STRENGTH = 38;
   { doubles movement and attacks, unless Slowed too (CharHlp.HasteSlowRate) }
   HASTED = 39;
-  CAST_STINK = 40;
+  CAST_STINKING_CLOUD = 40;
   PROT_MISSILES = 41;
   SLOWED = 42;
-  DISEASE_STR = 43;
-  DISEASE_HP = 44;
+  DISEASE_STRENGTH = 43;
+  DISEASE_HIT_POINTS = 44;
   { Shares the effect 8 handler, EffProtEvil. }
   PROT_EVIL_10FT = 45;
   { Shares the effect 9 handler, EffProtGood. }
   PROT_GOOD_10FT = 46;
-  DWARF_AC_GIANT = 47;
-  GNOME_AC_BUG = 48;
+  DWARF_GIANT_DEFENSE = 47;
+  GNOME_BUGBEAR_DEFENSE = 48;
   PRAYER = 49;
   { Prayer's strength bit for the side that cast it (its hostile, 0 or 1); the lower nibble holds the caster level }
   PRAYER_SIDE = $10;
   ROT_NO_HEAL = 50;
   { Shares the effect 31 handler, EffHelpless. }
   SNAKE_CHARM = 51;
-  PARALYSIS = 52;
+  PARALYZED = 52;
   SLEEP = 53;
   { Dragon fear, toned down for the game: the handler does nothing, so the effect only marks the creature and camp lists
     it as Repulsed. The full fear effect is DRAGON_FEAR. }
@@ -81,11 +81,11 @@ const
   MUMMY_ROT = 57;
   IMMOBILE = 58;
   TROLL_REGEN = 59;
-  { EffNull handler: C_COND.WEAPON_DAMAGE_DEF and NONWEAPON_DAMAGE trigger it, to no effect }
+  { EffNone handler: C_COND.WEAPON_DAMAGE_DEF and NONWEAPON_DAMAGE trigger it, to no effect }
   NULL_DAMAGE = 60;
   RING_FIRE_RES = 61;
   CON_REGEN = 62;
-  { EffNull handler: C_COND.TARGET_VETO triggers it, to no effect }
+  { EffNone handler: C_COND.TARGET_VETO triggers it, to no effect }
   NULL_TARGET_VETO = 63;
   POISON_HIT0 = 64;
   POISON_HIT4 = 65;
@@ -117,12 +117,12 @@ const
   DISPLACED = 89;
   CON_PSN_SAVE = 90;
   IMMUNE_MM = 91;
-  { 92 is EffNull's (GameInit), and nothing in the game's data or code adds it }
+  { 92 is EffNone's (GameInit), and nothing in the game's data or code adds it }
   HALF_FIRE = 93;
   HALF_BASH = 94;
   FIGHT_ON = 95;
   NEED_SILVER = 96;
-  CON_SPELL_SAVE = 97;
+  CONSTITUTION_SAVE_BONUS = 97;
   REGEN3 = 98;
   CAN_FIGHT_ON = 99;
   TROLL_BURN = 100;
@@ -132,7 +132,7 @@ const
   KREEN_DODGE = 104;
   MAGIC_RES50 = 105;
   MAGIC_RES85 = 106;
-  ELF_RESIST = 107;
+  ELF_RESISTANCE = 107;
   NO_SLEEP_CHARM = 108;
   NO_PARALYSIS = 109;
   NO_COLD = 110;
@@ -149,7 +149,7 @@ const
   ANHKHEG_ACID = 121;
   MUMMY_FIRE = 122;
   SILVER_MAGIC = 123;
-  HALF_ELF_RESIST = 124;
+  HALF_ELF_RESISTANCE = 124;
   NO_CHARM_POISON = 125;
   GAZE_BLOCK = 126;
   GAZE_REFLECTABLE = 127;
@@ -180,7 +180,7 @@ const
   RECENT_CURE = 141;
   { the diseases: Diseased, its Strength and hit point drains, and rot; paladins catch none (FxEngine.DiseaseImmune),
     and Dispel Magic leaves them to Cure Disease (#787) }
-  DISEASES = [DISEASED, DISEASE_STR, DISEASE_HP, ROT_NO_HEAL, MUMMY_ROT];
+  DISEASES = [DISEASED, DISEASE_STRENGTH, DISEASE_HIT_POINTS, ROT_NO_HEAL, MUMMY_ROT];
   { GameVars.elementMask's bits: what damage is made of. Magic set alone, or with no other bit, reads "from Magic". The
     last three name a source of damage that is no element, for its message (FxEngine.NonWeaponDamage): the poison and
     disease ticks and blood drain. }

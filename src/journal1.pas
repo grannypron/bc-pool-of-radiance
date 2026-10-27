@@ -9,15 +9,12 @@ unit Journal1;
 
 interface
 
-{ The number of display lines an item's text takes.
-  @param(index The item's place in the Journal list.)
-  @returns(The line count, or 0 for an item this unit does not hold.) }
+{ Returns the number of display lines for a 1-based Journal item. Returns 0
+  when this unit does not contain the item. }
 function LineCount(index: Integer): Integer;
 
-{ One run of an item's display lines.
-  @param(index The item's place in the Journal list.)
-  @param(chunk Which run of up to 9 lines, from 0.)
-  @returns(The run's lines separated by #13, or an empty string past the end.) }
+{ Returns one zero-based chunk of up to nine display lines for a Journal item.
+  Lines are separated by #13. Returns an empty string past the end. }
 function TextChunk(index, chunk: Integer): string;
 
 implementation

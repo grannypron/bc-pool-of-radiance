@@ -20,13 +20,13 @@ procedure FreeAnimation(var a: Types.TAnimRec);
 
 procedure DisplayCharPortrait;
 
-{ True when the player portraits can be shown on the current disk: on disk 3, whose HEAD3.DAX and BODY3.DAX hold them,
-  or on any disk once the merged HEAD.DAX and BODY.DAX are read in place of its own. }
+{ Returns whether player portraits are available: either disk 3 is active or
+  the merged HEAD.DAX and BODY.DAX archives are in use. }
 function PlayerPortraitsHere: Boolean;
 
-{ How many GameDefs.headTbl entries (bodyTbl entries when body is set) the portrait picker offers on the current disk:
-  all of them once the merged HEAD.DAX and BODY.DAX are read in place of its own, otherwise the ones HEAD3.DAX and
-  BODY3.DAX hold (DISK3_HEADS and DISK3_BODIES). }
+{ Returns the number of heads or bodies available to the portrait picker. The
+  merged archives expose the complete tables; disk 3 exposes only its original
+  subsets. }
 function PlayerPortraitCount(body: Boolean): Byte;
 
 procedure DisplayPortraitBufs(col, row: Byte; both: Boolean);
@@ -35,8 +35,7 @@ procedure LoadPortraitBufs(headId, bodyId: Byte);
 
 procedure Show3DSprite(dist: Byte; var a: Types.TAnimRec);
 
-{ Forget which archive and picture are cached, so the next picture is loaded afresh, for a new game
-  (GameInit.ResetGameState). }
+{ Invalidates the picture cache when starting a new game. }
 procedure ResetGame;
 
 implementation
@@ -56,7 +55,7 @@ procedure DisplayImageBuf(col, row: Integer; anim: Boolean; pic: Types.PImgBuf);
 begin
   if pic <> nil then
     if anim then begin
-      Blit.BlitTileClipped(col - 1, row - 1, 0, 1, pic, GameVars.viewImageBufferPtr);
+      Blit.BlitTileClipped(col - 1, row - 1, 0, 1, pic, GameVars.viewBuffer);
       Blit.FlushView;
     end else
       Blit.ShowPic(col, row, pic);
@@ -114,7 +113,7 @@ var
   end;
 
 begin
-  arc := name + StrUtil.NumStr(GameVars.virtualDisk);
+  arc := name + StrUtil.NumStr(GameVars.diskIndex);
   { the cached picture is the one a holds, when a holds any }
   if (a.count > 0) and (arc = picArcName) and (picId = picArcId) then Exit;
   Portrait.FreeAnimation(a);
@@ -232,13 +231,13 @@ end;
 { True when this disk's HEAD and BODY loads read the merged HEAD.DAX and BODY.DAX, which hold every head and body. }
 function MergedPortraits: Boolean;
 begin
-  MergedPortraits := (DaxIo.ArchiveName('HEAD' + StrUtil.NumStr(GameVars.virtualDisk)) = 'HEAD') and
-                     (DaxIo.ArchiveName('BODY' + StrUtil.NumStr(GameVars.virtualDisk)) = 'BODY');
+  MergedPortraits := (DaxIo.ArchiveName('HEAD' + StrUtil.NumStr(GameVars.diskIndex)) = 'HEAD') and
+                     (DaxIo.ArchiveName('BODY' + StrUtil.NumStr(GameVars.diskIndex)) = 'BODY');
 end;
 
 function PlayerPortraitsHere: Boolean;
 begin
-  PlayerPortraitsHere := (GameVars.virtualDisk = 3) or MergedPortraits;
+  PlayerPortraitsHere := (GameVars.diskIndex = 3) or MergedPortraits;
 end;
 
 function PlayerPortraitCount(body: Boolean): Byte;
@@ -266,12 +265,12 @@ procedure LoadPortraitBufs(headId, bodyId: Byte);
   procedure LoadSlot(slot: Byte; archive: Types.TStr8; id: Byte);
   begin
     if id = 255 then Exit;
-    with GameVars.portraitCache[slot] do
-      if (pictureId <> id) or (disk <> GameVars.virtualDisk) then begin
-        Blit.LoadPic(archive + StrUtil.NumStr(GameVars.virtualDisk), id, False, 0, pic);
+    with GameVars.portraits[slot] do
+      if (pictureId <> id) or (disk <> GameVars.diskIndex) then begin
+        Blit.LoadPic(archive + StrUtil.NumStr(GameVars.diskIndex), id, False, 0, pic);
         if pic <> nil then begin
           pictureId := id;
-          disk := GameVars.virtualDisk;
+          disk := GameVars.diskIndex;
         end else
           pictureId := 255;
       end;
@@ -285,9 +284,9 @@ end;
 { Draw the cached portrait at (col, row): its head, and when both is True its body five character rows below. }
 procedure DisplayPortraitBufs(col, row: Byte; both: Boolean);
 begin
-  Portrait.DisplayImageBuf(col, row, False, GameVars.portraitCache[1].pic);
+  Portrait.DisplayImageBuf(col, row, False, GameVars.portraits[1].pic);
   if both then
-    Portrait.DisplayImageBuf(col, row + Portrait.BODY_ROW_OFFSET, False, GameVars.portraitCache[2].pic);
+    Portrait.DisplayImageBuf(col, row + Portrait.BODY_ROW_OFFSET, False, GameVars.portraits[2].pic);
 end;
 
 { Draw frame dist (1..3, by view distance) of a into the view buffer at its origin + 2, then flush. Any other dist
@@ -298,7 +297,7 @@ begin
     GameIo.FatalError('Illegal range in Show3DSprite.');
   if a.frames[dist].pic <> nil then begin
     with a.frames[dist].pic^ do
-      Blit.BlitTileClipped(originX + 3 - 1, originY + 3 - 1, 0, 1, a.frames[dist].pic, GameVars.viewImageBufferPtr);
+      Blit.BlitTileClipped(originX + 3 - 1, originY + 3 - 1, 0, 1, a.frames[dist].pic, GameVars.viewBuffer);
     Blit.FlushView;
   end;
 end;

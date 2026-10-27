@@ -108,8 +108,8 @@ begin
   Same(0, C_GBVM.CHAR_PARTY_INDEX2, 'at either cell');
   c^.chaCur := 16;
   Same(50, C_GBVM.CHAR_LOYALTY, 'Charisma 16 gives loyalty 50');
-  GameVars.virtualDisk := 4;
-  Same(4, C_GBVM.DISK_NUM, 'DISK_NUM is virtualDisk');
+  GameVars.diskIndex := 4;
+  Same(4, C_GBVM.DISK_NUM, 'DISK_NUM is diskIndex');
   Same(1, C_GBVM.PARTY_SIZE, 'PARTY_SIZE');
 
   { the current character, written }
@@ -200,15 +200,15 @@ begin
   TestKit.Check((EclVars.ReadGbvm($4A20) = Ord('H')) and (EclVars.ReadGbvm($4A21) = Ord('I')) and
                 (EclVars.ReadGbvm($4A22) = 0), 'a string elsewhere is one character a cell, then 0');
   { a string value has no number (POR-0162): GetEclVar gives 0 rather than reading the GBVM }
-  GameVars.gbvmType[5] := $80;
-  GameVars.gbvmLowerByte[5] := 7;
-  GameVars.gbvmUpperByte[5] := $6B;
+  GameVars.varTypes[5] := $80;
+  GameVars.varLo[5] := 7;
+  GameVars.varHi[5] := $6B;
   TestKit.CheckEqualsL(0, EclVars.GetEclVar(5), 'a string value reads as 0');
-  GameVars.gbvmType[5] := 2;
+  GameVars.varTypes[5] := 2;
   TestKit.CheckEqualsL($6B07, EclVars.GetEclVar(5), 'a word gives its value');
 
   { reads with no value give 0 (#952), where v1.3 left the result unassigned }
-  GameVars.gbvmType[5] := $40;
+  GameVars.varTypes[5] := $40;
   TestKit.CheckEqualsL(0, EclVars.GetEclVar(5), 'a variable of an unknown type reads 0');
   Same(0, C_GBVM.CELL_35F, 'CELL_35F reads 0');
   Same(0, C_GBVM.CELL_WALL_COLOR, 'CELL_WALL_COLOR, write only, reads 0');

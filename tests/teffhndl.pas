@@ -1,10 +1,7 @@
-{ Tests for the effect handlers the 2026-10-25 review consolidated (EffHndlr): Resist Fire and Resist Cold
-  (ResistElement), the immunities to fire, cold and electricity (ElementImmunity), the elves' and half-elves' resistance
-  to sleep and charm (SleepCharmResist), the racial to-hit and armor bonuses by the foe's name (NamedIn,
-  RacialFoeBonus), Mirror Image's roll (FxEngine.ImageStruck), and Healed from Unconscious (eff 78) called with no node,
-  as FxEngine.RestoreHitPoints calls it, whose retry SSI read through nil. And the immunity check leaves no effect
-  pending, so magic resistance passes over later damage of no magic (POR-0219, #940). And the petrifying gaze's reach:
-  a target in action, within 3 squares and in sight (POR-0217, #938), and the silver shield that turns it (#981). }
+{ Tests shared effect-handler rules: elemental resistance and immunity, racial
+  defenses, Mirror Image, recovery from unconsciousness, magic-resistance state,
+  and racial combat bonuses. Also checks petrifying-gaze range and line of sight,
+  including reflection by the silver shield (#938, #940, #981). }
 {$I COMPILER.INC}
 program TEffHndl;
 
@@ -42,12 +39,12 @@ begin
   GameVars.elementMask := elem;
   GameVars.pendingDamage := 9;
   GameVars.pendingEffectId := 0;
-  FxEngine.gSaveRoll := 10;
+  FxEngine.saveRoll := 10;
   if fire then
     EffHndlr.EffResistFire(c, nil, False)
   else
     EffHndlr.EffResistCold(c, nil, False);
-  save := FxEngine.gSaveRoll;
+  save := FxEngine.saveRoll;
   After := GameVars.pendingDamage;
 end;
 
@@ -58,7 +55,7 @@ begin
   GameVars.pendingDamage := 9;
   GameVars.pendingEffectId := 0;
   case effId of
-    C_EFFECT.NO_FIRE: EffHndlr.EffNoFire(c, nil, False);
+    C_EFFECT.NO_FIRE: EffHndlr.EffImmuneFire(c, nil, False);
     C_EFFECT.NO_COLD: EffHndlr.EffNoCold(c, nil, False);
     C_EFFECT.IMMUNE_MM: EffHndlr.EffImmuneMM(c, nil, False);
   end;
@@ -74,9 +71,9 @@ begin
   for i := 1 to TRIES do begin
     GameVars.pendingEffectId := effId;
     if elf then
-      EffHndlr.EffElfResist(c, nil, False)
+      EffHndlr.EffElfResistance(c, nil, False)
     else
-      EffHndlr.EffHalfElfResist(c, nil, False);
+      EffHndlr.EffHalfElfResistance(c, nil, False);
     if GameVars.pendingEffectId = 0 then
       Inc(k);
   end;
@@ -88,9 +85,9 @@ function RollChange(effId: Byte): Integer;
 begin
   GameVars.gAttackRoll := 10;
   case effId of
-    C_EFFECT.DWARF_THAC0: EffHndlr.EffDwarfThac0(c, nil, False);
-    C_EFFECT.GNOME_THAC0: EffHndlr.EffGnomeThac0(c, nil, False);
-    C_EFFECT.DWARF_AC_GIANT: EffHndlr.EffDwarfAcGiant(c, nil, False);
+    C_EFFECT.DWARF_ATTACK_BONUS: EffHndlr.EffDwarfHitBonus(c, nil, False);
+    C_EFFECT.GNOME_ATTACK_BONUS: EffHndlr.EffGnomeHitBonus(c, nil, False);
+    C_EFFECT.DWARF_GIANT_DEFENSE: EffHndlr.EffDwarfGiantDefense(c, nil, False);
   end;
   RollChange := Integer(GameVars.gAttackRoll) - 10;
 end;
@@ -124,7 +121,7 @@ begin
   GameVars.creatureList := nil;
   GameVars.ifcState := 0;
   GameVars.effectLock := 0;
-  GameVars.currentSpellBeing := C_SPELL.NONE;
+  GameVars.spellId := C_SPELL.NONE;
   c := NewCreature;
   foe := NewCreature;
   GameVars.curChar := c;
@@ -151,7 +148,7 @@ begin
   TestKit.Check((n > TRIES * 8 div 10) and (n < TRIES), 'an elf resists sleep about 90% of the time');
   n := Resisted(True, C_EFFECT.CHARM);
   TestKit.Check((n > TRIES * 8 div 10) and (n < TRIES), 'and charm');
-  TestKit.CheckEqualsL(0, Resisted(True, C_EFFECT.PARALYSIS), 'and not paralysis');
+  TestKit.CheckEqualsL(0, Resisted(True, C_EFFECT.PARALYZED), 'and not paralysis');
   n := Resisted(False, C_EFFECT.SLEEP);
   TestKit.Check((n > TRIES div 5) and (n < TRIES * 2 div 5), 'a half-elf resists sleep about 30% of the time');
   TestKit.CheckEqualsL(0, Resisted(False, C_EFFECT.POISONED), 'and not poison');
@@ -159,22 +156,22 @@ begin
   { the racial bonuses by name }
   c^.combatAddr^.other := foe;
   SetFoe('GRISHNAK', 0, 1);
-  TestKit.CheckEqualsL(1, RollChange(C_EFFECT.DWARF_THAC0), 'a dwarf hits Grishnak (type 0) at +1');
-  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.GNOME_THAC0), 'a gnome does not');
+  TestKit.CheckEqualsL(1, RollChange(C_EFFECT.DWARF_ATTACK_BONUS), 'a dwarf hits Grishnak (type 0) at +1');
+  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.GNOME_ATTACK_BONUS), 'a gnome does not');
   SetFoe('KOBOLD', 1, 1);
-  TestKit.CheckEqualsL(1, RollChange(C_EFFECT.GNOME_THAC0), 'a gnome hits a kobold at +1');
-  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.DWARF_THAC0), 'a dwarf does not');
+  TestKit.CheckEqualsL(1, RollChange(C_EFFECT.GNOME_ATTACK_BONUS), 'a gnome hits a kobold at +1');
+  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.DWARF_ATTACK_BONUS), 'a dwarf does not');
   SetFoe('ORC', 1, 2);
-  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.DWARF_THAC0), 'nor a two-tile orc');
+  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.DWARF_ATTACK_BONUS), 'nor a two-tile orc');
   SetFoe('ORC', 1, 1);
-  TestKit.CheckEqualsL(1, RollChange(C_EFFECT.DWARF_THAC0), 'but a one-tile one');
+  TestKit.CheckEqualsL(1, RollChange(C_EFFECT.DWARF_ATTACK_BONUS), 'but a one-tile one');
   GameVars.curChar := foe;
   SetFoe('TROLL', 10, 1);
-  TestKit.CheckEqualsL(-4, RollChange(C_EFFECT.DWARF_AC_GIANT), 'a troll attacks a dwarf at -4');
+  TestKit.CheckEqualsL(-4, RollChange(C_EFFECT.DWARF_GIANT_DEFENSE), 'a troll attacks a dwarf at -4');
   SetFoe('ETTIN', 1, 2);
-  TestKit.CheckEqualsL(-4, RollChange(C_EFFECT.DWARF_AC_GIANT), 'and so does an ettin');
+  TestKit.CheckEqualsL(-4, RollChange(C_EFFECT.DWARF_GIANT_DEFENSE), 'and so does an ettin');
   SetFoe('ORC', 1, 1);
-  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.DWARF_AC_GIANT), 'an orc does not');
+  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.DWARF_GIANT_DEFENSE), 'an orc does not');
   GameVars.curChar := c;
 
   { Mirror Image: 1d(images + 1) rolls 1 with no image left }
@@ -245,7 +242,7 @@ begin
   foe^.equipped[C_EQUIP.WEAPON] := nil;
 
   { Healed from Unconscious with no node: a revival that fails retries in a minute, at strength 0 }
-  GameVars.ifcState := C_IFC.COMBAT;
+  GameVars.ifcState := C_IFC.IN_COMBAT;
   GameVars.arenaCount := 0;
   EffHndlr.EffHealWake(c, nil, True);
   TestKit.Check(CharHlp.HasEffect(c, C_EFFECT.HEAL_WAKE, effect), 'a failed revival with no node retries');
