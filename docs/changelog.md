@@ -50,6 +50,7 @@
 
 ### Fixes
 
+- Genheeris no longer slips away when the party comes back to Tyranthraxus' lair after beating him. This mends a game saved after the fight too.
 - Readying the Flame Tongue sword from Valjevo Castle's well, or the Two-Handed Sword +3 vs. Undead, during a fight no longer crashes the Linux, Windows and macOS versions (it happened most often with the combat AI, which readies weapons at the start of a turn). Readying them no longer adds their bonus to an attack that isn't happening, either.
 - The treasure menu no longer stays at the bottom of the screen while the ending plays.
 - The Linux, Windows and macOS versions show the ending's animations after Tyranthraxus falls; before, the window froze on the treasure screen until they were over, and Windows called it Not Responding. The intro's title, animated pictures and the other screens that wait on the clock now keep the window answering too.
