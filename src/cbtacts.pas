@@ -10,6 +10,9 @@ uses Types;
 var
   { suppress targeting }
   suppressTargeting: Byte;
+  { the creatures (CbtMap.CombatSlot) seen casting a spell this fight: CastSpellCombat marks them and
+    CombatSt.CombatStart clears it. A caster is what Silence is worth casting at (#1087). }
+  seenCasting: set of Byte;
   hitsMade: array[1..2] of Byte;
   { Hostile creatures' hit points, percent remaining }
   hostileHpPct: Byte;
@@ -68,6 +71,20 @@ procedure MakeAttack(att, def: Types.PCharRecord; fromBehind: Boolean; weapon: T
 
 function FindCureTarget(creature: Types.PCharRecord; var tgt: Pointer): Boolean;
 
+{ False when it is obvious that spell would do nothing to target, cast by caster (#1086). The combat AI weighs only what
+  could be seen across the table: a creature's kind (undead, animated dead, a person by CharHlp.IsPerson, the snake),
+  its visible conditions (already under the spell's effect, or helpless for a spell that leaves it so), and what it
+  has done this fight (seenCasting); for the party's caster, too, the immunities the Bestiary has seen. Items, saving
+  throws, resistances and the like are hidden, and never count. }
+function SpellCanAffect(spell: Byte; target, caster: Types.PCharRecord): Boolean;
+
+{ The best aim of spell for the creature acting (GameVars.curChar), among the enemies in its range (CbtMap.CountTargets)
+  it may target (enabled, CbtActs.CanTarget): for an area spell (aiRadius > 0), the one whose area catches the most
+  enemies spell can affect (SpellCanAffect) and no one else (AreaHitsNonEnemy), ties at random; for any other, one at
+  random of those spell can affect and not among GameVars.spellTargets already. count is how many it would affect:
+  the area's catch, or those it can affect up to its count of targets (CharHlp.SpellArea). nil and 0 when none. }
+function BestAim(spell: Byte; var count: Byte): Types.PCharRecord;
+
 procedure SelectCombatTargets(spell: Byte; b: Boolean; var cast: Boolean);
 
 procedure CastSpellCombat(spell, ai: Byte; var cast: Boolean);
@@ -105,7 +122,7 @@ implementation
 
 uses C_ITEM, C_TERR, C_COND, GameDefs, GameVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
   C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, C_SPRITE, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend,
-  StrUtil, CharDisp, AbilAdj, Dice, Blit, ClassCal, Bestiary, CbtLog;
+  StrUtil, CharDisp, AbilAdj, Dice, Blit, ClassCal, Bestiary, CbtLog, C_BEAST, Party;
 
 type
   { A spell's rule for the spell-aim count (#840): how it tells who the spell cannot affect, whatever the dice }
@@ -1061,17 +1078,129 @@ begin
     FindCureTarget := False;
 end;
 
+{ True when caster is a party member and the party has seen target's kind shrug off what fact names (the Bestiary,
+  #842): an immunity the party knows of is obvious to its caster. }
+function PartyKnows(caster, target: Types.PCharRecord; fact: Byte): Boolean;
+var
+  i: Word;
+begin
+  PartyKnows := False;
+  if (caster = nil) or not Party.IsPartyMember(caster) or Party.IsPartyMember(target) then Exit;
+  i := Bestiary.Find(target^.name);
+  if i <> 0 then
+    PartyKnows := Bestiary.Knows(Bestiary.Entry(i)^, fact);
+end;
+
+function SpellCanAffect(spell: Byte; target, caster: Types.PCharRecord): Boolean;
+var
+  effect: Types.PEffectRec;
+  eff: Byte;
+  i: Byte;
+  pool: Byte;
+  ok: Boolean;
+begin
+  SpellCanAffect := False;
+  if (target = nil) or (target^.enabled = 0) then Exit;
+  eff := GameDefs.spellTable[spell].effect;
+  { under the spell's effect already }
+  if (eff <> 0) and CharHlp.HasEffect(target, eff, effect) then Exit;
+  { helpless already, for a spell that would leave it so }
+  if CharHlp.IsHelpless(target) then
+    for i := 1 to GameDefs.HELPLESS_FX_COUNT do
+      if eff = GameDefs.helplessFx[i] then Exit;
+  ok := True;
+  case spell of
+    C_SPELL.CHARM_PERSON:
+      ok := CharHlp.IsPerson(target) and not CbtActs.PartyKnows(caster, target, C_BEAST.IMMUNE_SLEEP_CHARM);
+    C_SPELL.HOLD_PERSON, C_SPELL.HOLD_PERSON_MU:
+      ok := CharHlp.IsPerson(target) and not CbtActs.PartyKnows(caster, target, C_BEAST.IMMUNE_PARALYSIS);
+    C_SPELL.SLEEP: begin
+      { the largest pool the dice can roll }
+      pool := C_SPELL.SLEEP_DICE * C_SPELL.SLEEP_DIE;
+      ok := (target^.charType <> CharHlp.UNDEAD_TYPE) and CharHlp.SleepTakes(target, pool) and
+            not CbtActs.PartyKnows(caster, target, C_BEAST.IMMUNE_SLEEP_CHARM);
+    end;
+    C_SPELL.SNAKE_CHARM: ok := target^.name = C_SPELL.SNAKE_NAME;
+    C_SPELL.STINKING_CLOUD: ok := not FxEngine.CloudProof(target);
+    C_SPELL.CAUSE_DISEASE: ok := target^.charType <> CharHlp.UNDEAD_TYPE;
+    C_SPELL.SILENCE: ok := CbtMap.CombatSlot(target) in CbtActs.seenCasting;
+  end;
+  SpellCanAffect := ok;
+end;
+
+function BestAim(spell: Byte; var count: Byte): Types.PCharRecord;
+var
+  slots: array[1..Types.ARENA_SLOTS] of Byte;
+  n: Byte;
+  i: Byte;
+  j: Byte;
+  caught: Byte;
+  ties: Byte;
+  size: Byte;
+  radius: Byte;
+  p: Types.PCharRecord;
+  best: Types.PCharRecord;
+  taken: Boolean;
+begin
+  count := 0;
+  best := nil;
+  ties := 0;
+  n := CbtMap.CountTargets(GameVars.curChar, CharHlp.CalcSpellRange(spell));
+  { AreaHitsNonEnemy rebuilds the target list }
+  for i := 1 to n do
+    slots[i] := GameVars.combatTargetSlots[i];
+  radius := GameDefs.spellTable[spell].aiRadius;
+  if CharHlp.SpellArea(spell, size) <> C_SPELL.AREA_TARGETS then
+    size := 1;
+  for i := 1 to n do begin
+    p := GameVars.creatureArr[slots[i]];
+    if (p^.enabled <> 0) and CbtActs.CanTarget(GameVars.curChar, p) then
+      if radius > 0 then begin
+        if not CbtActs.AreaHitsNonEnemy(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), radius) then begin
+          caught := 0;
+          for j := 1 to GameVars.targetCount do
+            if CbtActs.SpellCanAffect(spell, GameVars.creatureArr[GameVars.targetList[j].idx], GameVars.curChar) then
+              Inc(caught);
+          if caught > count then begin
+            count := caught;
+            best := p;
+            ties := 1;
+          end else if (caught = count) and (caught > 0) then begin
+            { each of the ties as likely as the others }
+            Inc(ties);
+            if Dice.RollDice(1, ties) = 1 then
+              best := p;
+          end;
+        end;
+      end else if CbtActs.SpellCanAffect(spell, p, GameVars.curChar) then begin
+        if count < size then
+          Inc(count);
+        taken := False;
+        for j := 1 to Types.ARENA_SLOTS do
+          if GameVars.spellTargets[j] = p then
+            taken := True;
+        if not taken then begin
+          Inc(ties);
+          if Dice.RollDice(1, ties) = 1 then
+            best := p;
+        end;
+      end;
+  end;
+  if best = nil then
+    count := 0;
+  BestAim := best;
+end;
+
 { Pick one spell target. Manual: the spell-mode aim menu, which also locks the target. AI: a non-offensive spell targets
-  the caster (Cure Light Wounds: FindCureTarget's pick); an offensive one makes up to 20 AcquireTarget picks, vetoing
-  any with a non-enemy within aiRadius of it, or that is helpless when the spell's effect is one of helplessFx. On
-  success set gTargetX/gTargetY; on failure clear tgt. }
+  the caster (Cure Light Wounds: FindCureTarget's pick); an offensive one takes BestAim's, which only aims where the
+  spell will obviously do something (SpellCanAffect, #1086), and locks it. SSI made up to 20 random picks, vetoing an
+  area that caught a non-enemy and a helpless target for a spell that leaves one helpless, and so held skeletons and
+  silenced kobolds. On success set gTargetX/gTargetY; on failure clear tgt. }
 function SelectSpellTarget(spell: Byte; ai: Boolean; ground: Byte; var tgt: Types.TAimTarget): Boolean;
 var
   found: Boolean;
-  ok: Boolean;
   p: Types.PCharRecord;
-  i: Byte;
-  tries: Byte;
+  caught: Byte;
 begin
   found := False;
   if not ai then begin
@@ -1086,28 +1215,13 @@ begin
         found := True;
       end;
     end else begin
-      tries := 20;
-      while (tries > 0) and (found = False) do begin
-        ok := True;
-        if CbtActs.AcquireTarget(GameVars.curChar, CharHlp.CalcSpellRange(spell), 0, 1) then begin
-          p := GameVars.curChar^.combatAddr^.other;
-          if GameDefs.spellTable[spell].aiRadius > 0 then begin
-            if CbtActs.AreaHitsNonEnemy(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p),
-                                        GameDefs.spellTable[spell].aiRadius) then
-              ok := False;
-          end;
-          if CharHlp.IsHelpless(p) then
-            for i := 1 to SizeOf(GameDefs.helplessFx) div SizeOf(GameDefs.helplessFx[1]) do
-              if GameDefs.spellTable[spell].effect = GameDefs.helplessFx[i] then
-                ok := False;
-          if ok then begin
-            tgt.cr := GameVars.curChar^.combatAddr^.other;
-            tgt.x := CbtMap.CombatCellX(tgt.cr);
-            tgt.y := CbtMap.CombatCellY(tgt.cr);
-            found := True;
-          end;
-        end;
-        Dec(tries);
+      p := CbtActs.BestAim(spell, caught);
+      if p <> nil then begin
+        GameVars.curChar^.combatAddr^.other := p;
+        tgt.cr := p;
+        tgt.x := CbtMap.CombatCellX(p);
+        tgt.y := CbtMap.CombatCellY(p);
+        found := True;
       end;
     end;
   end;
@@ -1260,6 +1374,8 @@ var
 begin
   cast := True;
   GameVars.spellTargetCount := 0;
+  { BestAim passes over the targets picked already }
+  FillChar(GameVars.spellTargets, SizeOf(GameVars.spellTargets), 0);
   GameVars.gMultiTarget := 0;
   Magic.gTargetX := CbtMap.CombatCellX(GameVars.curChar);
   Magic.gTargetY := CbtMap.CombatCellY(GameVars.curChar);
@@ -1383,7 +1499,9 @@ begin
       CharDisp.PrintBottomLine('Camp Only Spell');
       spellId := C_SPELL.NONE;
       scroll := nil;
-    end;
+    end else
+      { seen casting: from here on Silence is worth casting at it (#1087) }
+      CbtActs.seenCasting := CbtActs.seenCasting + [CbtMap.CombatSlot(caster)];
   if scroll <> nil then begin
     Magic.UseItemSpell(scroll, spellId, True, cast);
     CharHlp.RecalcStats(caster);

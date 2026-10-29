@@ -1302,13 +1302,10 @@ begin
   end;
 end;
 
-{ Snake Charm: rebuild the target list from GameVars.creatureList: snakes (SNAKE_NAME) whose hpCur still fits
+{ Snake Charm: rebuild the target list from GameVars.creatureList: snakes (C_SPELL.SNAKE_NAME) whose hpCur still fits
   in a pool equal to the caster's hpCur, paid in list order. SSI's took charType 14, which the large and huge scorpions
   share with the giant snake (#802). }
 procedure SpellSnakeCharm;
-const
-  { The game's one snake, the creature Snake Charm affects (#802): its charType, 14, the scorpions share }
-  SNAKE_NAME = 'GIANT SNAKE';
 var
   pool: Byte;
   p: Types.PCharRecord;
@@ -1317,7 +1314,7 @@ begin
   GameVars.spellTargetCount := 0;
   p := GameVars.creatureList;
   while p <> nil do begin
-    if p^.name = SNAKE_NAME then
+    if p^.name = C_SPELL.SNAKE_NAME then
       if pool >= p^.hpCur then begin
         pool := pool - p^.hpCur;
         Inc(GameVars.spellTargetCount);
