@@ -10,8 +10,8 @@
 #   x86_64-linux    lib/libSDL3.a
 #   i386-linux      lib/libSDL3.a, when gcc -m32 links (a 32-bit C library is installed: Arch's lib32-glibc, Debian's
 #                   gcc-multilib); otherwise it is left out, and said so
-#   i386-win32      lib/libSDL3.a (mingw), and bin/SDL3.dll as the fallback
-#   x86_64-win64    lib/libSDL3.a (mingw), and bin/SDL3.dll as the fallback
+#   i386-win32      bin/SDL3.dll, which the game loads and the package ships; lib/libSDL3.a (mingw) is unused
+#   x86_64-win64    bin/SDL3.dll, likewise
 #   aarch64-darwin  lib/libSDL3.a (on an Apple Silicon Mac; there is no Intel Mac target)
 # A target already built is skipped.
 #
