@@ -36,7 +36,9 @@ function ReadNumber(query: Types.TStr40; color: Byte): Word;
 procedure DisplayAndPause(color: Byte; msg: Types.TStr40);
 
 { The BIOS tick count (18.2 a second since midnight), read until two reads agree, so a timer tick between the two words
-  of a read is not taken. }
+  of a read is not taken. Natively it first waits a millisecond through Crt.Delay, which runs Host.Service: a loop that
+  waits by watching the clock (the ending's animations, #1095) presents its frames and keeps the window answering, as
+  one that waits through Delay or ReadKey does, and gives the processor back. }
 function TickCount: LongInt;
 
 function GetTicks: LongInt;
@@ -311,6 +313,9 @@ var
   now: LongInt;
   again: LongInt;
 begin
+{$IFDEF FPC}
+  Delay(1);
+{$ENDIF}
   again := biosTicks;
   repeat
     now := again;
