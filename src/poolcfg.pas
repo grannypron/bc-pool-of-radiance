@@ -26,10 +26,11 @@ const
   { the Main Menu's items: the three pages, then Save and Exit and Exit Without Saving }
   ITEM_HARDWARE = 1;
   ITEM_SETTINGS = 2;
-  ITEM_PATHS = 3;
-  ITEM_SAVE = 4;
-  ITEM_QUIT = 5;
-  ITEMS = 5;
+  ITEM_SOUND = 3;
+  ITEM_PATHS = 4;
+  ITEM_SAVE = 5;
+  ITEM_QUIT = 6;
+  ITEMS = 6;
   { the Hardware page's lines }
   HW_VIDEO = 1;
   HW_SOUND = 2;
@@ -253,14 +254,15 @@ begin
   SettingChanged := CfgFile.StoredValue(opts, opt) <> CfgFile.StoredValue(optsRead, opt);
 end;
 
-function SettingsChanged: Boolean;
+function SettingsChanged(sound: Boolean): Boolean;
 var
   opt: Byte;
   changed: Boolean;
 begin
   changed := False;
   for opt := 1 to C_OPT.OPT_COUNT do
-    changed := changed or SettingChanged(opt);
+    if CfgFile.SoundSetting(opt) = sound then
+      changed := changed or SettingChanged(opt);
   SettingsChanged := changed;
 end;
 
@@ -294,7 +296,7 @@ var
   line: Byte;
   due: Boolean;
 begin
-  due := SettingsChanged or PathChanged(PATH_SAVE);
+  due := SettingsChanged(False) or SettingsChanged(True) or PathChanged(PATH_SAVE);
   for line := PATH_SAVE + 1 to PATH_LINES do
     due := due or PathChanged(line);
   if (optState in [CfgFile.CFG_MISSING, CfgFile.CFG_FIXED]) and CfgFile.DirExists(cfg.saveDir) then
@@ -305,7 +307,7 @@ end;
 { True when leaving now would lose something: a change, or a POOL.CFG still to be written. }
 function Unsaved: Boolean;
 begin
-  Unsaved := SettingsChanged or PathsChanged or PoolCfgDue;
+  Unsaved := SettingsChanged(False) or SettingsChanged(True) or PathsChanged or PoolCfgDue;
 end;
 
 { --- the Main Menu --------------------------------------------------------------------------------------------- }
@@ -357,8 +359,10 @@ begin
   changes := '';
   if HardwareChanged then
     Changed('Hardware');
-  if SettingsChanged then
+  if SettingsChanged(False) then
     Changed('Game Settings');
+  if SettingsChanged(True) then
+    Changed('Sound Settings');
   if PathsChanged then
     Changed('Paths');
   if (changes = '') and PoolCfgDue then
@@ -378,12 +382,12 @@ end;
 { The Main Menu, item sel highlighted. }
 procedure DrawMain(sel: Byte);
 const
-  NAMES: array[1..ITEMS] of string[19] = ('Hardware', 'Game Settings', 'Paths', 'Save and Exit',
+  NAMES: array[1..ITEMS] of string[19] = ('Hardware', 'Game Settings', 'Sound Settings', 'Paths', 'Save and Exit',
     'Exit Without Saving');
-  { each item's hot letter's place in its name }
-  HOT: array[1..ITEMS] of Byte = (1, 1, 1, 1, 2);
-  ABOUT: array[1..3] of string[26] = ('Video, sound, introduction', 'The Settings screen''s list',
-    'Data and save folders');
+  { each item's hot letter's place in its name: Sound Settings' O, as Save and Exit has S }
+  HOT: array[1..ITEMS] of Byte = (1, 1, 2, 1, 1, 2);
+  ABOUT: array[1..ITEM_PATHS] of string[28] = ('Video, sound, introduction', 'Speed, portraits, Quick Mode',
+    'Music and sound effects', 'Data and save folders');
 var
   i: Byte;
 begin
@@ -392,7 +396,7 @@ begin
   for i := 1 to ITEMS do begin
     TuiKit.PutText(20, ItemRow(i), TuiKit.A_TEXT, NAMES[i]);
     TuiKit.PutRun(19 + HOT[i], ItemRow(i), TuiKit.A_HOT, NAMES[i][HOT[i]], 1);
-    if i <= 3 then
+    if i <= ITEM_PATHS then
       TuiKit.PutText(36, ItemRow(i), TuiKit.A_HELP, ABOUT[i]);
   end;
   TuiKit.Recolor(17, ItemRow(sel), 48, TuiKit.A_HIGHLIGHT);
@@ -633,13 +637,13 @@ begin
   until done;
 end;
 
-{ --- the Game Settings page ------------------------------------------------------------------------------------ }
+{ --- the Game and Sound Settings pages ------------------------------------------------------------------------- }
 
-{ The Game Settings page's row of setting opt: one a row from row 3, the Quick Mode heading's row before OPT_QUICK, as
-  on the game's Settings screen. }
+{ The row of setting opt on its settings page: its line (CfgFile.SettingLine) from row 3, as on the game's Settings
+  screen. }
 function SettingRow(opt: Byte): Byte;
 begin
-  SettingRow := 3 + opt - 1 + Ord(opt >= C_OPT.OPT_QUICK);
+  SettingRow := 3 + CfgFile.SettingLine(opt);
 end;
 
 { What setting opt does, its lines split at '|', for the About box. }
@@ -651,6 +655,9 @@ begin
     C_OPT.OPT_PORTRAITS_ALL: AboutText := 'Every portrait at once: off,|the game shows none.';
     C_OPT.OPT_MONSTERS: AboutText := 'The monsters'' pictures when|an encounter starts.';
     C_OPT.OPT_PORTRAITS: AboutText := 'The party''s portraits on the|character screens.';
+    C_OPT.OPT_AUTO_JOIN: AboutText := 'Arrows, darts and the like|join the stack you carry as|' +
+                                      'you buy, take or trade them,|so a new bundle takes no|' +
+                                      'item slot of its own. Up to|255 to a stack; a readied|stack stays readied.';
     C_OPT.OPT_MUSIC: AboutText := 'Every tune at once.';
     C_OPT.OPT_TITLE_MUSIC: AboutText := 'The title theme.';
     C_OPT.OPT_BATTLE_MUSIC: AboutText := 'The music as a fight starts.';
@@ -736,23 +743,29 @@ begin
   end;
 end;
 
-procedure DrawSettings(sel: Byte);
+{ The Game Settings page, or with sound the Sound Settings page: its settings, setting sel highlighted. }
+procedure DrawSettings(sound: Boolean; sel: Byte);
 var
   opt: Byte;
 begin
   ClearPage;
-  TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Game Settings (POOLOPT.CFG)');
+  if sound then
+    TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Sound Settings (POOLOPT.CFG)')
+  else
+    TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Game Settings (POOLOPT.CFG)');
   TuiKit.Box(46, 2, 79, 24, TuiKit.A_FRAME, 'About');
   for opt := 1 to C_OPT.OPT_COUNT do
-    DrawSettingLine(opt, opt = sel);
-  TuiKit.PutText(4, SettingRow(C_OPT.OPT_QUICK) - 1, TuiKit.A_FRAME, 'Quick Mode');
+    if CfgFile.SoundSetting(opt) = sound then
+      DrawSettingLine(opt, opt = sel);
+  if not sound then
+    TuiKit.PutText(4, SettingRow(C_OPT.OPT_QUICK) - 1, TuiKit.A_FRAME, 'Quick Mode');
   DrawAbout(sel);
   TuiKit.KeyLine('~Up Dn~ Move  ~Lt Rt~ Change  ~F5~ Default  ~Esc~ Main Menu  ~F10~ Save and Exit');
 end;
 
-{ The Game Settings page (POOLOPT.CFG's settings, as the game's Settings screen lists them) until Escape, or F10 saves
-  and leaves. }
-procedure SettingsPage;
+{ The Game Settings page, or with sound the Sound Settings page (POOLOPT.CFG's settings, as the game's Settings screen
+  lists them) until Escape, or F10 saves and leaves. }
+procedure SettingsPage(sound: Boolean);
 var
   sel: Byte;
   ch: Char;
@@ -761,20 +774,36 @@ var
   left: CfgFile.TName;
   right: CfgFile.TName;
   stepping: Boolean;
+  { the other page's settings, which the arrows pass by }
+  other: CfgFile.TOptSet;
+  first: Byte;
+  last: Byte;
+  opt: Byte;
 begin
-  sel := 1;
+  other := [];
+  first := 0;
+  last := 0;
+  for opt := 1 to C_OPT.OPT_COUNT do
+    if CfgFile.SoundSetting(opt) <> sound then
+      other := other + [opt]
+    else begin
+      if first = 0 then
+        first := opt;
+      last := opt;
+    end;
+  sel := first;
   stepRight := False;
-  DrawSettings(sel);
+  DrawSettings(sound, sel);
   done := False;
   repeat
     TuiKit.GetKey(ch, ext);
     stepping := CfgFile.StepNames(sel, left, right);
     if ext then
       case ch of
-        C_KEYS.UP: sel := CfgFile.NextSetting(sel, False, []);
-        C_KEYS.DOWN: sel := CfgFile.NextSetting(sel, True, []);
-        C_KEYS.HOME: sel := 1;
-        C_KEYS.END_KEY: sel := C_OPT.OPT_COUNT;
+        C_KEYS.UP: sel := CfgFile.NextSetting(sel, False, other);
+        C_KEYS.DOWN: sel := CfgFile.NextSetting(sel, True, other);
+        C_KEYS.HOME: sel := first;
+        C_KEYS.END_KEY: sel := last;
         C_KEYS.LEFT, C_KEYS.RIGHT: if stepping then
                                      stepRight := ch = C_KEYS.RIGHT
                                    else
@@ -796,7 +825,7 @@ begin
         C_KEYS.ESCAPE: done := True;
       end;
     if not done then
-      DrawSettings(sel);
+      DrawSettings(sound, sel);
   until done;
 end;
 
@@ -1161,6 +1190,7 @@ begin
         C_KEYS.ENTER: item := sel;
         'H': item := ITEM_HARDWARE;
         'G': item := ITEM_SETTINGS;
+        'O': item := ITEM_SOUND;
         'P': item := ITEM_PATHS;
         'S': item := ITEM_SAVE;
         'X': item := ITEM_QUIT;
@@ -1170,7 +1200,8 @@ begin
       sel := item;
     case item of
       ITEM_HARDWARE: HardwarePage;
-      ITEM_SETTINGS: SettingsPage;
+      ITEM_SETTINGS: SettingsPage(False);
+      ITEM_SOUND: SettingsPage(True);
       ITEM_PATHS: PathsPage;
       ITEM_SAVE: SaveAndLeave;
       ITEM_QUIT: begin

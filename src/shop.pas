@@ -64,8 +64,9 @@ begin
   CharHlp.LabelItems(GameVars.treasureItems);
 end;
 
-{ Append a copy of item to the current character's item list and recalculate its stats. When the character cannot carry
-  it, print that it is overloaded and set failed instead. }
+{ Give the current character a copy of item (CharHlp.AddToInventory, which joins it to a stack it matches while Auto
+  Join is on) and recalculate its stats. When the character cannot carry it, print that it is overloaded and set
+  failed instead. }
 procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
 begin
   if ViewChar.CannotCarryItem(GameVars.curChar, item) then begin
@@ -73,7 +74,7 @@ begin
     failed := True;
   end else begin
     failed := False;
-    CharHlp.AppendItemCopy(GameVars.curChar^.itemsAddr, item);
+    CharHlp.AddToInventory(GameVars.curChar, item);
     CharHlp.RecalcStats(GameVars.curChar);
   end;
 end;

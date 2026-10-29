@@ -42,30 +42,36 @@ const
 {$ENDIF}
   { the most lines read from POOLOPT.CFG; anything after them is ignored, and dropped when the file is written }
   MAX_LINES = 100;
-  { The settings, in the Settings screen's order; the sub-settings follow the setting they come under. }
+  { The settings, in the Settings screen's order, the Game page's around the Sound page's (OPT_FIRST_SOUND to
+    OPT_LAST_SOUND); the sub-settings follow the setting they come under. }
   OPT_SPEED = 1;
   OPT_PORTRAITS_ALL = 2;
   OPT_MONSTERS = 3;
   OPT_PORTRAITS = 4;
-  OPT_MUSIC = 5;
-  OPT_TITLE_MUSIC = 6;
-  OPT_BATTLE_MUSIC = 7;
-  OPT_SOUND = 8;
-  OPT_FOOTSTEPS = 9;
-  OPT_RANGED = 10;
-  OPT_MELEE = 11;
-  OPT_DEATH = 12;
-  OPT_WALL = 13;
-  OPT_SPELLS = 14;
+  { a stackable item joins its like as it is bought, taken or traded (#1088) }
+  OPT_AUTO_JOIN = 5;
+  OPT_MUSIC = 6;
+  OPT_TITLE_MUSIC = 7;
+  OPT_BATTLE_MUSIC = 8;
+  OPT_SOUND = 9;
+  OPT_FOOTSTEPS = 10;
+  OPT_RANGED = 11;
+  OPT_MELEE = 12;
+  OPT_DEATH = 13;
+  OPT_WALL = 14;
+  OPT_SPELLS = 15;
   { the first setting under the Quick Mode heading }
-  OPT_QUICK = 15;
-  OPT_MAGIC = 16;
-  OPT_COMPANION = 17;
-  OPT_CLUES = 18;
+  OPT_QUICK = 16;
+  OPT_MAGIC = 17;
+  OPT_COMPANION = 18;
+  OPT_CLUES = 19;
   { the combat log (#841), and how many messages it keeps }
-  OPT_COMBAT_LOG = 19;
-  OPT_LOG_LINES = 20;
-  OPT_COUNT = 20;
+  OPT_COMBAT_LOG = 20;
+  OPT_LOG_LINES = 21;
+  OPT_COUNT = 21;
+  { the Sound page's settings, from the music to the sound effects; every other setting is the Game page's }
+  OPT_FIRST_SOUND = OPT_MUSIC;
+  OPT_LAST_SOUND = OPT_SPELLS;
   { the settings that are ON or OFF }
   OPT_FIRST_FLAG = OPT_PORTRAITS_ALL;
   OPT_LAST_FLAG = OPT_COMBAT_LOG;

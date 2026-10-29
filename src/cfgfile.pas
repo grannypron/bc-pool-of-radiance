@@ -61,6 +61,14 @@ function KeyName(key: Byte): TName;
 { The label of setting opt on the Settings screen, a sub-setting's indented two spaces under its setting. }
 function SettingName(opt: Byte): TName;
 
+{ True for a setting of the Sound page (C_OPT.OPT_FIRST_SOUND to OPT_LAST_SOUND): the music and the sound. The rest
+  are the Game page's; the game's Settings screen and POOLCFG split them so (#1088). }
+function SoundSetting(opt: Byte): Boolean;
+
+{ The line of setting opt on its page, from 0, in order: the Sound page's from their own first, the Game page's
+  without them, with the Quick Mode heading's line before OPT_QUICK. }
+function SettingLine(opt: Byte): Byte;
+
 { SettingName with the number the speed and log lines lines show after it: 'Game Speed (1)', '  Log Lines (50)'. }
 function SettingLabel(var s: TSettings; opt: Byte): TName;
 
@@ -84,9 +92,9 @@ function Tidy(s: string): string;
 { The setting or path key whose key line names before its '=' (in any case, spaces around it), or 0 for none. }
 function KeyOf(line: string): Byte;
 
-{ Every setting's default: speed 1, every portrait, music and sound setting on, Auto End Quick Mode on, Use Magic off,
-  the Companion Tools off with their Clue Book notes on, the combat log on with 50 lines, and the later games' paths
-  C:\CURSE\, C:\CURSE\SAVE\ and so on. }
+{ Every setting's default: speed 1, every portrait, Auto Join, music and sound setting on, Auto End Quick Mode on, Use
+  Magic off, the Companion Tools off with their Clue Book notes on, the combat log on with 50 lines, and the later
+  games' paths C:\CURSE\, C:\CURSE\SAVE\ and so on. }
 procedure Defaults(var s: TSettings);
 
 { Setting opt (an ON/OFF one) as 1 for on and 0 for off; 0 for any other. }
@@ -173,6 +181,7 @@ begin
     C_OPT.OPT_PORTRAITS_ALL: KeyName := 'ALLPORTRAITS';
     C_OPT.OPT_MONSTERS: KeyName := 'MONSTERS';
     C_OPT.OPT_PORTRAITS: KeyName := 'PORTRAITS';
+    C_OPT.OPT_AUTO_JOIN: KeyName := 'AUTOJOIN';
     C_OPT.OPT_MUSIC: KeyName := 'MUSIC';
     C_OPT.OPT_TITLE_MUSIC: KeyName := 'TITLEMUSIC';
     C_OPT.OPT_BATTLE_MUSIC: KeyName := 'BATTLEMUSIC';
@@ -207,6 +216,7 @@ begin
     C_OPT.OPT_PORTRAITS_ALL: SettingName := 'Portraits';
     C_OPT.OPT_MONSTERS: SettingName := '  Monster Portraits';
     C_OPT.OPT_PORTRAITS: SettingName := '  Character Portraits';
+    C_OPT.OPT_AUTO_JOIN: SettingName := 'Auto Join';
     C_OPT.OPT_MUSIC: SettingName := 'Music';
     C_OPT.OPT_TITLE_MUSIC: SettingName := '  Title Music';
     C_OPT.OPT_BATTLE_MUSIC: SettingName := '  Battle Music';
@@ -310,6 +320,21 @@ begin
   for k := 1 to C_OPT.KEY_COUNT do
     if key = CfgFile.KeyName(k) then
       KeyOf := k;
+end;
+
+function SoundSetting(opt: Byte): Boolean;
+begin
+  SoundSetting := (opt >= C_OPT.OPT_FIRST_SOUND) and (opt <= C_OPT.OPT_LAST_SOUND);
+end;
+
+function SettingLine(opt: Byte): Byte;
+begin
+  if CfgFile.SoundSetting(opt) then
+    SettingLine := opt - C_OPT.OPT_FIRST_SOUND
+  else if opt < C_OPT.OPT_FIRST_SOUND then
+    SettingLine := opt - 1
+  else
+    SettingLine := opt - 1 - (C_OPT.OPT_LAST_SOUND - C_OPT.OPT_FIRST_SOUND + 1) + Ord(opt >= C_OPT.OPT_QUICK);
 end;
 
 procedure Defaults(var s: TSettings);

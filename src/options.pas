@@ -47,10 +47,12 @@ const
     or More on the right. }
   CHOICE_LEFT = 0;
   CHOICE_RIGHT = 1;
-  { The pages, in the bottom line's order. }
+  { The pages, in the bottom line's order: the settings split over Game and Sound, which hold too many for one box
+    (#1088). }
   PAGE_GAME = 1;
-  PAGE_PATHS = 2;
-  PAGE_SYSTEM = 3;
+  PAGE_SOUND = 2;
+  PAGE_PATHS = 3;
+  PAGE_SYSTEM = 4;
   { One framed box from TOP_ROW to BOTTOM_ROW: the page's title on TOP_ROW, then its lines from FIRST_ROW, the row
     below (the Game page's settings fill the box to BOTTOM_ROW). The Game page's settings have their labels at
     LABEL_COL and their values at SETTING_COL, with the Quick Mode heading on its own row; the other pages' values start
@@ -109,6 +111,7 @@ begin
       C_OPT.OPT_PORTRAITS_ALL: s.flags[opt] := GameVars.portraitsAll;
       C_OPT.OPT_MONSTERS: s.flags[opt] := GameVars.monsterPics;
       C_OPT.OPT_PORTRAITS: s.flags[opt] := GameVars.portraitsOn;
+      C_OPT.OPT_AUTO_JOIN: s.flags[opt] := GameVars.autoJoinOn;
       C_OPT.OPT_MUSIC: s.flags[opt] := GameVars.musicOn;
       C_OPT.OPT_TITLE_MUSIC, C_OPT.OPT_BATTLE_MUSIC:
         s.flags[opt] := Ord(GameVars.musicGroups and Options.GroupBit(opt) <> 0);
@@ -135,6 +138,7 @@ begin
       C_OPT.OPT_PORTRAITS_ALL: GameVars.portraitsAll := s.flags[opt];
       C_OPT.OPT_MONSTERS: GameVars.monsterPics := s.flags[opt];
       C_OPT.OPT_PORTRAITS: GameVars.portraitsOn := s.flags[opt];
+      C_OPT.OPT_AUTO_JOIN: GameVars.autoJoinOn := s.flags[opt];
       C_OPT.OPT_MUSIC: GameVars.musicOn := s.flags[opt];
       C_OPT.OPT_TITLE_MUSIC, C_OPT.OPT_BATTLE_MUSIC:
         if s.flags[opt] <> 0 then
@@ -152,10 +156,32 @@ begin
   cur.paths := s.paths;
 end;
 
-{ The Game page row of setting opt: one a row from FIRST_ROW, the Quick Mode heading's row before OPT_QUICK. }
+{ The settings page of setting opt: PAGE_SOUND for the music and the sound (CfgFile.SoundSetting), PAGE_GAME for the
+  rest. }
+function SettingPage(opt: Byte): Byte;
+begin
+  if CfgFile.SoundSetting(opt) then
+    SettingPage := PAGE_SOUND
+  else
+    SettingPage := PAGE_GAME;
+end;
+
+{ The row of setting opt on its page: its line (CfgFile.SettingLine) from FIRST_ROW. }
 function SettingRow(opt: Byte): Byte;
 begin
-  SettingRow := FIRST_ROW + opt - 1 + Ord(opt >= C_OPT.OPT_QUICK);
+  SettingRow := FIRST_ROW + CfgFile.SettingLine(opt);
+end;
+
+{ The settings the arrows pass by on settings page page, into skip: the other page's, and those the screen cannot
+  change. (Turbo Pascal returns no set from a function.) }
+procedure Passed(page: Byte; var skip: CfgFile.TOptSet);
+var
+  opt: Byte;
+begin
+  skip := unchangeable;
+  for opt := 1 to C_OPT.OPT_COUNT do
+    if Options.SettingPage(opt) <> page then
+      skip := skip + [opt];
 end;
 
 { The value of setting opt as the screen shows it, from cur as DrawSetting has just collected it: Sound shows whether
@@ -262,17 +288,20 @@ begin
     end;
 end;
 
-{ The Game page: every setting, setting sel highlighted, and the Quick Mode heading. }
-procedure DrawGamePage(sel: Byte);
+{ Settings page page (PAGE_GAME or PAGE_SOUND): its settings, setting sel highlighted, and on the Game page the Quick
+  Mode heading. }
+procedure DrawSettingsPage(page, sel: Byte);
 var
   opt: Byte;
 begin
   for opt := 1 to C_OPT.OPT_COUNT do
-    if opt = sel then
-      Options.DrawSetting(opt, TITLE_COLOR)
-    else
-      Options.DrawSetting(opt, LINE_COLOR);
-  TextRend.DisplayString(LABEL_COL, Options.SettingRow(C_OPT.OPT_QUICK) - 1, LINE_COLOR, 'Quick Mode');
+    if Options.SettingPage(opt) = page then
+      if opt = sel then
+        Options.DrawSetting(opt, TITLE_COLOR)
+      else
+        Options.DrawSetting(opt, LINE_COLOR);
+  if page = PAGE_GAME then
+    TextRend.DisplayString(LABEL_COL, Options.SettingRow(C_OPT.OPT_QUICK) - 1, LINE_COLOR, 'Quick Mode');
 end;
 
 { The Paths page: each game's name, then its data and save paths. Pool of Radiance's are the ones POOL.CFG gives this
@@ -346,7 +375,7 @@ begin
     Options.DrawInfo(FIRST_ROW + 12, 'Switches', switches);
 end;
 
-{ Clear the screen and draw page with its title in the frame, setting sel highlighted on the Game page. }
+{ Clear the screen and draw page with its title in the frame, setting sel highlighted on a settings page. }
 procedure DrawPage(page, sel: Byte);
 begin
   Border.ClearBox(0, 0, 39, 23);
@@ -354,8 +383,12 @@ begin
   case page of
     PAGE_GAME: begin
                  TextRend.DisplayCentered(LEFT_COL, RIGHT_COL, TOP_ROW, TITLE_COLOR, 'Game Settings');
-                 Options.DrawGamePage(sel);
+                 Options.DrawSettingsPage(PAGE_GAME, sel);
                end;
+    PAGE_SOUND: begin
+                  TextRend.DisplayCentered(LEFT_COL, RIGHT_COL, TOP_ROW, TITLE_COLOR, 'Sound Settings');
+                  Options.DrawSettingsPage(PAGE_SOUND, sel);
+                end;
     PAGE_PATHS: begin
                   TextRend.DisplayCentered(LEFT_COL, RIGHT_COL, TOP_ROW, TITLE_COLOR, 'Game Paths');
                   Options.DrawPathsPage;
@@ -395,6 +428,8 @@ var
   touched: Boolean;
   savedChoice: Byte;
   soundState: Byte;
+  { the settings the arrows pass by on the page shown (Passed) }
+  skip: CfgFile.TOptSet;
 
   { Move the highlight to setting n. }
   procedure MoveTo(n: Byte);
@@ -419,10 +454,15 @@ var
     end;
   end;
 
-  { Show page p. }
+  { Show page p, a settings page with its first setting highlighted. }
   procedure ShowPage(p: Byte);
   begin
     page := p;
+    if page = PAGE_SOUND then
+      sel := C_OPT.OPT_FIRST_SOUND
+    else if page = PAGE_GAME then
+      sel := 1;
+    stepChoice := CHOICE_LEFT;
     Options.DrawPage(page, sel);
   end;
 
@@ -444,33 +484,38 @@ begin
     GameVars.horizChoice := page;
     MenuCore.arrowsToCaller := True;
     MenuCore.enterToCaller := True;
-    ch := MenuCore.MenuHorizontal('Settings: ', 'Game Paths System Exit', LightMagenta, LightGreen, White, True, False,
-                                  ext);
+    ch := MenuCore.MenuHorizontal('Settings: ', 'Game Sound Paths sYstem Exit', LightMagenta, LightGreen, White, True,
+                                  False, ext);
     if ext then begin
-      if page = PAGE_GAME then
+      if page in [PAGE_GAME, PAGE_SOUND] then begin
+        Options.Passed(page, skip);
         case ch of
-          C_KEYS.UP, C_KEYS.HOME: MoveTo(CfgFile.NextSetting(sel, False, unchangeable));
-          C_KEYS.DOWN, C_KEYS.END_KEY: MoveTo(CfgFile.NextSetting(sel, True, unchangeable));
+          C_KEYS.UP, C_KEYS.HOME: MoveTo(CfgFile.NextSetting(sel, False, skip));
+          C_KEYS.DOWN, C_KEYS.END_KEY: MoveTo(CfgFile.NextSetting(sel, True, skip));
           C_KEYS.LEFT: Arrow(CHOICE_LEFT);
           C_KEYS.RIGHT: Arrow(CHOICE_RIGHT);
         end;
+      end;
     end else
       case ch of
-        C_KEYS.ENTER: if page = PAGE_GAME then begin
+        C_KEYS.ENTER: if page in [PAGE_GAME, PAGE_SOUND] then begin
                         Options.ChangeSetting(sel);
                         touched := True;
                       end;
         'G': if page <> PAGE_GAME then
                ShowPage(PAGE_GAME);
+        'S': if page <> PAGE_SOUND then
+               ShowPage(PAGE_SOUND);
         'P': if page <> PAGE_PATHS then
                ShowPage(PAGE_PATHS);
-        'S': if page <> PAGE_SYSTEM then
+        'Y': if page <> PAGE_SYSTEM then
                ShowPage(PAGE_SYSTEM);
       end;
     if touched then
       changed := True;
-    if (page = PAGE_GAME) and (touched or (GameVars.soundMode <> soundState)) then begin
-      if sel <> C_OPT.OPT_SOUND then
+    if (page in [PAGE_GAME, PAGE_SOUND]) and (touched or (GameVars.soundMode <> soundState)) then begin
+      { Ctrl-S turns the sound over on any page, and the Sound page shows it }
+      if (page = PAGE_SOUND) and (sel <> C_OPT.OPT_SOUND) then
         Options.DrawSetting(C_OPT.OPT_SOUND, LINE_COLOR);
       Options.DrawSetting(sel, TITLE_COLOR);
     end;

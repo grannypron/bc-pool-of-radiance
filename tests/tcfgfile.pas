@@ -170,6 +170,18 @@ begin
   TestKit.CheckEqualsL(C_OPT.OPT_MAGIC, CfgFile.NextSetting(C_OPT.OPT_SPEED, False,
                        [C_OPT.OPT_COMPANION..C_OPT.OPT_LOG_LINES]), 'Up wraps past the settings skipped');
 
+  { the Game and Sound pages (#1088) }
+  TestKit.Check(CfgFile.SoundSetting(C_OPT.OPT_MUSIC) and CfgFile.SoundSetting(C_OPT.OPT_SPELLS),
+                'the music and the sound effects are the Sound page''s');
+  TestKit.Check(not CfgFile.SoundSetting(C_OPT.OPT_AUTO_JOIN) and not CfgFile.SoundSetting(C_OPT.OPT_QUICK),
+                'Auto Join and Quick Mode are the Game page''s');
+  TestKit.CheckEqualsL(0, CfgFile.SettingLine(C_OPT.OPT_SPEED), 'the Game page starts with the speed');
+  TestKit.CheckEqualsL(4, CfgFile.SettingLine(C_OPT.OPT_AUTO_JOIN), 'Auto Join after the portraits');
+  TestKit.CheckEqualsL(6, CfgFile.SettingLine(C_OPT.OPT_QUICK), 'Quick Mode under its heading, past the sound');
+  TestKit.CheckEqualsL(11, CfgFile.SettingLine(C_OPT.OPT_LOG_LINES), 'the Game page ends with the log lines');
+  TestKit.CheckEqualsL(0, CfgFile.SettingLine(C_OPT.OPT_MUSIC), 'the Sound page starts with the music');
+  TestKit.CheckEqualsL(9, CfgFile.SettingLine(C_OPT.OPT_SPELLS), 'and ends with the spell effects');
+
   { POOLOPT.CFG read as the game reads it }
   TestKit.Check(ReadText('speed = 0' + CRLF + ' Monsters'#9'=off' + CRLF + 'COMPANION=1' + CRLF + 'CLUENOTES=0' + CRLF +
                          'LOGLINES=10' + CRLF + 'CURSEDATA=D:\CURSE\' + CRLF + 'CURSESAVE=' + CRLF) = CfgFile.CFG_READ,
@@ -208,7 +220,8 @@ begin
   TestKit.Check(CfgFile.WriteOptions('', s), 'POOLOPT.CFG is written');
   TestKit.CheckEqualsL(1, LineNo(C_OPT.OPT_NAME, 'SPEED=4'), 'the keys start with SPEED');
   TestKit.CheckEqualsL(2, LineNo(C_OPT.OPT_NAME, 'ALLPORTRAITS=ON'), 'in their order');
-  TestKit.CheckEqualsL(13, LineNo(C_OPT.OPT_NAME, 'WALLHIT=OFF'), 'a setting turned off');
+  TestKit.CheckEqualsL(14, LineNo(C_OPT.OPT_NAME, 'WALLHIT=OFF'), 'a setting turned off');
+  TestKit.CheckEqualsL(5, LineNo(C_OPT.OPT_NAME, 'AUTOJOIN=ON'), 'Auto Join on by default, after the portraits');
   TestKit.CheckEqualsL(C_OPT.KEY_COUNT, LineNo(C_OPT.OPT_NAME, 'POOLSSAVE=C:\POOLS\SAVE\'), 'the last key');
   TestKit.CheckEqualsL(C_OPT.KEY_COUNT + 1, LineNo(C_OPT.OPT_NAME, 'NEWKEY=1'), 'then the unknown lines');
   TestKit.CheckEqualsL(C_OPT.KEY_COUNT + 2, LineNo(C_OPT.OPT_NAME, '; a note'), 'in their order, the blank dropped');
