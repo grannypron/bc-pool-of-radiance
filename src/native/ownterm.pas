@@ -15,9 +15,9 @@ interface
 const
   IN_TERMINAL = '--in-terminal';
 
-{ Come back when this program has a terminal. Without one, run it again in a terminal emulator, with its options and
-  IN_TERMINAL, when there is a desktop to open one on; and when that cannot be done, say so on the error output and
-  leave (exit code 1), rather than drawing nowhere. }
+{ Come back when this program has a terminal for both its input and its output. With neither, run it again in a
+  terminal emulator, with its options and IN_TERMINAL, when there is a desktop to open one on; otherwise, or with only
+  one of the two redirected, say so on the error output and leave (exit code 1), rather than drawing nowhere. }
 procedure Start;
 
 implementation
@@ -100,10 +100,16 @@ end;
 procedure Start;
 var
   i: Integer;
+  inTty: Boolean;
+  outTty: Boolean;
 begin
-  if (IsATTY(StdInputHandle) = 1) or (IsATTY(StdOutputHandle) = 1) then
+  inTty := IsATTY(StdInputHandle) = 1;
+  outTty := IsATTY(StdOutputHandle) = 1;
+  if inTty and outTty then
     Exit;
-  if not HasOption(IN_TERMINAL) and
+  { neither: started from a file manager. One alone is a redirect from a shell, which the Video unit cannot draw
+    through (it crashed with stdin from /dev/null, #1101): no new window for that, only the message }
+  if not inTty and not outTty and not HasOption(IN_TERMINAL) and
      ((GetEnvironmentVariable('DISPLAY') <> '') or (GetEnvironmentVariable('WAYLAND_DISPLAY') <> '')) then begin
     if GetEnvironmentVariable('TERMINAL') <> '' then
       TryTerminal(GetEnvironmentVariable('TERMINAL'), '-e');

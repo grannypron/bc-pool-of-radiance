@@ -18,8 +18,8 @@ uses C_DATA;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 86;
-  BYTE_COUNT = 2603;
+  PART_COUNT = 88;
+  BYTE_COUNT = 2645;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -308,6 +308,13 @@ begin
     that lengthens the script moves them as well as its address in the event table. }
   DataPat.Part(868, C_DATA.FAMILY_ECL, 3, 0, 7537, 657, 2, 2);
   DataPat.Part(868, C_DATA.FAMILY_ECL, 3, 0, 7537, 7537, 0, 173);
+  { #1092: the Inner Tower's event at $A3E1 (Genheeris slipping away as the party nears the lair) never
+    asked whether Tyranthraxus was beaten: SSI wrote that bit into the unused [$4A72] (#55), so he was never beaten and
+    the fight came round again. With the bit where #55 puts it, a party that came back with Genheeris lost him at the
+    door (POR-0232). The event's first test goes to new code at the end of the script, which leaves when Tyranthraxus
+    is beaten ([$4A6D] bit $10), then makes SSI's test and goes back. A save made after the defeat is mended too. }
+  DataPat.Part(1092, C_DATA.FAMILY_ECL, 5, 7, 4105, 2787, 9, 9);
+  DataPat.Part(1092, C_DATA.FAMILY_ECL, 5, 7, 4105, 4105, 0, 24);
 end;
 
 { Every part's bytes, original then fixed, in table order. }
@@ -1047,6 +1054,17 @@ begin
   DataPat.Put(#$4E#$04#$D4#$48#$55#$CE#$80#$10#$D2#$3D#$34#$E0);
   DataPat.Put(#$50#$81#$60#$18#$C3#$CF#$4A#$E0);
   DataPat.Put(#$00);                                         { $B71B EXIT }
+  { #1092 part 1, original }
+  DataPat.Put(#$2F#$01#$6D#$4A#$00#$01#$01#$82#$6E);         { $A3E1 AND [$4A6D], $01, [$6E82] }
+  { fixed: to the new test }
+  DataPat.Put(#$01#$01#$07#$A9);                             { $A3E1 GOTO LA907 }
+  DataPat.Put(#$00#$00#$00#$00#$00);
+  { #1092 part 2, added at $A907: Tyranthraxus beaten, Genheeris stays }
+  DataPat.Put(#$2F#$01#$6D#$4A#$00#$10#$01#$82#$6E);         { $A907 AND [$4A6D], $10, [$6E82] }
+  DataPat.Put(#$17);                                         { $A910 IF <> }
+  DataPat.Put(#$00);                                         { $A911 EXIT }
+  DataPat.Put(#$2F#$01#$6D#$4A#$00#$01#$01#$82#$6E);         { $A912 AND [$4A6D], $01, [$6E82] }
+  DataPat.Put(#$01#$01#$EA#$A3);                             { $A91B GOTO LA3EA }
 end;
 
 function LoadTable: Boolean;
