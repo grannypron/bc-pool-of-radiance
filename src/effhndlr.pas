@@ -272,6 +272,16 @@ const
     resistance does not meet it (MagicResistance; #800) }
   mundaneCheck: Boolean = False;
 
+{ The creature's attack target (combatAddr^.other): nil when it has no combat record or no target yet. A handler run
+  with no attack under way, as one an item's readying called before the creature's first attack was (POR-0231, #1094),
+  does nothing with nil. }
+function AttackTarget(creature: Types.PCharRecord): Types.PCharRecord;
+begin
+  AttackTarget := nil;
+  if creature^.combatAddr <> nil then
+    AttackTarget := creature^.combatAddr^.other;
+end;
+
 { Nullify the attack or effect: zero GameVars.pendingDamage and GameVars.pendingEffectId. effId 0 always matches;
   otherwise only when effId is the id under the immunity check (pendingEffectId). }
 procedure NullifyAttack(effId: Byte);
@@ -425,7 +435,9 @@ end;
   (count entries). The type may be 0 as well as 1: the monster data gives the dwarves' HOBGOBLIN LDR and GRISHNAK 0. }
 procedure RacialFoeBonus(creature: Types.PCharRecord; var names; count: Byte);
 begin
-  GameVars.combatTarget := creature^.combatAddr^.other;
+  GameVars.combatTarget := EffHndlr.AttackTarget(creature);
+  if GameVars.combatTarget = nil then
+    Exit;
   if GameVars.combatTarget^.charType <= 1 then
     if GameVars.combatTarget^.iconDimensions = 1 then
       if EffHndlr.NamedIn(GameVars.combatTarget, names, count) then
@@ -457,7 +469,7 @@ end;
 function HoldSlot(creature: Types.PCharRecord; var slot: Byte): Boolean;
 begin
   HoldSlot := False;
-  GameVars.combatTarget := creature^.combatAddr^.other;
+  GameVars.combatTarget := EffHndlr.AttackTarget(creature);
   if GameVars.combatTarget = nil then
     Exit;
   slot := CbtMap.CombatSlot(GameVars.combatTarget);
@@ -491,7 +503,9 @@ end;
 { Undead slaying weapon (eff 3) }
 procedure EffUndeadSlayer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  GameVars.combatTarget := creature^.combatAddr^.other;
+  GameVars.combatTarget := EffHndlr.AttackTarget(creature);
+  if GameVars.combatTarget = nil then
+    Exit;
   if GameVars.combatTarget^.charType = CharHlp.UNDEAD_TYPE then begin
     Inc(GameVars.gAttackRoll, 2);
     Inc(GameVars.pendingDamage, 2);
@@ -510,7 +524,9 @@ procedure EffFlameTongue(creature: Types.PCharRecord; p: Pointer; removed: Boole
 var
   bonus: Byte;
 begin
-  GameVars.combatTarget := creature^.combatAddr^.other;
+  GameVars.combatTarget := EffHndlr.AttackTarget(creature);
+  if GameVars.combatTarget = nil then
+    Exit;
   case GameVars.combatTarget^.charType of
     { regenerating }
     10: bonus := 1;
@@ -1168,7 +1184,9 @@ end;
   on has seen the poison, saved or not (the Bestiary, #842). }
 procedure PoisonTouch(creature: Types.PCharRecord; saveMod: ShortInt);
 begin
-  GameVars.combatTarget := creature^.combatAddr^.other;
+  GameVars.combatTarget := EffHndlr.AttackTarget(creature);
+  if GameVars.combatTarget = nil then
+    Exit;
   Bestiary.Learn(creature, GameVars.combatTarget, C_BEAST.ATK_POISON);
   if not FxEngine.RollSavingThrow(GameVars.combatTarget, C_SAVE.PARALYZE,
                                   saveMod + AbilAdj.ConPoisonSave(GameVars.combatTarget^.conCur)) then
@@ -1185,7 +1203,9 @@ end;
   has seen it (#842). }
 procedure ParalysisTouch(creature: Types.PCharRecord; minutes: Word; saveMod: ShortInt);
 begin
-  GameVars.combatTarget := creature^.combatAddr^.other;
+  GameVars.combatTarget := EffHndlr.AttackTarget(creature);
+  if GameVars.combatTarget = nil then
+    Exit;
   Bestiary.Learn(creature, GameVars.combatTarget, C_BEAST.ATK_PARALYZE);
   if not FxEngine.RollSavingThrow(GameVars.combatTarget, C_SAVE.PARALYZE, saveMod) then
     if not EffHndlr.TouchImmune(GameVars.combatTarget, C_EFFECT.PARALYZED) then begin
@@ -1221,7 +1241,9 @@ end;
 { Ghoul paralysis (eff 68): 63 minutes, not vs. elves }
 procedure EffGhoulPara(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if creature^.combatAddr^.other^.race <> C_RACE.ELF then
+  if EffHndlr.AttackTarget(creature) = nil then
+    Exit;
+  if EffHndlr.AttackTarget(creature)^.race <> C_RACE.ELF then
     EffHndlr.ParalysisTouch(creature, 63, 0);
 end;
 
@@ -1324,14 +1346,16 @@ end;
 procedure EffFireTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   GameVars.elementMask := C_EFFECT.ELEM_FIRE or C_EFFECT.ELEM_MAGIC;
-  FxEngine.InflictNonWeaponDamage(creature^.combatAddr^.other, Dice.RollDamageDice(2, 10), 0, False);
+  if EffHndlr.AttackTarget(creature) <> nil then
+    FxEngine.InflictNonWeaponDamage(EffHndlr.AttackTarget(creature), Dice.RollDamageDice(2, 10), 0, False);
 end;
 
 { Melee acid squirt (eff 80): +1d4 acid }
 procedure EffAcidSquirt(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   GameVars.elementMask := C_EFFECT.ELEM_ACID;
-  FxEngine.InflictNonWeaponDamage(creature^.combatAddr^.other, Dice.RollDamageDice(1, 4), 0, False);
+  if EffHndlr.AttackTarget(creature) <> nil then
+    FxEngine.InflictNonWeaponDamage(EffHndlr.AttackTarget(creature), Dice.RollDamageDice(1, 4), 0, False);
 end;
 
 { Dragon fear aura (eff 81). Walks the whole creature list: each enabled enemy saves vs. spell or, by highest level, is
@@ -1417,7 +1441,9 @@ var
   reflected: Boolean;
   effect: Types.PEffectRec;
 begin
-  GameVars.combatTarget := creature^.combatAddr^.other;
+  GameVars.combatTarget := EffHndlr.AttackTarget(creature);
+  if GameVars.combatTarget = nil then
+    Exit;
   if not EffHndlr.PetrifyGazeReaches(creature, GameVars.combatTarget) then Exit;
   Bestiary.Learn(creature, GameVars.combatTarget, C_BEAST.ATK_PETRIFY);
   CharDisp.PrintNameString(creature, 'gazes...', 10, False);
@@ -1452,8 +1478,10 @@ var
   effect: Types.PEffectRec;
   target: Types.PCharRecord;
 begin
-  target := creature^.combatAddr^.other;
+  target := EffHndlr.AttackTarget(creature);
   GameVars.combatTarget := target;
+  if target = nil then
+    Exit;
   if not CbtActs.CanTarget(creature, target) then Exit;
   { the range of the Charm Person the gaze applies }
   if not EffHndlr.InSight(creature, target, GameDefs.spellTable[C_SPELL.CHARM_PERSON].rangeFixed) then Exit;
@@ -1602,8 +1630,10 @@ end;
   drainer for it (#842). }
 procedure DrainTouch(creature: Types.PCharRecord; levels: Byte);
 begin
-  Bestiary.Learn(creature, creature^.combatAddr^.other, C_BEAST.ATK_DRAIN);
-  EffHndlr.DrainLevels(creature^.combatAddr^.other, levels);
+  if EffHndlr.AttackTarget(creature) = nil then
+    Exit;
+  Bestiary.Learn(creature, EffHndlr.AttackTarget(creature), C_BEAST.ATK_DRAIN);
+  EffHndlr.DrainLevels(EffHndlr.AttackTarget(creature), levels);
 end;
 
 { Melee level drain (eff 85): the target loses one level }
@@ -1624,7 +1654,9 @@ procedure EffRotTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 var
   effect: Types.PEffectRec;
 begin
-  GameVars.combatTarget := creature^.combatAddr^.other;
+  GameVars.combatTarget := EffHndlr.AttackTarget(creature);
+  if GameVars.combatTarget = nil then
+    Exit;
   Bestiary.Learn(creature, GameVars.combatTarget, C_BEAST.ATK_ROT);
   if FxEngine.DiseaseImmune(GameVars.combatTarget, C_EFFECT.ROT_NO_HEAL) then
     Exit;
@@ -1985,7 +2017,7 @@ end;
   (and eff 80) after firing }
 procedure EffAnhkhegAcid(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  GameVars.combatTarget := creature^.combatAddr^.other;
+  GameVars.combatTarget := EffHndlr.AttackTarget(creature);
   { other is nil before the anhkheg's first target, and may be a creature since taken out of play }
   if (GameVars.combatTarget = nil) or (GameVars.combatTarget^.enabled = 0) then Exit;
   if Dice.RollDice(1, 100) > 25 then Exit;
@@ -2057,7 +2089,9 @@ var
   item: Types.PItemRec;
   j: Byte;
 begin
-  GameVars.combatTarget := creature^.combatAddr^.other;
+  GameVars.combatTarget := EffHndlr.AttackTarget(creature);
+  if GameVars.combatTarget = nil then
+    Exit;
   item := GameVars.combatTarget^.itemsAddr;
   while (item <> nil) and (CbtActs.suppressTargeting = 0) do begin
     if item^.equipped <> 0 then begin
@@ -2073,10 +2107,18 @@ begin
 end;
 
 { Ready item (eff 128, 129, 130, 133, 134, 136, 138, 139): p is the ITEM. Readying adds its effect byte as a permanent
-  effect (strength 12) and calls that handler with the new node, except the Cloak of Displacement's: a cloak readied in
-  combat had its first miss marked spent at once (#784). Unreadying removes the effect. SSI passed the handler nil, and
-  the Cloak of Displacement's (eff 89) wrote its strength through it, into the interrupt vectors (#737). }
+  effect (strength 12) and, for an effect in ACTS_ON_READY, calls that handler with the new node. Unreadying removes the
+  effect. SSI called every effect's handler, with nil, and the Cloak of Displacement's (eff 89) wrote its strength
+  through it, into the interrupt vectors (#737). }
 procedure EffReadyItem(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+const
+  { The effects a ready item adds whose handler acts as the item is readied, and is called then: the Ring of
+    Invisibility's and the Cloak of Elvenkind's, which make the wearer invisible at once, as at the start of a fight.
+    The others act at their moment, through their conditions (an attack, damage, a save). Called with no attack under
+    way, the Flame Tongue's and the Two-Handed Sword +3 vs. Undead's read a target that was not there, and natively
+    crashed (POR-0231, #1094), and the Cloak of Displacement's spent its first miss on the readying (#784). A later
+    game's item that acts as it is readied takes an entry here. }
+  ACTS_ON_READY = [C_EFFECT.RING_INVIS, C_EFFECT.CAMOUFLAGE];
 var
   item: Types.PItemRec;
   effect: Types.PEffectRec;
@@ -2090,8 +2132,7 @@ begin
     effect := creature^.effectsAddr;
     while effect^.next <> nil do
       effect := effect^.next;
-    { displacement acts only on an attack: its handler would spend the first miss on the readying (#784) }
-    if item^.effect <> C_EFFECT.DISPLACED then
+    if item^.effect in ACTS_ON_READY then
       FxEngine.CallEffectHandler(item^.effect, creature, effect, False);
   end;
 end;
