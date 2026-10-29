@@ -391,6 +391,7 @@ function ReadByte(wait: LongInt; var b: Byte): Boolean;
 var
   fds: TFDSet;
   n: LongInt;
+  ended: Boolean;
 begin
   fpFD_ZERO(fds);
   fpFD_SET(0, fds);
@@ -398,7 +399,19 @@ begin
     n := fpSelect(1, @fds, nil, nil, nil)
   else
     n := fpSelect(1, @fds, nil, nil, wait);
-  ReadByte := (n > 0) and (fpRead(0, b, 1) = 1);
+  ended := False;
+  if n > 0 then begin
+    n := fpRead(0, b, 1);
+    ended := n = 0;
+  end;
+  ReadByte := n = 1;
+  { the input has ended (the terminal is gone): select saw input and the read got none, or either failed other than
+    by an interrupted call. Every wait would return at once from here on, and GetKey spun at full speed for good
+    (#1101); the program leaves as Exit Without Saving does, writing nothing }
+  if ended or ((n < 0) and (fpGetErrno <> ESysEINTR)) then begin
+    TuiKit.Done;
+    Halt(1);
+  end;
 end;
 
 { The BIOS scan code of the key a terminal's escape sequence names: ESC [ or ESC O, then params (digits, or the Linux
