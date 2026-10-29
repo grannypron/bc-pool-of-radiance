@@ -61,6 +61,13 @@ const
   SLEEP_DIE = 4;
   { spellFns[23] = SpellHold; one target saves at -2 }
   HOLD_PERSON = 23;
+  { the magic-user's Hold Person, also SpellHold; one target saves at -3 }
+  HOLD_PERSON_MU = 49;
+  { Silence, 15' Radius: the combat AI casts it only where it has seen a creature cast (#1087) }
+  SILENCE = 25;
+  { Snake Charm, and the game's one snake, the creature it affects (#802): its charType, 14, the scorpions share }
+  SNAKE_CHARM = 27;
+  SNAKE_NAME = 'GIANT SNAKE';
   { the magic-user's Charm Person, which a charming gaze applies }
   CHARM_PERSON = 10;
   { a first-level magic-user's spells besides Sleep (ClassCal.StartCasterClass), with DETECT_MAGIC_MU }

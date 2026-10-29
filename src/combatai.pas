@@ -25,7 +25,7 @@ implementation
 
 uses C_ITEM, C_NPC, C_TERR, C_COND, GameDefs, GameVars, Crt, CbtActs, FxEngine, C_EFFECT, C_EQUIP, C_CLASS, C_STATUS,
   C_GBVM, C_DIR, C_SPELL, C_KEYS, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil, CharDisp, Dice, Combat,
-  ClassCal;
+  ClassCal{$IFDEF FPC}, TpRand{$ENDIF};
 
 const
   { AiMoveAttack's runaway-turn guard allows a pass for each step the creature's movement pays for and this many more,
@@ -161,38 +161,43 @@ begin
     TurnUndeadAi := False;
 end;
 
-{ Should the AI use spell (memorized, or an item's spell effect)? Its aiPriority must be at least minPri. Non-offensive
-  spells other than Cure Light Wounds always qualify, as does Cure Light Wounds with a cure target. Everything else,
-  including Cure Light Wounds with no cure target, needs an enemy within CharHlp.CalcSpellRange and, for an area spell
-  (aiRadius > 0), no candidate target whose surroundings include a non-enemy. }
-function DecideCastSpell(creature: Types.PCharRecord; spell, minPri: Byte): Boolean;
+{ How many creatures spell, cast by creature (the creature acting, GameVars.curChar), would usefully affect now; 0
+  when it is not worth casting (#1086). Cure Light Wounds: 1 with a wounded ally to cure (FindCureTarget). Any other
+  spell that is not offensive, which the AI casts on the caster: 1 while the caster is not under its effect, so no
+  second Bless. An offensive spell: how many CbtActs.BestAim finds it would affect, where it will obviously do
+  something (CbtActs.SpellCanAffect); an area spell (aiRadius > 0) needs SPELL_FLOOR of them, as a player keeping the
+  spell for the next fight would not spend it on one. }
+function SpellImpact(creature: Types.PCharRecord; spell: Byte): Byte;
+const
+  SPELL_FLOOR = 2;
 var
   tgt: Pointer;
-  cnt: Byte;
-  j: Byte;
+  effect: Types.PEffectRec;
+  eff: Byte;
+  count: Byte;
 begin
-  DecideCastSpell := False;
-  if GameDefs.spellTable[spell].aiPriority < minPri then
-    Exit;
-  if ((spell <> C_SPELL.CURE_LIGHT_WOUNDS) and (GameDefs.spellTable[spell].offensive = 0))
-     or ((spell = C_SPELL.CURE_LIGHT_WOUNDS) and CbtActs.FindCureTarget(creature, tgt)) then
-    { buff or heal: no aiming }
-    DecideCastSpell := True
-  else begin
-    cnt := CbtMap.CountTargets(creature, CharHlp.CalcSpellRange(spell));
-    if cnt > 0 then
-      if GameDefs.spellTable[spell].aiRadius = 0 then
-        DecideCastSpell := True
-      else begin
-        { Reject the spell if any candidate aim point would also catch a non-enemy }
-        for j := 1 to cnt do
-          if CbtActs.AreaHitsNonEnemy(GameVars.arenaLoc[GameVars.combatTargetSlots[j]].x,
-                                      GameVars.arenaLoc[GameVars.combatTargetSlots[j]].y,
-                                      GameDefs.spellTable[spell].aiRadius) then
-            Exit;
-        DecideCastSpell := True;
-      end;
+  SpellImpact := 0;
+  if spell = C_SPELL.CURE_LIGHT_WOUNDS then begin
+    if CbtActs.FindCureTarget(creature, tgt) then
+      SpellImpact := 1;
+  end else if GameDefs.spellTable[spell].offensive = 0 then begin
+    eff := GameDefs.spellTable[spell].effect;
+    if (eff = 0) or not CharHlp.HasEffect(creature, eff, effect) then
+      SpellImpact := 1;
+  end else begin
+    { no targets picked yet }
+    FillChar(GameVars.spellTargets, SizeOf(GameVars.spellTargets), 0);
+    if CbtActs.BestAim(spell, count) <> nil then
+      if (GameDefs.spellTable[spell].aiRadius = 0) or (count >= SPELL_FLOOR) then
+        SpellImpact := count;
   end;
+end;
+
+{ Should the AI use spell (an item's spell effect)? Its aiPriority must be at least minPri, and it must be worth casting
+  (SpellImpact). }
+function DecideCastSpell(creature: Types.PCharRecord; spell, minPri: Byte): Boolean;
+begin
+  DecideCastSpell := (GameDefs.spellTable[spell].aiPriority >= minPri) and (CombatAi.SpellImpact(creature, spell) > 0);
 end;
 
 { Pick an equipped item whose spell effect the AI should use; needs itemUseAllowed, a remaining enemy team and no
@@ -236,19 +241,19 @@ end;
 
 { Choose a spell for an NPC, or for a PC while quick magic (Alt-M) is on, when an enemy team remains. The list holds
   every memorizedSpells entry that names a spell in spellTable if castAllowed is set; one with bit 7 set (still being
-  memorized) or past the table is left out. Over 1d7 passes the minimum aiPriority drops from 7, with three random picks
-  per pass; the first spell DecideCastSpell accepts goes to CbtActs.CastSpellCombat, whose result is returned. }
+  memorized) or past the table is left out. Each is weighed by how many it would affect (SpellImpact) times its
+  aiPriority, and one is drawn at random by weight, so the big plays come up most and the AI still fumbles now and
+  then; one that would do nothing, or has priority 0, is never drawn (#1086). It goes to CbtActs.CastSpellCombat,
+  whose result is returned. SSI drew at random over passes of falling priority, whatever the spell would do. }
 function SelectSpellToCast(creature: Types.PCharRecord): Boolean;
 var
   list: Types.TSpellSlots;
-  lowPri: Byte;
-  roll: Byte;
+  weight: array[0..Types.SPELL_SLOT_LAST] of Word;
+  total: Word;
+  roll: Word;
   ext: Boolean;
-  tries: Byte;
-  inner: Byte;
   count: Byte;
   k: Byte;
-  spell: Byte;
   chosen: Byte;
 begin
   count := 0;
@@ -260,26 +265,27 @@ begin
         Inc(count);
       end;
   chosen := 0;
-  lowPri := 7;
-  roll := Dice.RollDice(1, 7);
-  tries := 1;
+  total := 0;
   if count > 0 then
     { C_NPC.FLAG set }
     if CharHlp.IsNpc(creature) or GameVars.quickMagic then
-      if GameVars.teamCount[CharHlp.EnemyTeam(creature)] > 0 then
-        while (tries <= roll) and (chosen = 0) do begin
-          inner := 1;
-          { three picks per pass }
-          while (inner < 4) and (chosen = 0) do begin
-            k := Dice.RollDice(1, count) - 1;
-            spell := list[k];
-            if CombatAi.DecideCastSpell(creature, spell, lowPri) then
-              chosen := spell;
-            Inc(inner);
-          end;
-          Dec(lowPri);
-          Inc(tries);
+      if GameVars.teamCount[CharHlp.EnemyTeam(creature)] > 0 then begin
+        for k := 0 to count - 1 do begin
+          weight[k] := 0;
+          if GameDefs.spellTable[list[k]].aiPriority > 0 then
+            weight[k] := Word(CombatAi.SpellImpact(creature, list[k])) * GameDefs.spellTable[list[k]].aiPriority;
+          Inc(total, weight[k]);
         end;
+        if total > 0 then begin
+          roll := Random(total);
+          k := 0;
+          while roll >= weight[k] do begin
+            Dec(roll, weight[k]);
+            Inc(k);
+          end;
+          chosen := list[k];
+        end;
+      end;
   if chosen > 0 then
     CbtActs.CastSpellCombat(chosen, 1, ext)
   else
