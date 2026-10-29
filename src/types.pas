@@ -829,8 +829,8 @@ type
   { Load a tune into a sound device's voices; tune 0 silences them. }
   TSoundPlay = procedure(tune: Word);
   { One sound device's driver (docs/refactor-plan.md, phase 7): SoundDrv reaches the device only through it. GameBoot
-    installs one from POOL.CFG's sound letter (SndTdy, SndSpk, SndOpl, SndSb, SndNone; natively SndDig, SndSpk or
-    SndNone) into GameVars.sound. }
+    installs one from POOL.CFG's sound letter (SndTdy, SndSpk, SndOpl, SndSb, SndNone; natively always SndDig) into
+    GameVars.sound. }
   TSoundDriver = record
     { the device's name, for the settings screen }
     name: TStr20;

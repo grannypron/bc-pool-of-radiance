@@ -506,14 +506,14 @@ begin
                 Put(0, 'POOLRAD reads this as POOL.CFG''s first line.');
               end;
     HW_SOUND: begin
-                Put(0, 'What the native game plays its music and effects on:');
+                Put(0, 'The card the DOS game plays music and effects on. The native game');
+                Put(0, 'always plays Digital Audio, whatever this says: the Tandy''s music');
+                Put(0, 'and the Sound Blaster''s recorded effects.');
                 Inc(row);
-                Put(2, 'None            silence');
-                Put(2, 'PC Speaker      music and effects as the PC speaker beeps them');
-                Put(2, 'Tandy           Digital Audio: the Tandy''s music and the');
-                Put(2, 'AdLib             Sound Blaster''s recorded effects, the same');
-                Put(2, 'Sound Blaster     for all three');
+                Put(0, 'For silence, turn off Music and Sound on the Settings page');
+                Put(0, '(Ctrl-S in the game).');
                 Inc(row);
+                Put(0, 'It is kept for a copy of the game run under DOS or DOSBox.');
                 Put(0, 'POOLRAD reads this as POOL.CFG''s second line.');
               end;
   else begin
@@ -654,8 +654,12 @@ begin
     C_OPT.OPT_MUSIC: AboutText := 'Every tune at once.';
     C_OPT.OPT_TITLE_MUSIC: AboutText := 'The title theme.';
     C_OPT.OPT_BATTLE_MUSIC: AboutText := 'The music as a fight starts.';
+{$IFDEF FPC}
+    C_OPT.OPT_SOUND: AboutText := 'Every sound effect at once|(Ctrl-S in the game).';
+{$ELSE}
     C_OPT.OPT_SOUND: AboutText := 'Every sound effect at once|(Ctrl-S in the game).||' +
                                   'With no sound device in|POOL.CFG the game stays|silent whatever this says.';
+{$ENDIF}
     C_OPT.OPT_FOOTSTEPS: AboutText := 'The party''s steps.';
     C_OPT.OPT_RANGED: AboutText := 'Missiles in flight and their|hits and misses.';
     C_OPT.OPT_MELEE: AboutText := 'Melee attacks'' hits and|misses.';
