@@ -134,7 +134,8 @@ function EditLine(x, y, width: Byte; var text: string; maxLen: Byte; first: Char
 
 implementation
 
-uses {$IFDEF FPC}Video, {$IFDEF UNIX}SysUtils, BaseUnix, TermIO{$ELSE}Keyboard{$ENDIF}{$ELSE}Crt, Dos{$ENDIF}, C_KEYS, LineEdit;
+uses {$IFDEF FPC}Video, {$IFDEF UNIX}SysUtils, BaseUnix, TermIO{$ELSE}Keyboard{$ENDIF}{$ELSE}Crt, Dos{$ENDIF},
+  C_KEYS, LineEdit;
 
 var
   { the screen's cells, each a character and its colour: the text screen's memory under DOS, natively a buffer }
