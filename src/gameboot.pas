@@ -12,7 +12,7 @@ implementation
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_OPT, CfgFile, GameVars, Crt, Dos,
   {$IFNDEF FPC}Overlay, {$ENDIF}Blit, SoundDrv, DaxIo, FileUtil, GameIo, CbtLog,
   {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga,
-  {$IFDEF FPC}SndDig{$ELSE}SndTdy{$ENDIF}, SndSpk, {$IFNDEF FPC}SndOpl, SndSb, {$ENDIF}SndNone
+  {$IFDEF FPC}SndDig{$ELSE}SndTdy, SndSpk, SndOpl, SndSb, SndNone{$ENDIF}
   {$IFDEF FPC}, Host, GameDirs, DataPick{$ENDIF};
 
 var
@@ -208,21 +208,22 @@ begin
 {$ENDIF}
   { the sound driver POOL.CFG names: T Tandy, P the speaker, A AdLib music and speaker effects, B a Sound Blaster's
     recorded effects with its AdLib music (each falling back to the next when its card does not answer), anything else
-    none. S is silent, as SSI's data card has it and the Curse port reads it; it read as the Sound Blaster until #880. }
-  case cfgSound of
+    none. S is silent, as SSI's data card has it and the Curse port reads it; it read as the Sound Blaster until #880.
+    Natively Digital Audio (SndDig), the Tandy's music and the Sound Blaster's recorded effects, whatever the letter, as
+    the picture is VGA whatever the first line: the file is the DOS install's, and a DOS POOLCFG's no sound (S) left
+    the native game silent (#1097). The Music and Sound settings turn it off. }
 {$IFDEF FPC}
-    { natively, the Tandy's music and the Sound Blaster's recorded effects for any of the three (SndDig) }
-    C_OPT.SOUND_TANDY, C_OPT.SOUND_ADLIB, C_OPT.SOUND_BLASTER: SndDig.Install;
-    C_OPT.SOUND_SPEAKER: SndSpk.Install;
+  SndDig.Install;
 {$ELSE}
+  case cfgSound of
     C_OPT.SOUND_TANDY: SndTdy.Install;
     C_OPT.SOUND_SPEAKER: SndSpk.Install;
     C_OPT.SOUND_ADLIB: SndOpl.Install;
     C_OPT.SOUND_BLASTER: SndSb.Install;
-{$ENDIF}
   else
     SndNone.Install;
   end;
+{$ENDIF}
   GameVars.soundMode := GameVars.sound.mode;
 {$IFNDEF FPC}
   { lower HeapEnd by GFX_RESERVE_PARAS (16 KB) }
