@@ -48,6 +48,9 @@ var
   soundGroups: Byte;
   { the Sound setting: zero starts the game with sound off (soundMode disabled); GameIo.SetSound keeps it in step }
   soundOn: Byte;
+  { the Auto Join setting: nonzero has a stackable item join its like as it comes into an inventory
+    (CharHlp.AddToInventory, #1088) }
+  autoJoinOn: Byte;
   { nonzero: PostCbt and SaveLoad.LoadChar take the party's characters off Quick after each fight and on loading }
   quickEnds: Byte;
   { the Quick Mode Magic setting: CombatSt starts every fight with quickMagic set from it; Alt-M then turns quickMagic

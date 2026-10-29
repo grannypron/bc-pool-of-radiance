@@ -53,6 +53,24 @@ procedure ClearTreasure;
 { Put a heap copy of item at the end of list. The caller checks there is room (a creature's 16 items). }
 procedure AppendItemCopy(var list: Types.PItemRec; item: Types.PItemRec);
 
+{ True when other is a stack (quantity > 0) that can join item's: not item itself, with the same name components, type,
+  plus, save bonus, curse, weight, charges, effect and special, and fewer than 2 charges. }
+function SameStack(item, other: Types.PItemRec): Boolean;
+
+{ Merge every one of creature's stacks that can join item's (SameStack) into it, as the item menu's Join does. Stacks
+  cap at 255; the rest carries on in the stack it came from. A readied stack's mark goes to the stack it joins. Items of
+  quantity 0 are no stacks and are left alone. }
+procedure JoinStacks(creature: Types.PCharRecord; item: Types.PItemRec);
+
+{ True when one of creature's stacks has room for all of item's (SameStack, at most 255 together): with Auto Join on
+  (GameVars.autoJoinOn), item would take no item slot of its own (#1088). }
+function JoinsWhole(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
+
+{ Give creature a copy of item, at the end of its items, and with Auto Join on (GameVars.autoJoinOn) join it into the
+  first of creature's stacks it matches (JoinStacks), so a readied stack goes on being the readied one (#1088). The
+  caller checks there is room (ViewChar.CannotCarryItem) and recalculates the stats. }
+procedure AddToInventory(creature: Types.PCharRecord; item: Types.PItemRec);
+
 function HasEffect(creature: Types.PCharRecord; id: Byte; var effect: Types.PEffectRec): Boolean;
 
 { A movement or attack rate n as Haste and Slow make it: doubled (at most 255) while the creature is Hasted (eff 39),
@@ -1066,6 +1084,81 @@ begin
       p := p^.next;
     p^.next := n;
   end;
+end;
+
+function SameStack(item, other: Types.PItemRec): Boolean;
+begin
+  SameStack := (other <> item) and (other^.quantity > 0) and (other^.nameIds[1] = item^.nameIds[1]) and
+    (other^.nameIds[2] = item^.nameIds[2]) and (other^.nameIds[3] = item^.nameIds[3]) and
+    (other^.itemType = item^.itemType) and (other^.plus = item^.plus) and (other^.saveBonus = item^.saveBonus) and
+    (other^.cursed = item^.cursed) and (other^.weight = item^.weight) and (other^.charges = item^.charges) and
+    (other^.charges < 2) and (other^.effect = item^.effect) and (other^.special = item^.special);
+end;
+
+{ Save next before removal: RemoveItem frees the node. }
+procedure JoinStacks(creature: Types.PCharRecord; item: Types.PItemRec);
+var
+  cur: Types.PItemRec;
+  next: Types.PItemRec;
+  dst: Types.PItemRec;
+  qty: Byte;
+begin
+  if item^.quantity = 0 then Exit;
+  dst := item;
+  qty := dst^.quantity;
+  cur := creature^.itemsAddr;
+  while cur <> nil do begin
+    next := cur^.next;
+    if CharHlp.SameStack(dst, cur) then begin
+      if qty + cur^.quantity <= 255 then begin
+        Inc(qty, cur^.quantity);
+        if cur^.equipped <> 0 then
+          dst^.equipped := cur^.equipped;
+        CharHlp.RemoveItem(creature, cur);
+      end else begin
+        dst^.quantity := 255;
+        cur^.quantity := cur^.quantity - (255 - qty);
+        qty := cur^.quantity;
+        dst := cur;
+      end;
+    end;
+    cur := next;
+  end;
+  dst^.quantity := qty;
+end;
+
+function JoinsWhole(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
+var
+  p: Types.PItemRec;
+  found: Boolean;
+begin
+  found := False;
+  if item^.quantity > 0 then begin
+    p := creature^.itemsAddr;
+    while (p <> nil) and not found do begin
+      found := CharHlp.SameStack(item, p) and (Word(p^.quantity) + item^.quantity <= 255);
+      p := p^.next;
+    end;
+  end;
+  JoinsWhole := found;
+end;
+
+procedure AddToInventory(creature: Types.PCharRecord; item: Types.PItemRec);
+var
+  added: Types.PItemRec;
+  p: Types.PItemRec;
+begin
+  CharHlp.AppendItemCopy(creature^.itemsAddr, item);
+  if (GameVars.autoJoinOn = 0) or (item^.quantity = 0) then Exit;
+  added := creature^.itemsAddr;
+  while added^.next <> nil do
+    added := added^.next;
+  { the first stack before the copy that it can join takes it in }
+  p := creature^.itemsAddr;
+  while (p <> added) and not CharHlp.SameStack(added, p) do
+    p := p^.next;
+  if p <> added then
+    CharHlp.JoinStacks(creature, p);
 end;
 
 { True when the creature carries effect id; effect is left on the matching node, or nil. }

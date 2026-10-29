@@ -19,6 +19,8 @@ procedure ViewCharMenu(var done: Boolean);
 
 procedure UseItemMenu(var done: Boolean);
 
+{ True when creature cannot take item: it carries C_ITEM.CARRY_MAX items already, unless Auto Join is on and item
+  joins one of its stacks whole (CharHlp.JoinsWhole, #1088), or item's weight would overload it. }
 function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 
 implementation
@@ -34,8 +36,6 @@ var
 procedure ItemTradeMenu(item: Types.PItemRec); forward;
 
 procedure HalveItem(item: Types.PItemRec); forward;
-
-procedure JoinItem(item: Types.PItemRec); forward;
 
 function CanJoin(item: Types.PItemRec): Boolean; forward;
 
@@ -979,7 +979,7 @@ begin
                Border.ClearBox(1, 21, 38, 22);
              end;
         'H': ViewChar.HalveItem(sel);
-        'J': ViewChar.JoinItem(sel);
+        'J': CharHlp.JoinStacks(GameVars.curChar, sel);
         'S': if ViewChar.CheckItemAvail(sel) then
                ViewChar.SellItem(sel)
              else
@@ -1011,7 +1011,7 @@ begin
     if ViewChar.CannotCarryItem(tgt, item) then
       CharDisp.PrintBottomLine('Overloaded')
     else begin
-      CharHlp.AppendItemCopy(tgt^.itemsAddr, item);
+      CharHlp.AddToInventory(tgt, item);
       CharHlp.RemoveItem(GameVars.curChar, item);
       CharHlp.RecalcStats(tgt);
     end;
@@ -1040,18 +1040,8 @@ begin
     CharDisp.PrintBottomLine('Can''t halve that');
 end;
 
-{ True when other is a stack (quantity > 0) that can join item's: not item itself, with the same name components, type,
-  plus, save bonus, curse, weight, charges, effect and special, and fewer than 2 charges. }
-function SameStack(item, other: Types.PItemRec): Boolean;
-begin
-  SameStack := (other <> item) and (other^.quantity > 0) and (other^.nameIds[1] = item^.nameIds[1]) and
-    (other^.nameIds[2] = item^.nameIds[2]) and (other^.nameIds[3] = item^.nameIds[3]) and
-    (other^.itemType = item^.itemType) and (other^.plus = item^.plus) and (other^.saveBonus = item^.saveBonus) and
-    (other^.cursed = item^.cursed) and (other^.weight = item^.weight) and (other^.charges = item^.charges) and
-    (other^.charges < 2) and (other^.effect = item^.effect) and (other^.special = item^.special);
-end;
-
-{ True when item is a stack (quantity > 0) another of curChar's stacks can join (SameStack): Join has something to do. }
+{ True when item is a stack (quantity > 0) another of curChar's stacks can join (CharHlp.SameStack): Join has
+  something to do. }
 function CanJoin(item: Types.PItemRec): Boolean;
 var
   p: Types.PItemRec;
@@ -1060,46 +1050,11 @@ begin
   if item^.quantity > 0 then begin
     p := GameVars.curChar^.itemsAddr;
     while p <> nil do begin
-      if ViewChar.SameStack(item, p) then
+      if CharHlp.SameStack(item, p) then
         CanJoin := True;
       p := p^.next;
     end;
   end;
-end;
-
-{ Merges every compatible inventory stack into item. Stacks cap at 255; overflow
-  continues in the source stack. Preserve the readied state when a readied stack
-  is removed. Save next before removal because RemoveItem frees the node. Items
-  with quantity zero are not stacks and are left alone. }
-procedure JoinItem(item: Types.PItemRec);
-var
-  cur: Types.PItemRec;
-  next: Types.PItemRec;
-  dst: Types.PItemRec;
-  qty: Byte;
-begin
-  if item^.quantity = 0 then Exit;
-  dst := item;
-  qty := dst^.quantity;
-  cur := GameVars.curChar^.itemsAddr;
-  while cur <> nil do begin
-    next := cur^.next;
-    if ViewChar.SameStack(dst, cur) then begin
-      if qty + cur^.quantity <= 255 then begin
-        Inc(qty, cur^.quantity);
-        if cur^.equipped <> 0 then
-          dst^.equipped := cur^.equipped;
-        CharHlp.RemoveItem(GameVars.curChar, cur);
-      end else begin
-        dst^.quantity := 255;
-        cur^.quantity := cur^.quantity - (255 - qty);
-        qty := cur^.quantity;
-        dst := cur;
-      end;
-    end;
-    cur := next;
-  end;
-  dst^.quantity := qty;
 end;
 
 { Offer MoneyCal.ItemSalePrice for the item: half what it is worth, with ammunition valued per bundle of 20 at any
@@ -1265,7 +1220,8 @@ var
   takable: Word;
 begin
   CharHlp.RecalcStats(creature);
-  CannotCarryItem := (creature^.numberOfItems >= C_ITEM.CARRY_MAX) or
+  CannotCarryItem := ((creature^.numberOfItems >= C_ITEM.CARRY_MAX) and
+                      not ((GameVars.autoJoinOn <> 0) and CharHlp.JoinsWhole(creature, item))) or
     Money.CheckOverload(creature, CharHlp.ItemWeight(item), takable);
 end;
 
