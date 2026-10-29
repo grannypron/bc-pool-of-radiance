@@ -19,6 +19,13 @@
 # Pull requests from forks are blocked because their code would run inside the private image. Checkout uses git
 # directly instead of actions/checkout, so jobs do not download actions from another service.
 #
+# The native job builds and tests the Linux and Windows ports in the same image, which also holds the pinned Free
+# Pascal and SDL3 builds under FPC_PREFIX (/opt/fpc), the MinGW cross-compilers and Wine. The setup scripts reuse
+# those installs; when build/toolchain's pins move past the image's, they build the new ones in the job until the
+# image is rebuilt. release-native packages each target with package-native.sh and attaches it to the DOS release.
+# Both jobs run only when the repository variable NATIVE_CI is 'true', which is set once CI_IMAGE has that
+# toolchain (#1106).
+#
 # macOS jobs run directly on the private Apple Silicon runner, not in the Linux image. The macos job builds and tests
 # every push and pull request. release-macos signs, notarizes, staples, packages, and uploads the app after the DOS
 # release exists. The runner caches the pinned Free Pascal and SDL builds.
@@ -163,6 +170,101 @@ jobs:
           REPO_API: ${{ github.event.repository.url }}
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: .forgejo/scripts/release.sh "$TAG"
+
+  native:
+    if: >-
+      vars.NATIVE_CI == 'true'
+      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: docker
+    # The image's toolchain makes this quick; a job that must build its own needs much longer.
+    timeout-minutes: 90
+    container:
+      image: ${{ vars.CI_IMAGE }}
+      credentials:
+        username: ${{ secrets.REGISTRY_USER || 'none' }}
+        password: ${{ secrets.REGISTRY_TOKEN || 'none' }}
+    strategy:
+      matrix:
+        target: [x86_64-linux, x86_64-win64, i386-win32]
+    env:
+      FPC_PREFIX: /opt/fpc
+    steps:
+      - name: Check out
+        env:
+          CLONE_URL: ${{ github.event.repository.clone_url }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          TOKEN: ${{ github.token }}
+        run: |
+          git config --global --add safe.directory "$PWD"
+          git init -q .
+          git remote add origin "$CLONE_URL"
+          auth="Authorization: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
+          git -c http.extraHeader="$auth" fetch -q --tags origin '+refs/heads/*:refs/remotes/origin/*' "+$REF:refs/ci/head"
+          git checkout -q --detach "$SHA"
+      - name: Toolchain (Free Pascal and SDL3, already in the image)
+        run: tools/fpc-setup.sh && tools/sdl3-setup.sh
+      # Windows tests run under Wine.
+      - name: Run the ${{ matrix.target }} unit tests
+        run: ./build-native.sh --test ${{ matrix.target }}
+      - name: Build ${{ matrix.target }}
+        run: ./build-native.sh ${{ matrix.target }}
+
+  release-native:
+    needs: [release, native]
+    if: vars.NATIVE_CI == 'true' && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: docker
+    timeout-minutes: 90
+    container:
+      image: ${{ vars.CI_IMAGE }}
+      credentials:
+        username: ${{ secrets.REGISTRY_USER || 'none' }}
+        password: ${{ secrets.REGISTRY_TOKEN || 'none' }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-linux
+            archive: linux-x86_64.tar.gz
+          - target: x86_64-win64
+            archive: windows-x64.zip
+          - target: i386-win32
+            archive: windows-x86.zip
+    env:
+      FPC_PREFIX: /opt/fpc
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - name: Check out
+        env:
+          CLONE_URL: ${{ github.event.repository.clone_url }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          TOKEN: ${{ github.token }}
+        run: |
+          git config --global --add safe.directory "$PWD"
+          git init -q .
+          git remote add origin "$CLONE_URL"
+          auth="Authorization: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
+          git -c http.extraHeader="$auth" fetch -q --tags origin '+refs/heads/*:refs/remotes/origin/*' "+$REF:refs/ci/head"
+          git checkout -q --detach "$SHA"
+      - name: Use the dispatched tag's source
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git rev-parse -q --verify "refs/tags/$TAG" > /dev/null || { echo "$TAG is not a tag." >&2; exit 1; }
+          rm -rf src build
+          git checkout "$TAG" -- src build
+          echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct "$TAG")" >> "$GITHUB_ENV"
+          echo "BUILD_REF=$TAG" >> "$GITHUB_ENV"
+      - name: Toolchain (Free Pascal and SDL3, already in the image)
+        run: tools/fpc-setup.sh && tools/sdl3-setup.sh
+      - name: Build ${{ matrix.target }}
+        run: ./build-native.sh ${{ matrix.target }}
+      - name: Package
+        run: ./package-native.sh "$TAG" ${{ matrix.target }}
+      - name: Attach to the release
+        env:
+          REPO_API: ${{ github.event.repository.url }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: .forgejo/scripts/release-asset.sh "$TAG" "dist/pool-of-radiance-$TAG-${{ matrix.archive }}"
 
   macos:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
