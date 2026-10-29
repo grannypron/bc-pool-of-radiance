@@ -50,6 +50,7 @@
 
 ### Fixes
 
+- The treasure menu no longer stays at the bottom of the screen while the ending plays.
 - The Linux, Windows and macOS versions show the ending's animations after Tyranthraxus falls; before, the window froze on the treasure screen until they were over, and Windows called it Not Responding. The intro's title, animated pictures and the other screens that wait on the clock now keep the window answering too.
 - On Linux, double-clicking `poolcfg` in a file manager opens it in a terminal window; before, nothing happened. When there is no terminal program to open it in, it says so and stops.
 - The Linux, Windows and macOS versions play the game's digital music and sound effects whatever POOL.CFG's sound device says. A POOL.CFG set up for DOS, whose default is no sound, left them silent; it still sets the sound for a copy played under DOS or DOSBox.
