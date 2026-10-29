@@ -49,12 +49,23 @@ begin
       Result := Result + path[k];
 end;
 
+{ Make folder dir and any missing parents. ForceDirectories cannot: it first asks
+  whether the drive root exists, and Wine reports Z:\ (Linux's /) as a reparse
+  point, which DirectoryExists rejects, so it creates nothing (#1111). }
+procedure MakeFolders(const dir: ShortString);
+begin
+  if (dir = '') or DirectoryExists(dir) or (ExtractFileDir(dir) = dir) then
+    Exit;
+  MakeFolders(ExtractFileDir(dir));
+  CreateDir(dir);
+end;
+
 { Make file name (its folders too) holding text. }
 procedure PutFile(const name: ShortString; const text: AnsiString);
 var
   t: Text;
 begin
-  ForceDirectories(ExtractFileDir(Native(name)));
+  MakeFolders(ExtractFileDir(Native(name)));
   Assign(t, Native(name));
   Rewrite(t);
   Write(t, text);
