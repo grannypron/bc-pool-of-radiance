@@ -17,7 +17,7 @@
 {$I COMPILER.INC}
 program PoolCfg;
 
-uses Dos, C_KEYS, C_OPT, FileUtil, CfgFile, StrUtil, TuiKit{$IFDEF FPC}, SysUtils, NatFile, GameDirs{$ENDIF};
+uses Dos, C_KEYS, C_OPT, FileUtil, CfgFile, StrUtil, TuiKit{$IFDEF FPC}, SysUtils, NatFile, GameDirs, OwnTerm{$ENDIF};
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -1183,6 +1183,8 @@ end;
 
 begin
 {$IFDEF FPC}
+  { double-clicked, with no terminal: run again in one (#1098) }
+  OwnTerm.Start;
   FindFolders;
 {$ENDIF}
   fromStart := ParamStr(1) = C_OPT.SETUP_FROM_START;

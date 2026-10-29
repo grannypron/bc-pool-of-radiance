@@ -49,6 +49,7 @@
 
 ### Fixes
 
+- On Linux, double-clicking `poolcfg` in a file manager opens it in a terminal window; before, nothing happened. When there is no terminal program to open it in, it says so and stops.
 - The Linux, Windows and macOS versions play the game's digital music and sound effects whatever POOL.CFG's sound device says. A POOL.CFG set up for DOS, whose default is no sound, left them silent; it still sets the sound for a copy played under DOS or DOSBox.
 - The title music now stops when the main menu comes up. Before, it played on under the menu.
 - A settings file, the Bestiary, the character roster or the vault that could not be written in full, or whose writing was cut off, now keeps its old copy. Before, the old file could be lost.
