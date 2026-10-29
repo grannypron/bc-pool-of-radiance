@@ -14,26 +14,28 @@ interface
 const
   COLS = 80;
   ROWS = 25;
-  { the colours, as text attributes (background * 16 + foreground): the blue page and its text }
-  A_TEXT = $17;
+  { the colours, as text attributes (background * 16 + foreground), after Borland's IDEs: the blue page and its
+    yellow text, white frames and values }
+  A_TEXT = $1E;
   A_FRAME = $1F;
-  A_VALUE = $1E;
+  A_VALUE = $1F;
   A_HELP = $1B;
   A_GOOD = $1A;
-  A_WARN = $1E;
+  A_WARN = $1F;
   A_BAD = $1C;
-  A_CHANGED = $1F;
-  A_HOT = $1E;
-  { the highlight, a stepping line's choice not picked, the title bar }
+  A_CHANGED = $1A;
+  A_HOT = $1F;
+  { the highlight, a stepping line's choice not picked, the title bar (grey, as Borland's menu bar) }
   A_HIGHLIGHT = $30;
   A_HIGHLIGHT_OTHER = $31;
-  A_TITLE = $30;
+  A_TITLE = $70;
   { the key line and its keys' names }
   A_KEYS = $70;
   A_KEY_NAME = $74;
-  { the light grey pop-ups (a notice, a question, a pick list): text, frame, values, hot letters and the highlight }
+  { the light grey pop-ups (a notice, a question, a pick list), as Borland's menus: black text and frame, red hot
+    letters, and the highlight }
   A_POP = $70;
-  A_POP_FRAME = $7F;
+  A_POP_FRAME = $70;
   A_POP_VALUE = $71;
   A_POP_HOT = $74;
   A_POP_HIGHLIGHT = $0F;
@@ -132,7 +134,7 @@ function EditLine(x, y, width: Byte; var text: string; maxLen: Byte; first: Char
 
 implementation
 
-uses {$IFDEF FPC}Video, {$IFDEF UNIX}BaseUnix, TermIO{$ELSE}Keyboard{$ENDIF}{$ELSE}Crt, Dos{$ENDIF}, C_KEYS, LineEdit;
+uses {$IFDEF FPC}Video, {$IFDEF UNIX}SysUtils, BaseUnix, TermIO{$ELSE}Keyboard{$ENDIF}{$ELSE}Crt, Dos{$ENDIF}, C_KEYS, LineEdit;
 
 var
   { the screen's cells, each a character and its colour: the text screen's memory under DOS, natively a buffer }
@@ -146,6 +148,13 @@ var
 {$IFDEF UNIX}
   { the terminal's settings before Init made it raw }
   oldTio: Termios;
+  { the terminal takes 24-bit colours (COLORTERM), so Flush sends the VGA's own rather than the terminal's palette's,
+    which may make blue anything }
+  trueColor: Boolean;
+  { the cells Flush last sent, and where on the terminal (shownX0 of $FFFF: none yet) }
+  shown: TScreen;
+  shownX0: Word;
+  shownY0: Word;
 {$ENDIF}
 {$ELSE}
   { the screen Init found: its mode, characters, cursor and cursor shape }
@@ -174,6 +183,119 @@ begin
     Origin := 0;
 end;
 
+{$IFDEF UNIX}
+const
+  ESC = #27;
+  { the VGA's sixteen colours, $RRGGBB }
+  VGA_RGB: array[0..15] of LongInt = (
+    $000000, $0000AA, $00AA00, $00AAAA, $AA0000, $AA00AA, $AA5500, $AAAAAA,
+    $555555, $5555FF, $55FF55, $55FFFF, $FF5555, $FF55FF, $FFFF55, $FFFFFF);
+  { code page 437's pictures for 0 to 31, and its characters from 127, as Unicode }
+  CP437_LOW: array[0..31] of Word = (
+    $0020, $263A, $263B, $2665, $2666, $2663, $2660, $2022, $25D8, $25CB, $25D9, $2642, $2640, $266A, $266B, $263C,
+    $25BA, $25C4, $2195, $203C, $00B6, $00A7, $25AC, $21A8, $2191, $2193, $2192, $2190, $221F, $2194, $25B2, $25BC);
+  CP437_HIGH: array[127..255] of Word = ($2302,
+    $00C7, $00FC, $00E9, $00E2, $00E4, $00E0, $00E5, $00E7, $00EA, $00EB, $00E8, $00EF, $00EE, $00EC, $00C4, $00C5,
+    $00C9, $00E6, $00C6, $00F4, $00F6, $00F2, $00FB, $00F9, $00FF, $00D6, $00DC, $00A2, $00A3, $00A5, $20A7, $0192,
+    $00E1, $00ED, $00F3, $00FA, $00F1, $00D1, $00AA, $00BA, $00BF, $2310, $00AC, $00BD, $00BC, $00A1, $00AB, $00BB,
+    $2591, $2592, $2593, $2502, $2524, $2561, $2562, $2556, $2555, $2563, $2551, $2557, $255D, $255C, $255B, $2510,
+    $2514, $2534, $252C, $251C, $2500, $253C, $255E, $255F, $255A, $2554, $2569, $2566, $2560, $2550, $256C, $2567,
+    $2568, $2564, $2565, $2559, $2558, $2552, $2553, $256B, $256A, $2518, $250C, $2588, $2584, $258C, $2590, $2580,
+    $03B1, $00DF, $0393, $03C0, $03A3, $03C3, $00B5, $03C4, $03A6, $0398, $03A9, $03B4, $221E, $03C6, $03B5, $2229,
+    $2261, $00B1, $2265, $2264, $2320, $2321, $00F7, $2248, $00B0, $2219, $00B7, $221A, $207F, $00B2, $25A0, $00A0);
+
+{ n in decimal. }
+function Num(n: LongInt): AnsiString;
+var
+  s: string[11];
+begin
+  Str(n, s);
+  Num := s;
+end;
+
+{ CP437 character ch in UTF-8. }
+function Utf8(ch: Byte): AnsiString;
+var
+  u: Word;
+begin
+  if (ch >= 32) and (ch < 127) then
+    Utf8 := Chr(ch)
+  else begin
+    if ch < 32 then
+      u := CP437_LOW[ch]
+    else
+      u := CP437_HIGH[ch];
+    if u < $800 then
+      Utf8 := Chr($C0 or (u shr 6)) + Chr($80 or (u and $3F))
+    else
+      Utf8 := Chr($E0 or (u shr 12)) + Chr($80 or ((u shr 6) and $3F)) + Chr($80 or (u and $3F));
+  end;
+end;
+
+{ The SGR sequence for attribute attr in 24-bit colour: its foreground, and its background (without the blink bit). }
+function Sgr(attr: Byte): AnsiString;
+var
+  fg: LongInt;
+  bg: LongInt;
+begin
+  fg := VGA_RGB[attr and $F];
+  bg := VGA_RGB[(attr shr 4) and 7];
+  Sgr := ESC + '[0;38;2;' + Num(fg shr 16) + ';' + Num((fg shr 8) and $FF) + ';' + Num(fg and $FF) +
+         ';48;2;' + Num(bg shr 16) + ';' + Num((bg shr 8) and $FF) + ';' + Num(bg and $FF) + 'm';
+end;
+
+{ Flush for a 24-bit terminal: each row that changed since the last, written straight to the terminal (the Video
+  unit's buffer goes unused), then the cursor. }
+procedure FlushRgb(x0, y0: Word);
+var
+  out: AnsiString;
+  x: Word;
+  y: Word;
+  i: Word;
+  last: Integer;
+  same: Boolean;
+begin
+  if (x0 <> shownX0) or (y0 <> shownY0) then begin
+    out := ESC + '[0m' + ESC + '[2J';
+    shownX0 := x0;
+    shownY0 := y0;
+    FillChar(shown, SizeOf(shown), $FF);
+  end else
+    out := '';
+  for y := 0 to ROWS - 1 do
+    if y0 + y < ScreenHeight then begin
+      same := True;
+      for x := 1 to COLS do
+        same := same and (shown[y * COLS + x] = buffer[y * COLS + x]);
+      if not same then begin
+        out := out + ESC + '[' + Num(y0 + y + 1) + ';' + Num(x0 + 1) + 'H';
+        last := -1;
+        for x := 0 to COLS - 1 do
+          if x0 + x < ScreenWidth then begin
+            i := y * COLS + x + 1;
+            if Hi(buffer[i]) <> last then begin
+              last := Hi(buffer[i]);
+              out := out + TuiKit.Sgr(last);
+            end;
+            out := out + TuiKit.Utf8(Lo(buffer[i]));
+            shown[i] := buffer[i];
+          end;
+      end;
+    end;
+  if cursorType = crHidden then
+    out := out + ESC + '[?25l'
+  else begin
+    out := out + ESC + '[' + Num(y0 + cursorY) + ';' + Num(x0 + cursorX) + 'H';
+    if cursorType = crBlock then
+      out := out + ESC + '[2 q'
+    else
+      out := out + ESC + '[4 q';
+    out := out + ESC + '[?25h';
+  end;
+  FpWrite(1, out[1], Length(out));
+end;
+{$ENDIF}
+
 { Put the cells on the terminal, and the cursor. A terminal smaller than 80x25 shows the part that fits. }
 procedure Flush;
 var
@@ -184,6 +306,12 @@ var
 begin
   x0 := TuiKit.Origin(ScreenWidth, COLS);
   y0 := TuiKit.Origin(ScreenHeight, ROWS);
+{$IFDEF UNIX}
+  if trueColor then begin
+    TuiKit.FlushRgb(x0, y0);
+    Exit;
+  end;
+{$ENDIF}
   for y := 0 to ROWS - 1 do
     if y0 + y < ScreenHeight then
       for x := 0 to COLS - 1 do
@@ -199,10 +327,14 @@ procedure Init;
 {$IFDEF UNIX}
 var
   tio: Termios;
+  colorTerm: string;
 {$ENDIF}
 begin
   InitVideo;
 {$IFDEF UNIX}
+  colorTerm := GetEnvironmentVariable('COLORTERM');
+  trueColor := (colorTerm = 'truecolor') or (colorTerm = '24bit');
+  shownX0 := $FFFF;
   { raw: each key as it is pressed, unechoed, as the Keyboard unit sets it }
   TCGetAttr(0, oldTio);
   tio := oldTio;
@@ -220,9 +352,16 @@ begin
 end;
 
 procedure Done;
+{$IFDEF UNIX}
+const
+  { the colours and the terminal's own cursor back }
+  RESET: string[9] = ESC + '[0m' + ESC + '[0 q';
+{$ENDIF}
 begin
   SetCursorType(crUnderLine);
 {$IFDEF UNIX}
+  if trueColor then
+    FpWrite(1, RESET[1], Length(RESET));
   TCSetAttr(0, TCSANOW, oldTio);
 {$ELSE}
   DoneKeyboard;
