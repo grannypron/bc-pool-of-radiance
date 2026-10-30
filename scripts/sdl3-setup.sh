@@ -29,7 +29,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 toolchain="${TOOLCHAIN_FILE:-$root/build/toolchain}"
 version="$(sed -n 's/^sdl3=\([0-9.]*\).*/\1/p' "$toolchain" 2> /dev/null | head -n 1)"
-[ -n "$version" ] || { echo "sdl3-setup.sh: build/toolchain has no sdl3=<version> line." >&2; exit 1; }
+[ -n "$version" ] || { echo "sdl3-setup.sh: $toolchain has no sdl3=<version> line." >&2; exit 1; }
 recipe="$(sed -n 's/^recipe=\([0-9]*\).*/\1/p' "$toolchain" 2> /dev/null | head -n 1)"
 recipe="${recipe:-1}"
 prefix_root="${FPC_PREFIX:-$HOME/fpc}"
@@ -44,7 +44,7 @@ case "${1:-}" in
     "") ;;
     *) echo "sdl3-setup.sh: unknown option $1 (the options are --print and --pack DIR)" >&2; exit 2 ;;
 esac
-. "$root/scripts/toolchain-release.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/toolchain-release.sh"
 
 case "$(uname -s)-$(uname -m)" in
     Linux-x86_64) targets=(x86_64-linux i386-win32 x86_64-win64) ;;

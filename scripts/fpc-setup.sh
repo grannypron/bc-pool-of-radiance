@@ -32,8 +32,8 @@ setting() {
 
 pin="$(setting fpc)"
 bootstrap="$(setting fpc_bootstrap)"
-[ -n "$pin" ] || { echo "fpc-setup.sh: build/toolchain has no fpc=<branch>@<commit> line." >&2; exit 1; }
-[ -n "$bootstrap" ] || { echo "fpc-setup.sh: build/toolchain has no fpc_bootstrap=<version> line." >&2; exit 1; }
+[ -n "$pin" ] || { echo "fpc-setup.sh: $toolchain has no fpc=<branch>@<commit> line." >&2; exit 1; }
+[ -n "$bootstrap" ] || { echo "fpc-setup.sh: $toolchain has no fpc_bootstrap=<version> line." >&2; exit 1; }
 recipe="$(setting recipe)"
 recipe="${recipe:-1}"
 branch="${pin%@*}"
@@ -50,7 +50,7 @@ case "${1:-}" in
     "") ;;
     *) echo "fpc-setup.sh: unknown option $1 (the options are --print and --pack DIR)" >&2; exit 2 ;;
 esac
-. "$root/scripts/toolchain-release.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/toolchain-release.sh"
 
 host_os="$(uname -s)"
 host_cpu="$(uname -m)"
