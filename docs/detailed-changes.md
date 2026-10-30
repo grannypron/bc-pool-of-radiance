@@ -1,8 +1,10 @@
 # Detailed changes since 5debfb7
 
-This document records every change made to the Pool of Radiance port (the Turbo Pascal 6 reconstruction of SSI's v1.3) from commit 5debfb7 (2026-10-10) up to the head of branch `fix/issues-670-672` (3b52671, 2026-10-17); 5debfb7 itself is not included. The range holds 238 non-merge commits, delivered through 54 merged pull requests plus one open pull request (#673, which carries the last three commits, for issues #670, #671 and #672). Entries for later work (#681, #685) have been added where they belong, without commit hashes. The commit messages are the authority for what each change does; the entries below restate them.
+This is the engineering record for the Pool of Radiance port, a Turbo Pascal 6 reconstruction of SSI's version 1.3. For a shorter, player-facing overview, start with the [changelog](changelog.md). This document is the place to look when you need the exact behaviour, the affected routine, or the issue and commit behind a change.
 
-The document is organised by area, not by date. Each entry gives a short title, what was wrong or missing, what changed (with unit and routine names where they help), the Forge issue numbers (#NNN) and SSI quirk numbers (POR-NNNN) where there are any, and the short commit hashes. Where a change deliberately departs from SSI's v1.3 behaviour, the entry says so under "Differs from SSI". Related commits are merged into one entry where they make one change.
+The main range begins after commit 5debfb7 (2026-10-10) and runs through 3b52671, the head of `fix/issues-670-672` on 2026-10-17. It contains 238 non-merge commits from 54 merged pull requests and one then-open pull request, #673, which holds the final three commits for issues #670, #671, and #672. Later work such as #681 and #685 appears in the relevant sections without commit hashes. The commit messages remain the source of truth; the notes here explain them in context.
+
+Rather than walking through commits in date order, the document groups related work by area. Each entry starts with the practical result, then explains the original problem and the implementation where that detail is useful. Issue numbers, SSI quirk numbers, and short commit hashes appear at the end. When the port intentionally behaves differently from SSI's version 1.3, the entry calls that out as "Differs from SSI." Several commits may share one entry when they are all part of the same change.
 
 The areas are:
 
@@ -22,6 +24,8 @@ The areas are:
 ---
 
 ## 1. New features
+
+These are the additions players will notice most. The entries also cover the supporting file formats, menu work, and compatibility details behind them.
 
 **Paladins and rangers can be created.** The earlier #209 work gave both classes their tables, hit points, warrior rules and special abilities, but character creation could not make them. Humans can now be paladins and rangers, and half-elves rangers and cleric/rangers, in Curse of the Azure Bonds' order; the half-elf row of `classesByRace` grows to 13 classes, and the class menu guards its count and pick. Adding a character follows Curse's party rules: a paladin does not join a party with an evil member, an evil character does not join a party with a paladin, and a party has at most three rangers. A refused character gets Curse's message on the bottom line, which waits for a key, and stays on the roster; as in Curse, the first character joins unchecked and scripted NPC joins are not checked. The race screen shows the new classes with the rule book's maximums (U for a human paladin or ranger, 8 for a half-elf ranger, CL/RA among the half-elf multiclasses), and its multiclass column may run on beside the note at the foot of the box. Differs from SSI: SSI's Pool offered neither class at creation. #209. 11a5399. A related guard: paladin and ranger share usability bit 6, and the one place that builds `itemLimits` summed class bits with `Inc`, which would carry into bit 7 for a class holding both; the bits are now or-ed (no class combines them, so nothing changes). #445. 1683b84.
 
@@ -85,6 +89,8 @@ The areas are:
 **Auto Join, and Settings in Game and Sound pages.** Each bundle of arrows or darts bought was an item of its own, and a character carries 16 (`C_ITEM.CARRY_MAX`), so buying ammunition meant joining by hand every few bundles. The new Auto Join setting (`C_OPT.OPT_AUTO_JOIN`, POOLOPT.CFG `AUTOJOIN`, `GameVars.autoJoinOn`, on by default) has a stackable item join the first of the character's stacks it matches as it is bought, taken after a fight, given in character editing (all through `Shop.GiveItemCopyToCreature`) or traded: `CharHlp.AddToInventory` appends the copy and joins it, so the stack already there, readied or not, is the one that grows. The stack rule and the join moved from ViewChar to CharHlp (`SameStack`, `JoinStacks`, which now takes the creature; the item menu's Join calls it) unchanged: a stack fills to 255 and the rest stays a stack of its own. `ViewChar.CannotCarryItem` lets a character at 16 items take one that joins a stack whole (`CharHlp.JoinsWhole`); with the setting off, every item needs its slot as before. The settings no longer fit one page, so the Settings screen splits them over Game and Sound (`Game Sound Paths sYstem Exit`, the music and the sound effects on Sound, `CfgFile.SoundSetting` and `SettingLine` placing each line for both screens), and POOLCFG's Main Menu gains Sound Settings (its key O, Save and Exit keeping S). The settings are renumbered, Auto Join after the portraits; POOLOPT.CFG goes by key name, so old files read as before. `TAutoJn` covers the joining, the cap, the readied mark and the room check, and `TCfgFile` the pages. #1088.
 
 ## 2. Gameplay and rules fixes
+
+This section covers changes to character rules, spells, equipment, training, and other systems that directly affect play.
 
 **Fix does nothing in an anti-magic area.** `Camp.CampFixMenu` heals with the clerics' spells, so where magic does not work it now says "Spells cannot be cast in this area." and nobody rests, as Cast in camp refused already. The anti-magic test, the GBVM's antimagic word, was written out in four places (`Camp.CanDoSpellActivity`, `CharHlp.CanUseItems`, Combat's Cast option and CombatAi's item use); they and Fix now ask `CharHlp.AntiMagicArea`. #877.
 
@@ -180,7 +186,7 @@ Differs from SSI: SSI's tables stopped at 18 to 20 and multi-class warriors lost
 
 ## 3. SSI quirks fixed (and the ones labelled)
 
-During the byte-for-byte reconstruction SSI's oddities were kept and marked with `Note:` comments. Phase 3 of the refactor dealt with all of them, and a later batch fixed the ones first kept.
+The byte-for-byte reconstruction initially preserved SSI's oddities and marked them with `Note:` comments. Phase 3 revisited every one. Harmless leftovers were cleaned up, genuine bugs were fixed, and the few quirks kept at first were repaired in a later pass.
 
 **Quirks without effect removed.** `Portrait.DisplayCharPortrait` built head and body numbers as strings and never used them; `Money.TakeMoneyMenu` counted into `cnt`, never set and never read; `EffHndlr.EffGauntlets` tested `q^.id < $80`, always true for `C_Effect.STRENGTH`, now written as what it came to; `EclMenu.GetEclVar`'s `vHi` held the low byte and `vLo` the high one, now `lo` and `hi`. No behaviour change. f0178a8.
 
@@ -224,6 +230,8 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 ---
 
 ## 4. Combat and the combat AI
+
+Here are the changes to targeting, movement, spell use, free attacks, and the decisions made by monsters and party members under Quick mode.
 
 **The combat AI walks round walls and bodies to its target.** The AI headed straight at its target each step, falling back on a few fixed side-steps, so a wall or a dead end left it strafing back and forth. `Pathing.RouteStep` now finds, breadth first over the arena, the first step of a shortest walk that brings the creature's body next to its target's: a cell is open when it is on the arena, not a wall and no other creature's (`CbtMap.OccupantAt`), for bodies of every size, with the steps nearest the heading tried first. The AI takes that step when it can pay for it (`CanStepDir`, split out of `AiCanStep`); otherwise, and when fleeing, it moves as before. TPathing checks routes on open ground, round a wall, out of a dead end, through and blocked gaps, and for a 2x2 body. Differs from SSI. #668. d184cc3.
 
@@ -324,6 +332,8 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 **The combat AI casts spells where they obviously do something.** The AI chose a spell by random picks over passes of falling `aiPriority`, accepting any offensive spell with an enemy in range, and aimed with up to 20 random picks; since #792 made Hold Person and Charm Person take only persons, auto-combat held scorpions and skeletons, and it silenced kobolds who never cast, and re-cast Bless on the blessed. `CbtActs.SpellCanAffect` now says whether a spell would obviously do anything to a creature, by what could be seen across the table only: its kind (`CharHlp.IsPerson` for Hold and Charm, no undead for Sleep or Cause Disease, Sleep's largest pool through `SleepTakes`, the snake for Snake Charm, `FxEngine.CloudProof` for Stinking Cloud), its visible conditions (under the spell's effect already, or helpless for a spell that leaves it so), and for Silence whether it was seen casting this fight (`CbtActs.seenCasting`, set in `CastSpellCombat`, cleared in `CombatStart`); for the party's caster, the immunities its Bestiary has seen too. Items, saves and resistances are hidden and never count. `CbtActs.BestAim` aims there: an area spell at the enemy whose area catches the most it can affect and no one else, any other at random among those it can affect, passing over the ones picked already for a spell of several targets. `CombatAi.SpellImpact` scores each memorized spell by how many it would affect (a buff, which the AI casts on itself, 1 while the caster is not under it; Cure Light Wounds 1 with someone to cure), an area spell needing 2, and `SelectSpellToCast` draws one at random by impact times `aiPriority`, so the big plays come up most and the AI still fumbles now and then; item spells go through the same score. Both sides use it. `TSpcAff` covers `SpellCanAffect`. #1086, #1087.
 
 ## 5. User interface: menus, screens, keys and messages
+
+These changes make the game clearer and more consistent without changing its underlying rules: better prompts, safer key handling, and screens that expose information the game already knows.
 
 **The Companion Tools open on the map; Map and Notes are one tool.** F6's Tools screen no longer lists its tools: in a 3D area it opens on the whole area's map, "Companion Tools" centred in the frame's top where the area's name was, the name now heading the legend, with "Tools: Map Character Exit" (in the wilderness, the frame and title alone). Map is the former Notes tool: a cursor from the party's square, moved with the arrows, with "Map: Write Clear Exit" and the cursor's square and note below the map; Exit returns to the Tools menu on the same map. The read-only Map tool is gone. #691.
 
@@ -429,6 +439,8 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 ## 6. Saving, loading, quick save and the vault
 
+This section covers the new load/save experience and the less visible work that keeps characters, saves, and vault contents safe when a write fails.
+
 **Full-screen Load/Save menu, with descriptions, areas and times.** Loading and saving chose a slot from a one-line letter prompt. The new `SaveMenu` unit shows the slots full screen, titled "Load/Save Game Menu": each slot shows its letter and description, then the area and the time the file was written. Up and Down move a slot at a time and the list scrolls, with "(more)" when slots are hidden, and Page Up and Page Down move a screenful; the menu opens on the newest save. Loading lists saved games only; saving lists every slot, an unused one as EMPTY. Saving asks for a description (30 characters at most) starting from the slot's old one. The description and area go in `savgam<x>.inf` beside the save, a small versioned record. The area comes from the new `AreaName` unit: the Clue Book's names for scripts 0..29, shortened to 18 columns, keyed by the script a save reopens (`previousScriptId`) and, for the four scripts that run two maps, the map; anything else reads UNKNOWN AREA; a save without an .inf has its area read from the save file. Camp redraws its screen after Save. #604. 3b2c103.
 
 **Load/Save menu revised: letters take a slot, a new layout, a one-step save prompt.** A slot's letter (A-J, Q) now takes it at once: saving opens its description prompt, loading loads it (#652). The list keeps a column clear inside its border, shows the time beside the description and the date under it, each letter in white; the bottom line reads Game: Next Prev Save (or Load) Exit, with Exit reached by the arrows only, since E is a slot (`MenuCore.unmarked`) (#657). The save prompt shows the slot, location and description, which reads SAVE GAME X while empty (#656). A description is typed, and shown, up to 27 characters (`DESC_SHOWN`), so the time fits beside it; the slot-info file still holds 30, and a longer old description is cut to 27 when shown or edited. 078b01f. Because every letter goes to the description, the save prompt's bottom line then became "Save: Exit" with no hotkeys: Enter saves and Escape goes back (#657 follow-up). 2748c77.
@@ -491,7 +503,7 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 ## 7. Data fixes to the shipped scripts and items (DataPat)
 
-DataPat is the table of patches DataBld applies to SSI's data when it builds the merged archives. `C_DATA.VERSION` is the data version; raising it makes the game rebuild the merged archives at the next start.
+`DataPat` is the patch table `DataBld` applies to SSI's original data while building the merged archives. When `C_DATA.VERSION` increases, the game knows to rebuild those archives the next time it starts. The entries below explain both the player-visible correction and the script or item data changed to make it happen.
 
 **The vault's script (data version 32).** A DataPat fix sends event 20 in New Phlan's event table to new code at the end of the script. Every other event-20 square (six other tavern doors) goes on to the tavern as before; at (8,9) the code does what the arms shop does (once a visit, the shopkeeper, the refusal after an attack on the city watch), stores 2 in [$6E6C], the shop cell, and runs COMBAT with no monsters, which `EclCombat` now takes to the vault. 52 bytes; the script stayed under the then 7,682-byte limit with 157 to spare. A game saved inside New Phlan before this kept the tavern until the party left and came back (later fixed by #609, section 6). #606. a955646.
 
@@ -517,7 +529,7 @@ DataPat is the table of patches DataBld applies to SSI's data when it builds the
 
 ## 8. Video (the driver refactor, VGA), memory, overlays and EMS
 
-This is phase 6 of the refactor plan, with the overlay and memory work around it.
+This section follows phase 6 of the refactor plan: the new video-driver structure, VGA support, and the overlay and memory work that made both practical.
 
 **A video benchmark, and the regression suite in CGA and Tandy (phase 6, step 0).** `bench/vidbench.sh` compiles `bench/vidbench.pas` and runs it in each video mode under DOSBox-X at a fixed 10,000 cycles, timing `RenderChar`, `BlitTileCell`, `FillPicRect` and `FlushView` on game-shaped workloads. The baseline: EGA is slowest at everything, and its `FlushView` takes 25.7 ms for the whole view against CGA's 2.0 and Tandy's 2.9. `VIDEO=cga` and `VIDEO=tandy` make `tests/regress.sh` run in that mode (POOL-CGA.CFG, POOL-TANDY.CFG), each with its own golden record; Tandy uses a Tandy machine. bd7a01e. All nine scenarios pass in both modes, so phases 1 to 5 changed neither mode's screens (loadsave needed goldbox-player 14eda0e). 6127810.
 
@@ -561,7 +573,7 @@ Phase 5's overlay working-set changes are in section 10.
 
 ## 9. Robustness guards from the source review
 
-A review of every unit (issues #424 to #466) turned up places where damaged data, out-of-range values or paths the shipped game never takes could read or write outside a table. Unless an entry says otherwise, nothing changes in play with the shipped data.
+A unit-by-unit source review (issues #424 to #466) found places where damaged data, an out-of-range value, or an unusual path could read or write beyond a table. Most of these guards do not change normal play with the shipped data; they make failures predictable and keep bad input from turning into memory corruption.
 
 **Wilds.** `BuildWildernessMap` read `wildMap` for the 5x5 cells from the corner with no bound; it now moves the corner onto the 44x36 map first, as `DisplayMapView` does. #466. 4726a68.
 
@@ -787,7 +799,7 @@ A review of every unit (issues #424 to #466) turned up places where damaged data
 
 ## 10. Refactor phases 0 to 6 (structure, units, tests, sizes)
 
-The build no longer matches SSI's bytes, so identical bytes prove nothing. `docs/refactor-plan.md` replaces that guarantee with tests (phase 0), then consolidates duplication and improves structure. Sizes quoted are from the build's size report. Phase 6 is in section 8.
+Once the build stopped matching SSI's executable byte for byte, binary identity could no longer serve as the safety net. `docs/refactor-plan.md` replaces it with tests in phase 0, then removes duplication and untangles the structure in measured steps. Size figures come from the build report; phase 6 appears in section 8.
 
 ### Phase 0: a safety net
 
@@ -909,6 +921,8 @@ Planning: proposed from three surveys (39ac97d), what the ECL can see through Ec
 
 ## 11. Tools, CI, tests and regression scenarios
 
+These entries cover the machinery around the game: reproducible builds, Forgejo and GitHub automation, unit tests, and recorded play-throughs used to catch regressions.
+
 **CI on both forges.** `build.yml` takes its image from the repository variable `CI_IMAGE` (the registry image by digest on forge.schkerke.com, a copy loaded into the runner on forgejo.brazencrows.com); registry credentials fall back to 'none'; the checkout is a plain git fetch of every branch and tag from the same forge instead of `actions/checkout`; build and reproduce skip pull requests from forks. d7abdb5. Three follow-up edits made in Forgejo's web editor remove YAML anchors (Forgejo splits the YAML when parsing jobs, so anchors do not work) and correct the syntax afterwards. 96a0746, 6f89499, c193a47.
 
 **The release step reaches Forgejo by the event's repository URL.** `release.sh` built its API URL from `GITHUB_SERVER_URL`. forgejo-runner sets that to its own connection, which on forgejo.brazencrows.com is Forgejo's loopback address (`http://127.0.0.1:3000/`), and a job cannot reach that, so the Release step failed to connect. The step now gives `release.sh` the event's `repository.url` in `REPO_API`, as Curse and Secret do; the checkout already uses the event's `clone_url` the same way. #843.
@@ -936,6 +950,8 @@ Planning: proposed from three surveys (39ac97d), what the ECL can see through Ec
 **The scenarios follow today's menus, against a golden build of the port.** The golden build is now a recent commit of the port, not the pre-refactor one, so the `golden:`/`candidate:` splits for keys the old build wanted are gone (they stay in `ssiformat`, against SSI's v1.3) and every checkpoint is compared. Saving returns to the camp menu (#872), so `loadsave` and `bane` wait for it instead of a Quit question; `companion` reaches Companion Tools by its place in the Settings list (Down 16 times; Up wrapped to the combat log's lines); `journal` lets the preview pane draw before its first checkpoint and selects the second item for the entry; the save popup is waited for before it is recorded; `loadsave` records the `.MAP` with the save's files; `ssiformat` waits for the camp menu after the save and leaves out `CHARLIST.TXT`, whose lines differ from SSI's since a party member stays on the roster (#754). `tests/regress.sh` with no scenario named leaves out `ssiformat`; the README gives the commands that record a golden build's results for every mode. #898.
 
 ## 12. Documentation
+
+Finally, these are the changes that explain how the project is built, tested, maintained, and extended.
 
 **`docs/refactor-plan.md` tracked.** `docs/` had been ignored as the disassembly project's notes; it now holds the repository's own, starting with the refactor plan (ground rules, constraints, phases 0 to 4). 21771b7. The plan is updated as each phase lands: 13888a9, 0f11ab8, 2ab71e9, c03cc49, ace1784, 34581d4, c73a1be (phases 1 to 4); 39ac97d, 98f7cb8, 4084078, 1826ed1, d307eb5, 6dd9ce1 (phase 5); 8f60a9f, de5c623 (phase 6, proposed from two surveys and its status). Code commits also mark their items done.
 
