@@ -11,7 +11,8 @@
 # recipe (recipe=N), the revision of how this script builds them. The result is installed under
 # $FPC_PREFIX/<branch>-<short commit>, with ~/fpc as the default prefix. Re-running the script with the same pins
 # reuses the completed installation. With TOOLCHAIN_RELEASES set, a published build of these pins is downloaded
-# instead of compiled: release fpc-<branch>-<short commit>-r<recipe> (see scripts/toolchain-release.sh).
+# instead of compiled: release fpc-<branch>-<short commit>-r<recipe> (see scripts/toolchain-release.sh). TOOLCHAIN_FILE
+# names another pin file, for a repository that keeps it elsewhere.
 #
 # Downloads go to $FPC_PREFIX/cache, each into its own folder. Nothing outside FPC_PREFIX is changed. FPC_GIT_URL
 # replaces GitLab's Free Pascal repository, and FPC_BOOTSTRAP_URL the bootstrap compiler's download, with mirrors.
@@ -23,7 +24,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-toolchain="$root/build/toolchain"
+toolchain="${TOOLCHAIN_FILE:-$root/build/toolchain}"
 
 setting() {
     sed -n "s/^$1=\([A-Za-z0-9._@-]*\).*/\1/p" "$toolchain" 2> /dev/null | head -n 1
