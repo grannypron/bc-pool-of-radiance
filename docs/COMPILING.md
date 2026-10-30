@@ -27,17 +27,17 @@ cd pool-of-radiance
 
 The native build uses three scripts:
 
-- `tools/fpc-setup.sh` downloads a Free Pascal bootstrap compiler, builds the pinned compiler named in `build/toolchain`, and builds the supported cross-compilers.
-- `tools/sdl3-setup.sh` downloads and builds the pinned SDL 3 release named in `build/toolchain`.
+- `scripts/fpc-setup.sh` downloads a Free Pascal bootstrap compiler, builds the pinned compiler named in `build/toolchain`, and builds the supported cross-compilers.
+- `scripts/sdl3-setup.sh` downloads and builds the pinned SDL 3 release named in `build/toolchain`.
 - `build-native.sh` creates the game and its setup program.
 
 The setup scripts normally install everything below `~/fpc`. They are safe to run again: a completed, matching toolchain is reused. To put the tools somewhere else, set `FPC_PREFIX` for every setup and build command:
 
 ```sh
 export FPC_PREFIX="$HOME/por-toolchains"
-tools/fpc-setup.sh
-tools/sdl3-setup.sh
-./build-native.sh
+scripts/fpc-setup.sh
+scripts/sdl3-setup.sh
+scripts/build-native.sh
 ```
 
 The first setup takes a while and requires internet access. Later builds do not download or rebuild the toolchain unless the pinned versions change. A distribution-provided Free Pascal or SDL installation does not replace this setup; the scripts deliberately use known versions.
@@ -84,11 +84,11 @@ Some older distributions do not have every optional SDL package in that list. If
 ### Build 64-bit Windows
 
 ```sh
-tools/fpc-setup.sh
-tools/sdl3-setup.sh
-./build-native.sh x86_64-win64
+scripts/fpc-setup.sh
+scripts/sdl3-setup.sh
+scripts/build-native.sh x86_64-win64
 
-sdl_root="$(tools/sdl3-setup.sh --print)"
+sdl_root="$(scripts/sdl3-setup.sh --print)"
 cp "$sdl_root/x86_64-win64/bin/SDL3.dll" obj/native/x86_64-win64/
 ```
 
@@ -105,9 +105,9 @@ obj/native/x86_64-win64/SDL3.dll
 ### Build 32-bit Windows instead
 
 ```sh
-./build-native.sh i386-win32
+scripts/build-native.sh i386-win32
 
-sdl_root="$(tools/sdl3-setup.sh --print)"
+sdl_root="$(scripts/sdl3-setup.sh --print)"
 cp "$sdl_root/i386-win32/bin/SDL3.dll" obj/native/i386-win32/
 ```
 
@@ -118,13 +118,13 @@ The 32-bit files are in `obj/native/i386-win32`. Do not mix their `SDL3.dll` wit
 Windows unit tests are also built on Linux and run through Wine. Install and configure Wine first, then run the matching target:
 
 ```sh
-./build-native.sh --test x86_64-win64
+scripts/build-native.sh --test x86_64-win64
 ```
 
 or:
 
 ```sh
-./build-native.sh --test i386-win32
+scripts/build-native.sh --test i386-win32
 ```
 
 Test executables, compiler output, and `TEST.LOG` are written below `obj/native/<target>/tests`.
@@ -153,15 +153,15 @@ The build also needs Git, curl, tar, Make, and Python 3. The command-line tools 
 python3 --version
 ```
 
-If it is missing, install Python 3 from [python.org](https://www.python.org/downloads/macos/) or with Homebrew. `tools/sdl3-setup.sh` will download its own pinned CMake and Ninja binaries if neither is already on `PATH`.
+If it is missing, install Python 3 from [python.org](https://www.python.org/downloads/macos/) or with Homebrew. `scripts/sdl3-setup.sh` will download its own pinned CMake and Ninja binaries if neither is already on `PATH`.
 
 ### Build and test
 
 ```sh
-tools/fpc-setup.sh
-tools/sdl3-setup.sh
-./build-native.sh --test macos
-./build-native.sh macos
+scripts/fpc-setup.sh
+scripts/sdl3-setup.sh
+scripts/build-native.sh --test macos
+scripts/build-native.sh macos
 ```
 
 The results are:
@@ -198,22 +198,22 @@ open "obj/native/macos/Pool of Radiance.app"
 This step is only for someone with an Apple Developer ID Application certificate. After building, the signing helper can use a keychain identity and a saved `notarytool` profile named `poolrad`:
 
 ```sh
-tools/macos-sign.sh
+scripts/macos-sign.sh
 ```
 
 To apply a Developer ID signature without submitting to Apple, use:
 
 ```sh
-NOTARY_PROFILE=none tools/macos-sign.sh
+NOTARY_PROFILE=none scripts/macos-sign.sh
 ```
 
-See the comments at the top of `tools/macos-sign.sh` for API-key and `.p12` options used by unattended builders. A successful notarized build produces `obj/native/macos/Pool of Radiance.zip`.
+See the comments at the top of `scripts/macos-sign.sh` for API-key and `.p12` options used by unattended builders. A successful notarized build produces `obj/native/macos/Pool of Radiance.zip`.
 
 ## Linux native build
 
 ### Supported host and target
 
-The Linux game builds for x86-64 (`x86_64-linux`) and, on an x86-64 host with a 32-bit C library installed, for 32-bit x86 (`i386-linux`): `tools/sdl3-setup.sh` builds the 32-bit SDL3 only when `gcc -m32` can link, and says so when it cannot. Install the 32-bit C library first: `gcc-multilib` on Debian or Ubuntu, `glibc-devel.i686` and `libgcc.i686` on Fedora, `lib32-glibc` and `lib32-gcc-libs` on Arch. Then `./build-native.sh i386-linux` builds it.
+The Linux game builds for x86-64 (`x86_64-linux`) and, on an x86-64 host with a 32-bit C library installed, for 32-bit x86 (`i386-linux`): `scripts/sdl3-setup.sh` builds the 32-bit SDL3 only when `gcc -m32` can link, and says so when it cannot. Install the 32-bit C library first: `gcc-multilib` on Debian or Ubuntu, `glibc-devel.i686` and `libgcc.i686` on Fedora, `lib32-glibc` and `lib32-gcc-libs` on Arch. Then `scripts/build-native.sh i386-linux` builds it.
 
 ### Install the prerequisites
 
@@ -250,10 +250,10 @@ Package names vary on other distributions. In addition to the C/C++ build toolch
 ### Build and test
 
 ```sh
-tools/fpc-setup.sh
-tools/sdl3-setup.sh
-./build-native.sh --test x86_64-linux
-./build-native.sh x86_64-linux
+scripts/fpc-setup.sh
+scripts/sdl3-setup.sh
+scripts/build-native.sh --test x86_64-linux
+scripts/build-native.sh x86_64-linux
 ```
 
 The results are:
@@ -349,7 +349,7 @@ This is the most literal DOS build and the easiest one to understand.
    C:\POR-SRC\BINARIES\...
    ```
 
-6. Copy the repository's top-level [`BUILD.BAT`](BUILD.BAT) into `C:\POR-SRC`.
+6. Copy the repository's [`scripts/BUILD.BAT`](../scripts/BUILD.BAT) into `C:\POR-SRC`.
 
 7. In DOSBox, build from that directory:
 
@@ -383,7 +383,7 @@ This is the most literal DOS build and the easiest one to understand.
 
 9. Back up the retail game's `START.EXE`, `GAME.OVR`, saved games, and characters. Copy the new `START.EXE`, `GAME.OVR`, and, when present, `POOLCFG.EXE` into the game directory. For a current Brazen Crows build, also copy the files from `C:\POR-SRC\BINARIES`.
 
-Historical v1.1, v1.2, and v1.3 source is available through the matching Git tag. Check out or export the desired tag before copying the contents of `src`. The standalone top-level `BUILD.BAT` was added after those historical tags, so save a copy before switching tags or retrieve it from the current branch afterward. It knows that TP 5.0 builds use the historical rename step while TP 6.0 builds use EXEPACK.
+Historical v1.1, v1.2, and v1.3 source is available through the matching Git tag. Check out or export the desired tag before copying the contents of `src`. The standalone `scripts/BUILD.BAT` was added after those historical tags, so save a copy before switching tags or retrieve it from the current branch afterward. It knows that TP 5.0 builds use the historical rename step while TP 6.0 builds use EXEPACK.
 
 ### Automated DOSBox-X workflow
 
@@ -402,7 +402,7 @@ This workflow requires:
 Build the game with:
 
 ```sh
-./build.sh
+scripts/build.sh
 ```
 
 The results are written to the repository's `obj` directory. Logs go to `build/logs`.
@@ -410,13 +410,13 @@ The results are written to the repository's `obj` directory. Logs go to `build/l
 Build and run the DOS unit tests with:
 
 ```sh
-./build.sh --test
+scripts/build.sh --test
 ```
 
 To install directly into `drive_c/POOLRAD`, first put a backed-up retail installation there, then run:
 
 ```sh
-./build.sh --install
+scripts/build.sh --install
 ```
 
 `--install` replaces `START.EXE` and `GAME.OVR` in that directory, so do not use it as your first backup step.
@@ -428,8 +428,8 @@ To install directly into `drive_c/POOLRAD`, first put a backed-up retail install
 Run both setup scripts again and read the first reported missing command or package:
 
 ```sh
-tools/fpc-setup.sh
-tools/sdl3-setup.sh
+scripts/fpc-setup.sh
+scripts/sdl3-setup.sh
 ```
 
 If you set `FPC_PREFIX`, it must have the same value during setup and compilation.

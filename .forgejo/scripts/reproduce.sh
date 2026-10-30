@@ -4,10 +4,10 @@
 #
 #   .forgejo/scripts/reproduce.sh v1.3
 #
-# The tag is checked out in a temporary worktree and built with this checkout's build.sh. START.EXE and GAME.OVR
+# The tag is checked out in a temporary worktree and built with this checkout's scripts/build.sh. START.EXE and GAME.OVR
 # must match the hashes in .forgejo/ssi-releases.txt. This catches toolchain or script changes that break historical
 # reproduction without touching the current checkout's src/, build/, or obj/. TOOLS has the same meaning as in
-# build.sh and defaults to this checkout's drive_c.
+# scripts/build.sh and defaults to this checkout's drive_c.
 
 set -eu
 
@@ -25,9 +25,11 @@ work="$(mktemp -d)"
 trap 'git -C "$root" worktree remove --force "$work" 2> /dev/null || rm -rf "$work"; git -C "$root" worktree prune' EXIT
 git -C "$root" worktree add --quiet --detach "$work" "$tag" \
     || { echo "reproduce.sh: cannot check out $tag into a worktree" >&2; exit 2; }
-# Keep the tag's src/ and build/ directories, but replace its build driver with the current one.
-cp "$root/build.sh" "$work/build.sh"
-"$work/build.sh"
+# Keep the tag's src/ and build/ directories, but build them with the current scripts/ (the tag's own build driver, at
+# its top level in older tags, is not used).
+rm -rf "$work/scripts"
+cp -R "$root/scripts" "$work/scripts"
+"$work/scripts/build.sh"
 
 if (cd "$work/obj" && echo "$expected" | sha256sum --check --strict); then
     echo "reproduce.sh: $tag is byte-identical to SSI's release"

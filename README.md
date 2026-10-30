@@ -48,7 +48,7 @@ Installation should be similar for macOS and Linux users: drop the files into th
 
 ## Building From Source
 
-See [COMPILING.md](COMPILING.md) for the compilers, tools and commands needed to build the DOS and native versions.
+See [docs/COMPILING.md](docs/COMPILING.md) for the compilers, tools and commands needed to build the DOS and native versions.
 
 ## Credits and Thanks
 

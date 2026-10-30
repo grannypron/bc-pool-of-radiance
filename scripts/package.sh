@@ -2,7 +2,7 @@
 #
 # Package a DOS build as dist/pool-of-radiance-<version>-dos.zip.
 #
-#   ./package.sh v1.1
+#   scripts/package.sh v1.1
 #
 # Run this after build.sh. The archive contains START.EXE, GAME.OVR, and, when available, POOLCFG.EXE. It also includes
 # the project-generated files from src/binaries, a README, and SHA-256 checksums. All archive names fit DOS's 8.3
@@ -10,10 +10,10 @@
 
 set -eu
 
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 if [ $# -ne 1 ]; then
-    echo "package.sh: give the version, for example: ./package.sh v1.1" >&2
+    echo "package.sh: give the version, for example: scripts/package.sh v1.1" >&2
     exit 2
 fi
 version="$1"
@@ -31,7 +31,7 @@ fi
 files=(START.EXE GAME.OVR)
 [ -f "$root/src/poolcfg.pas" ] && files+=(POOLCFG.EXE)
 for f in "${files[@]}"; do
-    [ -f "$root/obj/$f" ] || { echo "package.sh: obj/$f is missing; run ./build.sh first." >&2; exit 1; }
+    [ -f "$root/obj/$f" ] || { echo "package.sh: obj/$f is missing; run scripts/build.sh first." >&2; exit 1; }
 done
 # Include project-generated data files. Older tags do not have this directory.
 data=()

@@ -3,9 +3,9 @@
 # Build the DOS game as obj/START.EXE and obj/GAME.OVR. Sources that include poolcfg.pas also produce
 # obj/POOLCFG.EXE (#876); the historical SSI tags do not contain that program.
 #
-#   ./build.sh              build
-#   ./build.sh --install    build, then copy the files into drive_c/POOLRAD to play
-#   ./build.sh --test       build, then compile and run the unit tests in tests/ (TestKit) under the same Turbo Pascal
+#   scripts/build.sh              build
+#   scripts/build.sh --install    build, then copy the files into drive_c/POOLRAD to play
+#   scripts/build.sh --test       build, then compile and run the unit tests in tests/ (TestKit) under the same Turbo Pascal
 #
 # --install updates the playable copy in drive_c/POOLRAD. Automated scripts and temporary worktrees should not use it.
 #
@@ -20,7 +20,7 @@
 
 set -u
 
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 drive_c="$root/drive_c"
 game="$drive_c/POOLRAD"
 tools="${TOOLS:-$drive_c}"
@@ -133,7 +133,7 @@ outputs=(START.EXE GAME.OVR)
 [ -f "$root/src/poolcfg.pas" ] && outputs+=(POOLCFG.EXE)
 
 # Generate the version and commit shown on the Options screen.
-"$root/tools/buildid.sh"
+"$root/scripts/buildid.sh"
 
 echo "build.sh: compiling in DOSBox-X..."
 # Send DOSBox-X's messages to DOSBOX.OUT and stop it after ten minutes. Normal builds take seconds, so reaching the
@@ -212,7 +212,7 @@ if [ -n "$sizes" ]; then
     echo "build.sh: code $1 bytes; data $2 of 65520 bytes ($((65520 - $2)) free)"
 fi
 if command -v python3 > /dev/null 2>&1 && [ -f "$root/obj/FIXMAIN.EXE" ] && [ -f "$root/obj/FIXMAIN.MAP" ]; then
-    python3 -I "$root/build/ovlsizes.py" "$root/obj/FIXMAIN.EXE" "$root/obj/FIXMAIN.MAP" | sed 's/^/build.sh: /'
+    python3 -I "$root/scripts/ovlsizes.py" "$root/obj/FIXMAIN.EXE" "$root/obj/FIXMAIN.MAP" | sed 's/^/build.sh: /'
 fi
 echo "build.sh: files: $(cd "$root/obj" && for f in "${outputs[@]}"; do printf '%s %s bytes; ' "$f" "$(wc -c < "$f")"; done \
     | sed 's/; $//')"

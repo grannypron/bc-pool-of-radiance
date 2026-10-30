@@ -2,8 +2,8 @@
 #
 # Build the native Pool of Radiance ports with Free Pascal, or run their unit tests.
 #
-#   ./build-native.sh [TARGET...]           build the game for each target (the default: x86_64-linux)
-#   ./build-native.sh --test [TARGET...]    build each target's unit tests from tests/ and run them
+#   scripts/build-native.sh [TARGET...]           build the game for each target (the default: x86_64-linux)
+#   scripts/build-native.sh --test [TARGET...]    build each target's unit tests from tests/ and run them
 #
 # Supported targets are i386-linux, x86_64-linux, i386-win32, and x86_64-win64. Apple Silicon Macs also support
 # aarch64-darwin and macos; the latter packages the executable as obj/native/macos/Pool of Radiance.app. Intel Macs
@@ -13,13 +13,13 @@
 # executable. Builds go to obj/native/<target>/. Tests and their logs go to obj/native/<target>/tests/. On macOS,
 # poolcfg remains in the aarch64-darwin output directory beside the packaged app (#894).
 #
-# The toolchain comes from tools/fpc-setup.sh (Free Pascal) and tools/sdl3-setup.sh (SDL3); FPC_PREFIX moves both.
+# The toolchain comes from scripts/fpc-setup.sh (Free Pascal) and scripts/sdl3-setup.sh (SDL3); FPC_PREFIX moves both.
 # This is the native port's development build driver. It can eventually be folded into the main build script.
 
 set -u
 
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-fpc_home="$("$root/tools/fpc-setup.sh" --print)"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fpc_home="$("$root/scripts/fpc-setup.sh" --print)"
 fpc="$fpc_home/bin/fpc"
 fpc_cfg="$fpc_home/etc/fpc.cfg"
 
@@ -42,12 +42,12 @@ if [ ${#targets[@]} -eq 0 ]; then
         *) targets=(x86_64-linux) ;;
     esac
 fi
-sdl_home="$("$root/tools/sdl3-setup.sh" --print)"
+sdl_home="$("$root/scripts/sdl3-setup.sh" --print)"
 
 problems=()
-[ -x "$fpc" ] || problems+=("Free Pascal is not in $fpc_home: run tools/fpc-setup.sh.")
-[ -f "$fpc_cfg" ] || problems+=("$fpc_cfg is missing: run tools/fpc-setup.sh.")
-command -v python3 > /dev/null 2>&1 || problems+=("python3 is not on PATH: tools/snd2pas.py needs it.")
+[ -x "$fpc" ] || problems+=("Free Pascal is not in $fpc_home: run scripts/fpc-setup.sh.")
+[ -f "$fpc_cfg" ] || problems+=("$fpc_cfg is missing: run scripts/fpc-setup.sh.")
+command -v python3 > /dev/null 2>&1 || problems+=("python3 is not on PATH: scripts/snd2pas.py needs it.")
 for t in "${targets[@]}"; do
     case "$t" in
         *-win*) [ $run_tests -eq 0 ] || command -v wine > /dev/null 2>&1 \
@@ -112,9 +112,9 @@ done
 # Compiler output mentions every file; a line of this shape is a real failure.
 fpc_error='(Error|Fatal):'
 failed=0
-"$root/tools/buildid.sh"
+"$root/scripts/buildid.sh"
 # Generate the DOS sound driver's data image used by the native sequencer.
-python3 -I "$root/tools/snd2pas.py" --src "$root/src" --out "$root/obj/SNDIMAGE.INC" || exit 1
+python3 -I "$root/scripts/snd2pas.py" --src "$root/src" --out "$root/obj/SNDIMAGE.INC" || exit 1
 
 for target in "${targets[@]}"; do
     if [ $run_tests -eq 1 ]; then
@@ -170,7 +170,7 @@ for target in "${targets[@]}"; do
                 # shared SDL3 library from being selected accidentally.
                 mkdir -p "$out/sdl"
                 [ -f "$(sdl_lib_for "$target")/libSDL3.a" ] \
-                    || { echo "build-native.sh: $target: no libSDL3.a: run tools/sdl3-setup.sh." >&2; failed=1; continue; }
+                    || { echo "build-native.sh: $target: no libSDL3.a: run scripts/sdl3-setup.sh." >&2; failed=1; continue; }
                 if [ "$target" = i386-linux ]; then
                     # SDL3's C needs 32-bit libgcc for its 64-bit division (__udivdi3), after SDL3 on the link line:
                     # the "library" is a GNU ld script that groups the two.
@@ -193,7 +193,7 @@ for target in "${targets[@]}"; do
     fi
 done
 
-# Package the macos target as Pool of Radiance.app and apply an ad-hoc signature for local use. tools/macos-sign.sh
+# Package the macos target as Pool of Radiance.app and apply an ad-hoc signature for local use. scripts/macos-sign.sh
 # replaces it with a Developer ID signature and notarizes release builds. NatFile finds the game data beside the app.
 if [ $failed -eq 0 ] && [ $run_tests -eq 0 ] && [ $make_app -eq 1 ]; then
     app="$root/obj/native/macos/Pool of Radiance.app"

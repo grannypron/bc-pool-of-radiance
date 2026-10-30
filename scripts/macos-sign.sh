@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
 # Sign Pool of Radiance.app with a Developer ID, submit it for notarization, and staple Apple's ticket. Run this on
-# a Mac after ./build-native.sh macos.
+# a Mac after scripts/build-native.sh macos.
 #
-#   tools/macos-sign.sh [APP]
+#   scripts/macos-sign.sh [APP]
 #
 # APP defaults to obj/native/macos/Pool of Radiance.app. Environment variables select the credentials:
 #   SIGN_P12         A .p12 containing the Developer ID certificate and private key. Put its password in
@@ -28,7 +28,7 @@ rcodesign_version=0.29.0
 rcodesign_sha=d1a532150adaf90048260d76359261aa716abafc45c53c5dc18845029184334a
 
 [ "$(uname -s)" = Darwin ] || { echo "macos-sign.sh: run this on a Mac." >&2; exit 1; }
-[ -d "$app" ] || { echo "macos-sign.sh: no $app: run ./build-native.sh macos first." >&2; exit 1; }
+[ -d "$app" ] || { echo "macos-sign.sh: no $app: run scripts/build-native.sh macos first." >&2; exit 1; }
 
 # Download and verify rcodesign on first use, then pass through the caller's arguments.
 rcodesign() {
