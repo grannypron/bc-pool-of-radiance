@@ -23,6 +23,8 @@ current version of the repository.
     without a `toolchain` file, including SSI's v1.1 and v1.2, use `TP50`.
   - `fpc`, `fpc_bootstrap`, and `sdl3` identify the Free Pascal source (branch and commit), the released compiler
     used to bootstrap it, and the SDL3 release used by the native ports.
+  - `recipe` is the revision of how the setup scripts build them. It is part of the name of the prebuilt
+    toolchain releases in goldbox-toolchain, so a change to the build steps bumps it and gets fresh releases.
     [`scripts/fpc-setup.sh`](../scripts/fpc-setup.sh) and [`scripts/sdl3-setup.sh`](../scripts/sdl3-setup.sh) read
     these values.
 - **`logs/`** contains output from the most recent build: DOSBox-X output; assembler, compiler, and packer logs
