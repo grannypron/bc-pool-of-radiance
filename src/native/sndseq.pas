@@ -1,5 +1,5 @@
 { Pascal port of sounddrv.asm's speaker and Tandy sequencer. SoundDrv forwards
-  native calls here. tools/snd2pas.py stores the original tune bytes and voice
+  native calls here. scripts/snd2pas.py stores the original tune bytes and voice
   blocks in SNDIMAGE.INC so their offsets and stream pointers remain unchanged.
   The routines intentionally follow the assembly closely, including 16-bit
   wraparound.

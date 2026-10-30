@@ -2,10 +2,10 @@
 #
 # Package native Linux and Windows builds, as package.sh packages the DOS one and the workflow the macOS app.
 #
-#   ./package-native.sh v1.4 [TARGET...]    the default targets: x86_64-linux i386-linux x86_64-win64 i386-win32
+#   scripts/package-native.sh v1.4 [TARGET...]    the default targets: x86_64-linux i386-linux x86_64-win64 i386-win32
 #
 # Run this after build-native.sh has built each target. Each archive holds the game and poolcfg, this release's data
-# files from src/binaries, a README (tools/linux-readme.txt or tools/windows-readme.txt) and SHA256.TXT:
+# files from src/binaries, a README (scripts/linux-readme.txt or scripts/windows-readme.txt) and SHA256.TXT:
 #   x86_64-linux  dist/pool-of-radiance-<version>-linux-x86_64.tar.gz
 #   i386-linux    dist/pool-of-radiance-<version>-linux-i386.tar.gz
 #   x86_64-win64  dist/pool-of-radiance-<version>-windows-x64.zip, with SDL3.dll
@@ -14,10 +14,10 @@
 
 set -eu
 
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 if [ $# -lt 1 ]; then
-    echo "package-native.sh: give the version, for example: ./package-native.sh v1.4" >&2
+    echo "package-native.sh: give the version, for example: scripts/package-native.sh v1.4" >&2
     exit 2
 fi
 version="$1"
@@ -58,8 +58,8 @@ for t in "${targets[@]}"; do
     for f in "${programs[@]}"; do
         src="$out/$f"
         # SDL3.dll is copied from the SDL3 build for the target.
-        [ "$f" = SDL3.dll ] && src="$("$root/tools/sdl3-setup.sh" --print)/$t/bin/SDL3.dll"
-        [ -f "$src" ] || { echo "package-native.sh: $t: $src is missing; run ./build-native.sh $t." >&2; missing=1; }
+        [ "$f" = SDL3.dll ] && src="$("$root/scripts/sdl3-setup.sh" --print)/$t/bin/SDL3.dll"
+        [ -f "$src" ] || { echo "package-native.sh: $t: $src is missing; run scripts/build-native.sh $t." >&2; missing=1; }
         cp "$src" "$dir/" 2> /dev/null || true
     done
     if [ $missing -ne 0 ]; then
@@ -68,7 +68,7 @@ for t in "${targets[@]}"; do
         continue
     fi
     [ ${#data[@]} -eq 0 ] || (cd "$root/src/binaries" && cp "${data[@]}" "$dir/")
-    cp "$root/tools/$readme" "$dir/README.TXT"
+    cp "$root/scripts/$readme" "$dir/README.TXT"
     files=("${programs[@]}" ${data[@]+"${data[@]}"})
     (cd "$dir" && sha256sum "${files[@]}") > "$dir/SHA256.TXT"
     chmod 0644 "$dir"/*

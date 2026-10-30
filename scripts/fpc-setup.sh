@@ -2,8 +2,8 @@
 #
 # Download and build the pinned Free Pascal toolchain used by native builds.
 #
-#   tools/fpc-setup.sh            build the compiler for this host and the cross compilers build/toolchain lists
-#   tools/fpc-setup.sh --print    print the folder the toolchain is (or would be) installed in, and stop
+#   scripts/fpc-setup.sh            build the compiler for this host and the cross compilers build/toolchain lists
+#   scripts/fpc-setup.sh --print    print the folder the toolchain is (or would be) installed in, and stop
 #
 # build/toolchain specifies the source branch and commit, plus the released compiler used to bootstrap it. The
 # result is installed under $FPC_PREFIX/<branch>-<short commit>, with ~/fpc as the default prefix. Re-running the

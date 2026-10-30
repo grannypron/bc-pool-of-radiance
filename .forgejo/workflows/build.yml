@@ -2,7 +2,7 @@
 # v1.1, v1.2, and v1.3 tags and compares them with SSI's original executables.
 #
 # workflow_dispatch can release a tag that predates this workflow. It uses that tag's src/ and build/ directories
-# with the current top-level build and release scripts.
+# with the current scripts/ and release scripts.
 #
 # Publishing waits for both the normal build and historical reproduction jobs. A toolchain or image change that
 # alters SSI's executables therefore stops the release.
@@ -81,7 +81,7 @@ jobs:
           git -c http.extraHeader="$auth" fetch -q --tags origin '+refs/heads/*:refs/remotes/origin/*' "+$REF:refs/ci/head"
           git checkout -q --detach "$SHA"
       - name: Build and run the unit tests
-        run: ./build.sh --test
+        run: scripts/build.sh --test
 
   reproduce:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -160,10 +160,10 @@ jobs:
 
       # Historical reproduction has already verified this source and image are deterministic.
       - name: Build
-        run: ./build.sh
+        run: scripts/build.sh
 
       - name: Package
-        run: ./package.sh "$TAG"
+        run: scripts/package.sh "$TAG"
 
       - name: Release
         env:
@@ -203,12 +203,12 @@ jobs:
           git -c http.extraHeader="$auth" fetch -q --tags origin '+refs/heads/*:refs/remotes/origin/*' "+$REF:refs/ci/head"
           git checkout -q --detach "$SHA"
       - name: Toolchain (Free Pascal and SDL3, already in the image)
-        run: tools/fpc-setup.sh && tools/sdl3-setup.sh
+        run: scripts/fpc-setup.sh && scripts/sdl3-setup.sh
       # Windows tests run under Wine.
       - name: Run the ${{ matrix.target }} unit tests
-        run: ./build-native.sh --test ${{ matrix.target }}
+        run: scripts/build-native.sh --test ${{ matrix.target }}
       - name: Build ${{ matrix.target }}
-        run: ./build-native.sh ${{ matrix.target }}
+        run: scripts/build-native.sh ${{ matrix.target }}
 
   release-native:
     needs: [release, native]
@@ -255,11 +255,11 @@ jobs:
           echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct "$TAG")" >> "$GITHUB_ENV"
           echo "BUILD_REF=$TAG" >> "$GITHUB_ENV"
       - name: Toolchain (Free Pascal and SDL3, already in the image)
-        run: tools/fpc-setup.sh && tools/sdl3-setup.sh
+        run: scripts/fpc-setup.sh && scripts/sdl3-setup.sh
       - name: Build ${{ matrix.target }}
-        run: ./build-native.sh ${{ matrix.target }}
+        run: scripts/build-native.sh ${{ matrix.target }}
       - name: Package
-        run: ./package-native.sh "$TAG" ${{ matrix.target }}
+        run: scripts/package-native.sh "$TAG" ${{ matrix.target }}
       - name: Attach to the release
         env:
           REPO_API: ${{ github.event.repository.url }}
@@ -289,11 +289,11 @@ jobs:
           git checkout -q -f --detach "$SHA"
           git clean -qfdx
       - name: Toolchain (Free Pascal and SDL3, built once)
-        run: tools/fpc-setup.sh && tools/sdl3-setup.sh
+        run: scripts/fpc-setup.sh && scripts/sdl3-setup.sh
       - name: Run the native unit tests
-        run: ./build-native.sh --test macos
+        run: scripts/build-native.sh --test macos
       - name: Build the app
-        run: ./build-native.sh macos
+        run: scripts/build-native.sh macos
 
   release-macos:
     needs: [release]
@@ -327,9 +327,9 @@ jobs:
           git checkout "$TAG" -- src build
           echo "BUILD_REF=$TAG" >> "$GITHUB_ENV"
       - name: Toolchain (Free Pascal and SDL3, built once)
-        run: tools/fpc-setup.sh && tools/sdl3-setup.sh
+        run: scripts/fpc-setup.sh && scripts/sdl3-setup.sh
       - name: Build the app
-        run: ./build-native.sh macos
+        run: scripts/build-native.sh macos
       - name: Sign, notarize and staple
         env:
           SIGN_P12: /etc/forgejo-runner/signing/developer-id.p12
@@ -338,16 +338,16 @@ jobs:
         run: |
           export NOTARY_KEY_ID="$(cat /etc/forgejo-runner/signing/notary-key-id)"
           export NOTARY_ISSUER="$(cat /etc/forgejo-runner/signing/notary-issuer)"
-          tools/macos-sign.sh
+          scripts/macos-sign.sh
       # Put project data files beside the stapled app, where the game expects them. They remain outside the signed
-      # bundle. The archive unpacks directly into a game directory, and tools/macos-readme.txt explains how the app
+      # bundle. The archive unpacks directly into a game directory, and scripts/macos-readme.txt explains how the app
       # locates retail data and chooses its writable save directory (#1064).
       - name: Package
         run: |
           stage="$(mktemp -d)"
           ditto "obj/native/macos/Pool of Radiance.app" "$stage/Pool of Radiance.app"
           [ ! -d src/binaries ] || find src/binaries -maxdepth 1 -type f -exec cp {} "$stage/" \;
-          cp tools/macos-readme.txt "$stage/README.TXT"
+          cp scripts/macos-readme.txt "$stage/README.TXT"
           mkdir -p dist
           rm -f "dist/pool-of-radiance-$TAG-macos.zip"
           (cd "$stage" && ditto -c -k --sequesterRsrc . "$OLDPWD/dist/pool-of-radiance-$TAG-macos.zip")

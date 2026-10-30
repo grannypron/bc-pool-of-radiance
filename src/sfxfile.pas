@@ -1,6 +1,6 @@
 { Reads the recorded effects in SBSFX.DAT for the DOS Sound Blaster and native
   digital-audio drivers. The file contains an SBFX header, seven-byte directory
-  entries, and the sample data. tools/sbsfx.py creates it. }
+  entries, and the sample data. scripts/sbsfx.py creates it. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit SfxFile;

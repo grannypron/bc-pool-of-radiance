@@ -5,9 +5,9 @@
 #
 #   tests/regress.sh GOLDEN [CANDIDATE] [SCENARIO...]
 #
-# GOLDEN and CANDIDATE are folders holding START.EXE and GAME.OVR; CANDIDATE is obj/ (./build.sh's output) unless
+# GOLDEN and CANDIDATE are folders holding START.EXE and GAME.OVR; CANDIDATE is obj/ (scripts/build.sh's output) unless
 # given. Keep a golden build of the commit before a refactor, e.g. in .golden/<commit>/ (ignored by git):
-#   git stash; ./build.sh; mkdir -p .golden/$(git rev-parse --short HEAD); cp obj/START.EXE obj/GAME.OVR .golden/...
+#   git stash; scripts/build.sh; mkdir -p .golden/$(git rev-parse --short HEAD); cp obj/START.EXE obj/GAME.OVR .golden/...
 # A change that makes saves differ in a way that is not behaviour (a heap address cleared, say) is applied to the golden
 # commit as well, and that build kept beside it with the patch (.golden/<commit>-eq/PATCH.diff).
 # With no SCENARIO, every tests/scenarios/*.txt runs but ssiformat, whose golden build is SSI's own (see its file).
@@ -21,7 +21,7 @@
 # SOUND=adlib or sb sets the config's sound letter to A (AdLib music, speaker effects) or B (a Sound Blaster) and
 # gives the machine that card (goldbox-player's opl2, or sb2 with its OPL2); the golden build's results are kept apart,
 # in record-adlib.json or record-sb.json. With sb, the candidate's SBSFX.DAT is staged too (copied from
-# drive_c/POOLRAD, where tools/sbsfx.py writes it, when the candidate folder has none); a golden build without one runs
+# drive_c/POOLRAD, where scripts/sbsfx.py writes it, when the candidate folder has none); a golden build without one runs
 # without it, its effects on the speaker.
 # MEMSIZE=N gives the emulator N MB instead of goldbox-player's 1 MB: more gives the game EMS, which it loads its
 # overlays from (STING Ctrl-Y says from EMS or disk). Its golden results are kept apart too: record-16mb.json,
@@ -68,10 +68,10 @@ if [ ${#sound[@]} -gt 0 ]; then
     config="$root/obj/regress-$SOUND.CFG"
     record="${record%.json}-$SOUND.json"
 fi
-# the Sound Blaster's samples: tools/sbsfx.py writes them into the play install, and a build without them (the golden)
+# the Sound Blaster's samples: scripts/sbsfx.py writes them into the play install, and a build without them (the golden)
 # runs without them
 if [ "${SOUND:-}" = sb ] && [ ! -f "$candidate/SBSFX.DAT" ]; then
-    [ -f "$root/drive_c/POOLRAD/SBSFX.DAT" ] || { echo "regress.sh: no SBSFX.DAT; run tools/sbsfx.py" >&2; exit 2; }
+    [ -f "$root/drive_c/POOLRAD/SBSFX.DAT" ] || { echo "regress.sh: no SBSFX.DAT; run scripts/sbsfx.py" >&2; exit 2; }
     cp "$root/drive_c/POOLRAD/SBSFX.DAT" "$candidate/SBSFX.DAT"
 fi
 for f in "$golden/START.EXE" "$golden/GAME.OVR" "$candidate/START.EXE" "$candidate/GAME.OVR"; do

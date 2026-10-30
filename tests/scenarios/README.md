@@ -36,7 +36,7 @@ scenario's keys or waits, fix the scenario, then record fresh goldens from the m
 
 ```
 sha=$(git rev-parse --short HEAD); g=.golden/$sha
-./build.sh && mkdir -p $g && cp obj/START.EXE obj/GAME.OVR drive_c/POOLRAD/SBSFX.DAT $g/
+scripts/build.sh && mkdir -p $g && cp obj/START.EXE obj/GAME.OVR drive_c/POOLRAD/SBSFX.DAT $g/
 tests/regress.sh $g $g          # EGA, then each mode the same way:
 VIDEO=cga tests/regress.sh $g $g; VIDEO=tandy tests/regress.sh $g $g; VIDEO=vga tests/regress.sh $g $g
 SOUND=adlib tests/regress.sh $g $g; SOUND=sb tests/regress.sh $g $g; MEMSIZE=16 tests/regress.sh $g $g

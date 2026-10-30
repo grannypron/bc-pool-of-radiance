@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the Sound Blaster sample archive, SBSFX.DAT (refactor plan, phase 7, step 4).
 
-    tools/sbsfx.py [--pools ZOUNDS.DAX] [--dqk SFXDQ.VOC] [--out drive_c/POOLRAD/SBSFX.DAT]
+    scripts/sbsfx.py [--pools ZOUNDS.DAX] [--dqk SFXDQ.VOC] [--out drive_c/POOLRAD/SBSFX.DAT]
 
 Gold Box games do not play their sound effects through FM synthesis. Dark Queen of Krynn reads Sound Blaster samples
 from SFXDQ.VOC, the same file shipped with FRUA, while Pools of Darkness reads ZOUNDS.DAX. Pool of Radiance uses Dark

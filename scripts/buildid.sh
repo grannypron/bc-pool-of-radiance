@@ -3,7 +3,7 @@
 # Generate obj/BUILDID.INC for the version information on the Options screen. Both build scripts run this before
 # compiling, and gamedefs.pas and options.pas include the result from obj/.
 #
-#   tools/buildid.sh
+#   scripts/buildid.sh
 
 set -u
 

@@ -2,8 +2,8 @@
 #
 # Download and build the pinned SDL3 libraries used by native builds.
 #
-#   tools/sdl3-setup.sh            build SDL3 for this host and the cross targets fpc-setup.sh builds compilers for
-#   tools/sdl3-setup.sh --print    print the folder SDL3 is (or would be) installed in, and stop
+#   scripts/sdl3-setup.sh            build SDL3 for this host and the cross targets fpc-setup.sh builds compilers for
+#   scripts/sdl3-setup.sh --print    print the folder SDL3 is (or would be) installed in, and stop
 #
 # build/toolchain selects the SDL version. Each target installs below $FPC_PREFIX/sdl3-<version>/<target>, using
 # ~/fpc as the default prefix. Static libraries keep the Linux and macOS game builds self-contained:
