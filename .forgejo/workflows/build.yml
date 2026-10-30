@@ -354,14 +354,14 @@ jobs:
           export NOTARY_ISSUER="$(cat /etc/forgejo-runner/signing/notary-issuer)"
           scripts/macos-sign.sh
       # Put project data files beside the stapled app, where the game expects them. They remain outside the signed
-      # bundle. The archive unpacks directly into a game directory, and scripts/macos-readme.txt explains how the app
-      # locates retail data and chooses its writable save directory (#1064).
+      # bundle. The archive unpacks directly into a game directory, and docs/dist-readmes/macos-readme.txt explains how
+      # the app locates retail data and chooses its writable save directory (#1064).
       - name: Package
         run: |
           stage="$(mktemp -d)"
           ditto "obj/native/macos/Pool of Radiance.app" "$stage/Pool of Radiance.app"
           [ ! -d src/binaries ] || find src/binaries -maxdepth 1 -type f -exec cp {} "$stage/" \;
-          cp scripts/macos-readme.txt "$stage/README.TXT"
+          cp docs/dist-readmes/macos-readme.txt "$stage/README.TXT"
           mkdir -p dist
           rm -f "dist/pool-of-radiance-$TAG-macos.zip"
           (cd "$stage" && ditto -c -k --sequesterRsrc . "$OLDPWD/dist/pool-of-radiance-$TAG-macos.zip")
