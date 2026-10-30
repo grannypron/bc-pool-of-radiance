@@ -1,4 +1,6 @@
-# The `build/` directory
+# Pool of Radiance, Brazen Crows (BC) Edition
+
+## The `build/` directory
 
 This directory travels with the source for each release. Like `src/`, every Git tag includes its own copy. That
 means checking out a tag gives you both the source and the build configuration used for that version. With the
@@ -8,7 +10,7 @@ CI reproduction jobs and releases made from older tags check out the matching `s
 together. The scripts that orchestrate those builds live in [`scripts/`](../scripts/) and always come from the
 current version of the repository.
 
-## What's here
+### What's here
 
 - **[`build.bat`](build.bat)** runs the DOS portion of the build. [`scripts/build.sh`](../scripts/build.sh) starts
   DOSBox-X and runs this file from `E:\SRC`, with Turbo Pascal mounted on `D:`, the repository on `E:`, TASM on
@@ -27,7 +29,7 @@ current version of the repository.
   (`TASM.OUT`, `TPC.OUT`, `PACK.OUT`, and `TPCCFG.OUT`); and unit-test compilation logs under `logs/tests/`. Git
   does not track this directory. [`scripts/build.sh`](../scripts/build.sh) reads the logs when reporting errors.
 
-## Building by hand
+### Building by hand
 
 For a manual build inside DOSBox, use [`scripts/BUILD.BAT`](../scripts/BUILD.BAT). Despite the similar name, it is
 separate from this directory's `build.bat`: it locates the compilers itself and explains each step as it runs.
