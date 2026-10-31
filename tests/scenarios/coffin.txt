@@ -1,0 +1,31 @@
+# Tests sanctifying the vampire's coffin in Valhingen Graveyard (#1096). The fixture places save A on the coffin's
+# square, (12,4), the coffin not yet sanctified, with Anna, the second member, carrying two vials of holy water and the
+# Wooden Holy Symbol of Tyr. Look runs the coffin's event; SANCTIFY uses up one vial and the coffin is sanctified. Anna's
+# items show the one vial left and the holy symbol kept, and a second look finds the crypt's dusty remains.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/coffin
+press l a
+wait AREA 120
+press l
+wait CONTINUE
+press ret
+wait YES NO
+press n
+wait YES NO
+press y
+wait SANCTIFY
+press s
+wait AREA
+checkpoint sanctified
+press end v
+wait EXIT
+press i
+wait EXIT
+checkpoint items
+press esc esc
+wait AREA
+press l
+wait AREA
+checkpoint remains

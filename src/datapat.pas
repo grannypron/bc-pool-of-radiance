@@ -18,8 +18,8 @@ uses C_DATA;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 99;
-  BYTE_COUNT = 3405;
+  PART_COUNT = 106;
+  BYTE_COUNT = 3655;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -315,6 +315,26 @@ begin
     is beaten ([$4A6D] bit $10), then makes SSI's test and goes back. A save made after the defeat is mended too. }
   DataPat.Part(1092, C_DATA.FAMILY_ECL, 5, 7, 4105, 2787, 9, 9);
   DataPat.Part(1092, C_DATA.FAMILY_ECL, 5, 7, 4105, 4105, 0, 24);
+  { #1093: Valjevo Castle's records office (script $AFB6), once both its findings were read, said that finding more
+    would take so long the party would need to clear the area first; nothing in the script asks whether the area is
+    clear, so it said so however much was cleared. It now says there is nothing more, packed in the same bytes }
+  DataPat.Part(1093, C_DATA.FAMILY_ECL, 5, 4, 6627, 6159, 76, 76);
+  { #1096: Valhingen Graveyard's vampire coffin (script $B04E) was sanctified with no holy item. SANCTIFY goes to new
+    code at the end of the script, which uses up a vial of holy water (USE UP ITEM, C_ECL.USE_UP_ITEM), or failing one
+    a holy symbol (C_ITEM.FIND_HOLY_SYMBOL), before the coffin is sanctified as before; with neither it is not }
+  DataPat.Part(1096, C_DATA.FAMILY_ECL, 4, 10, 7672, 5978, 2, 2);
+  DataPat.Part(1096, C_DATA.FAMILY_ECL, 4, 10, 7672, 7672, 0, 54);
+  { #1113: the mage who joins the party in Valhingen Graveyard (script $AE81, MON4CHA block 24) was named LEVEL 6 MU;
+    once he has joined, new code at the end of the script, after #1096's, names him ODRAN. The record keeps its name,
+    as the mage the party fights when it sends him away }
+  DataPat.Part(1113, C_DATA.FAMILY_ECL, 4, 10, 7726, 5512, 7, 7);
+  DataPat.Part(1113, C_DATA.FAMILY_ECL, 4, 10, 7726, 7726, 0, 17);
+  { #1116: at the Zhentil Keep Outpost before the mission (script $A04E), LEAVE went to a bare EXIT and left the
+    riders' picture up until the next step; it goes where the script's other LEAVEs go ($ADC0), which takes it down }
+  DataPat.Part(1116, C_DATA.FAMILY_ECL, 6, 25, 5652, 1882, 2, 2);
+  { #1117: the Valhingen mage who joined (script $AE81) stayed in the view until the next step; #1113's new code takes
+    his picture down before it exits }
+  DataPat.Part(1117, C_DATA.FAMILY_ECL, 4, 10, 7743, 7742, 1, 4);
   { #1138: at the Temple of Tyr (script $A064) with the Mad Man in the party, the aged priest told the party to drop
     him and waited for Return ($B06C), but never offered to take him. He now asks the party to leave him with the
     temple, and new code at the end of the script asks WILL YOU LEAVE HIM IN OUR CARE?: on yes he leaves the party
@@ -1090,7 +1110,59 @@ begin
   DataPat.Put(#$17);                                         { $A910 IF <> }
   DataPat.Put(#$00);                                         { $A911 EXIT }
   DataPat.Put(#$2F#$01#$6D#$4A#$00#$01#$01#$82#$6E);         { $A912 AND [$4A6D], $01, [$6E82] }
-  DataPat.Put(#$01#$01#$EA#$A3);                             { $A91B GOTO LA3EA }  { #1138 part 1, original }
+  DataPat.Put(#$01#$01#$EA#$A3);                             { $A91B GOTO LA3EA }
+  { #1093, original: the packed text of the PRINTCLEAR at $B10A }
+  { "TO FIND ANYTHING MORE YOU WILL HAVE TO SPEND SO MUCH TIME THAT YOU WILL NEED TO CLEAR THE AREA FIRST." }
+  DataPat.Put(#$50#$F8#$06#$24#$E1#$20#$04#$E6#$54#$20#$93#$87#$80#$D3#$D2#$16);
+  DataPat.Put(#$06#$4F#$56#$05#$C9#$30#$C8#$08#$05#$61#$60#$50#$F8#$13#$40#$53);
+  DataPat.Put(#$84#$81#$33#$E0#$35#$50#$C8#$81#$42#$4D#$16#$05#$08#$05#$48#$19);
+  DataPat.Put(#$3D#$58#$17#$24#$C3#$20#$38#$51#$44#$81#$43#$E0#$0C#$C1#$41#$4A);
+  DataPat.Put(#$05#$08#$16#$00#$52#$14#$18#$06#$25#$24#$D4#$B8);
+  { fixed: "YOU FIND NOTHING MORE OF INTEREST IN THE RECORDS.", its unused six-bit slots empty }
+  DataPat.Put(#$64#$F5#$60#$18#$93#$84#$80#$E3#$D4#$20#$93#$87#$80#$D3#$D2#$16);
+  DataPat.Put(#$03#$C6#$80#$93#$94#$15#$21#$53#$52#$02#$4E#$81#$42#$05#$81#$21);
+  DataPat.Put(#$43#$3D#$21#$13#$B8#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00);
+  DataPat.Put(#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00);
+  DataPat.Put(#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00);
+  { #1096 part 1, original }
+  DataPat.Put(#$6E#$B0);                                     { $B04E ON GOTO [$6E79] entry 2, SANCTIFY: LB06E }
+  { fixed: SANCTIFY goes to new code at the end of the script }
+  DataPat.Put(#$F6#$B6);                                     { $B04E ON GOTO [$6E79] entry 2, SANCTIFY: LB6F6 }
+  { #1096 part 2, added at $B6F6: a vial of holy water is used up, or failing one a holy symbol
+    (C_ITEM.FIND_HOLY_SYMBOL), and the coffin is sanctified as before ($B06E); with neither nothing is done }
+  DataPat.Put(#$80#$00#$55);                                 { $B6F6 USE UP ITEM $55 }
+  DataPat.Put(#$16);                                         { $B6F9 IF = }
+  DataPat.Put(#$01#$01#$6E#$B0);                             { $B6FA GOTO LB06E }
+  DataPat.Put(#$80#$00#$FF);                                 { $B6FE USE UP ITEM $FF }
+  DataPat.Put(#$16);                                         { $B701 IF = }
+  DataPat.Put(#$01#$01#$6E#$B0);                             { $B702 GOTO LB06E }
+  { $B706 PRINTCLEAR "YOU HAVE NOTHING HOLY TO LEAVE IN THE COFFIN." }
+  DataPat.Put(#$12#$80#$22#$64#$F5#$60#$20#$15#$85#$80#$E3#$D4#$20#$93#$87#$80);
+  DataPat.Put(#$83#$CC#$66#$05#$0F#$80#$C1#$41#$58#$58#$09#$3A#$05#$08#$16#$00);
+  DataPat.Put(#$CF#$18#$62#$4E#$B8);
+  DataPat.Put(#$00);                                         { $B72B EXIT }
+  { #1113 part 1, original }
+  DataPat.Put(#$09#$00#$FF#$01#$E1#$6D);                     { $AE86 SAVE $FF, [$6DE1] }
+  DataPat.Put(#$00);                                         { $AE8C EXIT }
+  { fixed: on to new code; the three bytes left over are never reached }
+  DataPat.Put(#$01#$01#$2C#$B7);                             { $AE86 GOTO LB72C }
+  DataPat.Put(#$00#$00#$00);                                 { $AE8A EXIT EXIT EXIT }
+  { #1113 part 2, added at $B72C, after #1096's: the mage who has just joined, the current character after ADD
+    NPC, is Odran (MON4CHA block 24, which he fights as when he is sent away, keeps its name); then as before }
+  { $B72C SAVE "ODRAN", [$6B00] }
+  DataPat.Put(#$09#$80#$04#$3C#$44#$81#$38#$01#$00#$6B);
+  DataPat.Put(#$09#$00#$FF#$01#$E1#$6D);                     { $B736 SAVE $FF, [$6DE1] }
+  DataPat.Put(#$00);                                         { $B73C EXIT }
+  { #1116, original }
+  DataPat.Put(#$3E#$AB);                                     { $A04E ON GOTO [$6E79] entry 2, LEAVE: LAB3E }
+  { fixed: LEAVE goes where the script's other LEAVEs go: SPRITE OFF, PICTURE $FF, EXIT }
+  DataPat.Put(#$C0#$AD);                                     { $A04E ON GOTO [$6E79] entry 2, LEAVE: LADC0 }
+  { #1117, original: the end of #1113's new code }
+  DataPat.Put(#$00);                                         { $B73C EXIT }
+  { fixed: the mage's picture is taken down }
+  DataPat.Put(#$0E#$00#$FF);                                 { $B73C PICTURE $FF }
+  DataPat.Put(#$00);                                         { $B73F EXIT }
+  { #1138 part 1, original }
   { $AFE3 PRINTCLEAR "AN AGED PRIEST APPROACHES, POINTING AT THE MAD MAN, HE SPEAKS, 'THAT MAN URGENTLY NEEDS OUR
     CARE.  DROP HIM FROM YOUR PARTY OR HE WILL BRING YOU TO GRIEF.  WE WILL CARE FOR HIM.'" }
   DataPat.Put(#$12#$80#$86#$04#$E8#$01#$1C#$51#$20#$41#$22#$45#$4D#$48#$01#$41);

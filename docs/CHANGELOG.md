@@ -74,6 +74,10 @@ The fixes below cover both visible bugs and rare failures that could damage a sa
 - On Linux and macOS, `poolcfg` leaves without saving if its terminal goes away, instead of running on in the background at full speed; run with its input or output redirected, it says it needs a terminal instead of crashing.
 - Free the Temple of Bane before taking Dirten's mission and the bishop no longer sends him along: he thanks you and Dirten goes to restore the temple himself. A party already stuck with him says farewell to him at the temple's altar. Once destroyed, the altar also stays destroyed.
 - The priests of Tyr now offer to take the Mad Man into their care, and he leaves the party if you agree, instead of being told to drop him.
+- Sanctifying the vampire's coffin in Valhingen Graveyard now takes something holy: a vial of holy water, used up, or failing one a holy symbol, given up. With neither, nothing happens.
+- The magic-user who joins you in Valhingen Graveyard now has a name: once he joins, he is Odran.
+- The view now comes back at once when Odran joins, and when you choose LEAVE at the Zhentil Keep Outpost before the mission, instead of the picture staying until your next step.
+- Reading the records in Valjevo Castle's records office, after you have found what there is, now tells you there is nothing more, instead of asking you to clear an area that could not be cleared.
 - Genheeris no longer slips away when the party comes back to Tyranthraxus' lair after beating him. This mends a game saved after the fight too.
 - Readying the Flame Tongue sword from Valjevo Castle's well, or the Two-Handed Sword +3 vs. Undead, during a fight no longer crashes the Linux, Windows and macOS versions (it happened most often with the combat AI, which readies weapons at the start of a turn). Readying them no longer adds their bonus to an attack that isn't happening, either.
 - The treasure menu no longer stays at the bottom of the screen while the ending plays.

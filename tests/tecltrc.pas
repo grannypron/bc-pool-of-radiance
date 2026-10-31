@@ -11,6 +11,7 @@ begin
   TestKit.CheckEqualsS('SUBTRAT', EclTrace.OpName(C_ECL.SUBTRACT), 'SUBTRACT keeps Curse''s spelling');
   TestKit.CheckEqualsS('IF = ', EclTrace.OpName(C_ECL.IF_EQ), 'IF =, with its trailing space');
   TestKit.CheckEqualsS('NEWECL', EclTrace.OpName(C_ECL.NEW_ECL), 'NEWECL');
+  TestKit.CheckEqualsS('USE UP ITEM', EclTrace.OpName(C_ECL.USE_UP_ITEM), 'USE UP ITEM, the data fixes'' own (#1096)');
   TestKit.CheckEqualsS('?', EclTrace.OpName($FF), 'an unknown opcode');
   TestKit.Done;
 end.

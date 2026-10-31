@@ -1,9 +1,9 @@
-{ Tests for DataPat's table: the rules DataBld relies on when it makes the fixes, and a script fix run through the
+{ Tests for DataPat's table: the rules DataBld relies on when it makes the fixes, and script fixes run through the
   interpreter's operand loader. }
 {$I COMPILER.INC}
 program TDataPat;
 
-uses C_DATA, C_GBVM, GameVars, DataPat, EclVars, StrUtil, TestKit;
+uses C_DATA, C_GBVM, C_ECL, C_ITEM, GameVars, DataPat, EclVars, StrUtil, TestKit;
 
 var
   p: Word;
@@ -23,6 +23,9 @@ var
   codeAddr: Word;
   { a place in the new code }
   pos: Word;
+  { the part after the new code, and where its bytes start }
+  nextPart: Word;
+  nextPos: Word;
 
 function SameBlock(a, b: Word): Boolean;
 begin
@@ -51,6 +54,36 @@ end;
 function PatchWord(pos: Word): Word;
 begin
   PatchWord := DataPat.patchBytes^[pos] + 256 * Word(DataPat.patchBytes^[pos + 1]);
+end;
+
+{ The n-th part of issue fix in the table, with where its bytes start in patchBytes (partPos); 0 when there is none. }
+function NthPart(fix, n: Word; var partPos: Word): Word;
+var
+  p: Word;
+  pos: Word;
+  seen: Word;
+begin
+  NthPart := 0;
+  partPos := 0;
+  pos := 0;
+  seen := 0;
+  for p := 1 to DataPat.PART_COUNT do begin
+    if DataPat.parts^[p].issue = fix then begin
+      Inc(seen);
+      if seen = n then begin
+        NthPart := p;
+        partPos := pos;
+      end;
+    end;
+    Inc(pos, DataPat.parts^[p].origLen + DataPat.parts^[p].newLen);
+  end;
+end;
+
+{ Put the new bytes of part p, which start at pos in patchBytes, in the script buffer at the address they run at. }
+procedure LoadPart(p, pos: Word);
+begin
+  Move(DataPat.patchBytes^[pos + DataPat.parts^[p].origLen],
+       GameVars.zone3^[ScriptAddr(DataPat.parts^[p].offset)], DataPat.parts^[p].newLen);
 end;
 
 { Issue fix's change to script block on ECL disk onDisk that sends a 2-byte address to new code at the script's end:
@@ -134,13 +167,13 @@ begin
   TestKit.Check(sizesOk, 'every part''s size is the block''s after the fixes before it');
   TestKit.Check(runsOk, 'every fix''s parts are together');
 
+  GetMem(GameVars.zone2, SizeOf(GameVars.zone2^));
+  GetMem(GameVars.zone3, SizeOf(GameVars.zone3^));
+  GetMem(GameVars.gbStrings, SizeOf(GameVars.gbStrings^));
+  FillChar(GameVars.zone2^, SizeOf(GameVars.zone2^), 0);
+  FillChar(GameVars.zone3^, SizeOf(GameVars.zone3^), 0);
   { #864: the ninth posted proclamation's ON GOSUB entry goes to the new code, which loads "CCXIV." }
   if FindJump(864, 3, 0, '#864') then begin
-    GetMem(GameVars.zone2, SizeOf(GameVars.zone2^));
-    GetMem(GameVars.zone3, SizeOf(GameVars.zone3^));
-    GetMem(GameVars.gbStrings, SizeOf(GameVars.gbStrings^));
-    FillChar(GameVars.zone2^, SizeOf(GameVars.zone2^), 0);
-    FillChar(GameVars.zone3^, SizeOf(GameVars.zone3^), 0);
     Move(DataPat.patchBytes^[codePos], GameVars.zone3^[codeAddr], DataPat.parts^[codePart].newLen);
     TestKit.CheckEqualsL($09, GameVars.zone3^[codeAddr], '#864: the new code is a SAVE');
     GameVars.eclIp := codeAddr;
@@ -174,6 +207,47 @@ begin
       TestKit.CheckEqualsL(C_GBVM.GYPSY_KILLED, PatchWord(codePos + pos + 2),
                            '#868 New Phlan: the crystal ball for the murdered fortune teller');
     end;
+  end;
+  { #1096: SANCTIFY goes to new code that uses up holy water, or else a holy symbol, before it goes where SANCTIFY went;
+    an IF steps over a USE UP ITEM whole }
+  if FindJump(1096, 4, 10, '#1096') then begin
+    TestKit.CheckEqualsL(C_ECL.USE_UP_ITEM, DataPat.patchBytes^[codePos], '#1096: the new code uses up an item');
+    TestKit.CheckEqualsL(C_ITEM.HOLY_WATER_VIAL, DataPat.patchBytes^[codePos + 2], '#1096: holy water first');
+    TestKit.CheckEqualsL(PatchWord(jumpPos), PatchWord(codePos + 6), '#1096: and with it on to the sanctifying');
+    TestKit.CheckEqualsL(C_ECL.USE_UP_ITEM, DataPat.patchBytes^[codePos + 8], '#1096: then uses up another');
+    TestKit.CheckEqualsL(C_ITEM.FIND_HOLY_SYMBOL, DataPat.patchBytes^[codePos + 10], '#1096: a holy symbol');
+    TestKit.CheckEqualsL(PatchWord(jumpPos), PatchWord(codePos + 14), '#1096: and with it on to the sanctifying');
+    Move(DataPat.patchBytes^[codePos], GameVars.zone3^[codeAddr], DataPat.parts^[codePart].newLen);
+    GameVars.eclIp := codeAddr;
+    EclVars.SkipEclCmd;
+    TestKit.CheckEqualsL(codeAddr + 3, GameVars.eclIp, '#1096: skipping USE UP ITEM steps over its operand');
+  end;
+
+  { #1113 and #1117: the mage's join goes to new code that names the new member ODRAN (a string SAVE to the current
+    character's name) and, by #1117, takes his picture down before it exits }
+  codePart := NthPart(1113, 2, codePos);
+  jumpPart := NthPart(1113, 1, jumpPos);
+  nextPart := NthPart(1117, 1, nextPos);
+  TestKit.Check((codePart > 0) and (jumpPart > 0) and (nextPart > 0), '#1113 and #1117 have their parts');
+  if (codePart > 0) and (jumpPart > 0) and (nextPart > 0) then begin
+    codeAddr := ScriptAddr(DataPat.parts^[codePart].offset);
+    pos := jumpPos + DataPat.parts^[jumpPart].origLen;
+    TestKit.CheckEqualsL(C_ECL.OP_GOTO, DataPat.patchBytes^[pos], '#1113: the join goes on by a GOTO');
+    TestKit.CheckEqualsL(codeAddr, PatchWord(pos + 2), '#1113: to the new code');
+    LoadPart(codePart, codePos);
+    LoadPart(nextPart, nextPos);
+    TestKit.CheckEqualsL(C_ECL.SAVE, GameVars.zone3^[codeAddr], '#1113: the new code is a SAVE');
+    GameVars.eclIp := codeAddr;
+    EclVars.LoadEclVars(2);
+    TestKit.CheckEqualsS('ODRAN', GameVars.gbStrings^[1], '#1113: of ODRAN');
+    TestKit.CheckEqualsL(C_GBVM.CHAR_NAME,
+                         EclVars.CombineBytesToWord(GameVars.varLo[2], GameVars.varHi[2]), '#1113: to the name');
+    TestKit.CheckEqualsL(DataPat.parts^[codePart].offset + DataPat.parts^[codePart].newLen - 1,
+                         DataPat.parts^[nextPart].offset, '#1117: replaces the new code''s last byte');
+    pos := ScriptAddr(DataPat.parts^[nextPart].offset);
+    TestKit.CheckEqualsL(C_ECL.PICTURE, GameVars.zone3^[pos], '#1117: with a PICTURE');
+    TestKit.CheckEqualsL(255, GameVars.zone3^[pos + 2], '#1117: of none, which takes his picture down');
+    TestKit.CheckEqualsL(C_ECL.OP_EXIT, GameVars.zone3^[pos + 3], '#1117: then EXIT');
   end;
   DataPat.FreeTable;
   TestKit.Done;

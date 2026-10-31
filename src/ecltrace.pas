@@ -76,6 +76,7 @@ begin
     C_ECL.SPELL: OpName := 'SPELL';
     C_ECL.PROTECTION: OpName := 'PROTECTION';
     C_ECL.CLEAR_BOX: OpName := 'CLEAR BOX';
+    C_ECL.USE_UP_ITEM: OpName := 'USE UP ITEM';
   else
     OpName := '?';
   end;

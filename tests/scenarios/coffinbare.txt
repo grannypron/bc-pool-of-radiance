@@ -1,0 +1,23 @@
+# Tests the vampire's coffin in Valhingen Graveyard with nothing holy in the party (#1096). The fixture places save A,
+# which carries no holy water or holy symbol, on the coffin's square, (12,4), the coffin not yet sanctified. SANCTIFY is
+# refused, and a second look finds the coffin as it was.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/coffinbare
+press l a
+wait AREA 120
+press l
+wait CONTINUE
+press ret
+wait YES NO
+press n
+wait YES NO
+press y
+wait SANCTIFY
+press s
+wait AREA
+checkpoint refused
+press l
+wait CONTINUE
+checkpoint coffin
