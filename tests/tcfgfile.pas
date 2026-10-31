@@ -239,6 +239,12 @@ begin
   TestKit.Check(CfgFile.ReadOptions(NEW_PATH, s, bad) = CfgFile.CFG_READ, 'and reads back');
   TestKit.Check(CfgFile.WriteOptions(NEW_PATH, t), 'a folder already there is written again');
   FileUtil.DeleteFile(NEW_PATH + C_OPT.OPT_NAME);
+  { the copy's folder and the backups' in it, made beside the file (#1084) }
+  TestKit.Check(CfgFile.DirExists(NEW_PATH + 'TMP' + SEP + 'BAK' + SEP), 'the copy and backup folders are made');
+  RmDir(NEW_PATH + 'TMP' + SEP + 'BAK');
+  ioRes := IOResult;
+  RmDir(NEW_PATH + 'TMP');
+  ioRes := IOResult;
   RmDir(NEW_DIR + SEP + NEW_SUB);
   ioRes := IOResult;
   RmDir(NEW_DIR);
@@ -246,13 +252,13 @@ begin
   TestKit.Check(PutFile(FILE_NAME, 'x'), 'a file for the test');
   TestKit.Check(not CfgFile.WriteOptions(FILE_NAME + '\', t), 'a write into a file, as a folder, fails');
   FileUtil.DeleteFile(FILE_NAME);
-  { a folder in the way of the temporary copy fails the write }
-  MkDir(FileUtil.TempName(C_OPT.OPT_NAME));
+  { a folder in the way of the temporary copy fails the write (TMP\, its folder, is there from the writes above) }
+  MkDir('TMP' + SEP + C_OPT.OPT_NAME);
   ioRes := IOResult;
   t.speed := 8;
   TestKit.Check(not CfgFile.WriteOptions('', t), 'a write that cannot make its copy fails');
   TestKit.Check(SameBytes(C_OPT.OPT_NAME), 'and leaves the old file');
-  RmDir(FileUtil.TempName(C_OPT.OPT_NAME));
+  RmDir('TMP' + SEP + C_OPT.OPT_NAME);
   ioRes := IOResult;
   FileUtil.DeleteFile(C_OPT.OPT_NAME);
 
@@ -377,7 +383,7 @@ begin
   TestKit.CheckEqualsL(C_OPT.MAX_PATH_TEXT, Length(full), 'with its backslash');
   TestKit.Check(not CfgFile.NormalizePath(body + 'A', full), 'one more is too long');
 {$IFNDEF FPC}
-  TestKit.CheckEqualsL(67, C_OPT.MAX_PATH_TEXT, 'START takes 67 characters under DOS');
+  TestKit.CheckEqualsL(59, C_OPT.MAX_PATH_TEXT, 'START takes 59 characters under DOS, room for TMP\BAK\ (#1084)');
 {$ENDIF}
 
   { folders: nothing is created }

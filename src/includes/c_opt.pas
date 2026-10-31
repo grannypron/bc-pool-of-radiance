@@ -32,13 +32,15 @@ const
   CFG_LINES = 5;
   { the most lines after the fifth that a POOL.CFG read keeps, for a write to put back }
   CFG_EXTRA_LINES = 4;
-  { the longest file name the game appends to a path (WALLDEF1.DAX), and so the longest path START takes: a path and
-    that name fit a DOS path of 79 characters }
+  { the longest file name the game appends to a path (WALLDEF1.DAX), and the folders a file's temporary copy and
+    backup are written in beside it (FileUtil.BACKUP_FOLDER, TMP\BAK\, #1084), and so the longest path START takes: a
+    path, those folders and that name fit a DOS path of 79 characters }
   LONGEST_NAME = 12;
+  WORK_FOLDERS = 8;
 {$IFDEF FPC}
-  MAX_PATH_TEXT = 255 - LONGEST_NAME;
+  MAX_PATH_TEXT = 255 - LONGEST_NAME - WORK_FOLDERS;
 {$ELSE}
-  MAX_PATH_TEXT = 79 - LONGEST_NAME;
+  MAX_PATH_TEXT = 79 - LONGEST_NAME - WORK_FOLDERS;
 {$ENDIF}
   { the most lines read from POOLOPT.CFG; anything after them is ignored, and dropped when the file is written }
   MAX_LINES = 100;

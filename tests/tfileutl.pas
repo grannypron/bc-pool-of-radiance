@@ -1,20 +1,26 @@
 { Tests for FileUtil: a record written and read back, the size check, a read-only file, a file opened with an I/O error
-  pending, erasing (DeleteChecked saying whether the file is gone), the temporary copy and backup names, the copy put in
-  place only when whole, a set of files put in place all or none (CommitSet), a commit ended part way undone or
-  finished (RecoverSet), one file put in place the same way (PutInPlace, RecoverFile, #914), and DOS device names. }
+  pending, erasing (DeleteChecked saying whether the file is gone), the temporary copy and backup names and their
+  folders (#1084), the copy put in place only when whole, a set of files put in place all or none (CommitSet), a
+  commit ended part way undone or finished (RecoverSet), one left by a version before #1084 at the '$' and '%' names,
+  a .cha and a .chx put in place together, one file put in place the same way (PutInPlace, RecoverFile, #914), and DOS
+  device names. }
 {$I COMPILER.INC}
 program TFileUtl;
 
-uses Dos, FileUtil, TestKit;
+{ natively NatFile, as FileUtil and the game use it, so a name with a backslash (TMP\BAK\) is a path there too }
+uses Dos, FileUtil, TestKit{$IFDEF FPC}, NatFile{$ENDIF};
 
 const
   NAME = 'TFU.TMP';
-  TEMP = 'TFU.TM$';
+  TEMP = 'TMP\TFU.TMP';
   { a set's files }
   FA = 'TFUA.DAT';
   FB = 'TFUB.DAT';
   FC = 'TFUC.DAT';
   FD = 'TFUD.DAT';
+  { a dual-classed character's two files, whose copies once shared a name (#1084) }
+  FCHA = 'TFUE.CHA';
+  FCHX = 'TFUE.CHX';
 
 type
   TRec = record
@@ -31,6 +37,7 @@ var
   ok: Boolean;
   n: Word;
   s: FileUtil.TFileSet;
+  body: FileUtil.TPathName;
 
 { Write rec as file name, a set of its own: True when it is in place. }
 function WriteOne(name: FileUtil.TSetName; var rec; size: Word): Boolean;
@@ -65,6 +72,36 @@ begin
               not FileUtil.Exists(FileUtil.TempName(FC)) and not FileUtil.Exists(FileUtil.TempName(FD)) and
               not FileUtil.Exists(FileUtil.BackupName(FA)) and not FileUtil.Exists(FileUtil.BackupName(FB)) and
               not FileUtil.Exists(FileUtil.BackupName(FC)) and not FileUtil.Exists(FileUtil.BackupName(FD));
+end;
+
+{ Write r holding number a as file name, straight, as an earlier version left its copies and backups: a set would take
+  a name ending in '$' or '%' for one of its own. }
+procedure WriteRaw(name: FileUtil.TPathName; a: Word);
+var
+  g: file;
+  res: Integer;
+begin
+  r.a := a;
+  Assign(g, name);
+  Rewrite(g, 1);
+  BlockWrite(g, r, SizeOf(r));
+  Close(g);
+  res := IOResult;
+end;
+
+{ Remove folder name, if it is there and empty. }
+procedure RemoveFolder(name: FileUtil.TPathName);
+var
+  res: Integer;
+begin
+{$I-}
+{$IFDEF FPC}
+  RmDir(NatFile.NativeName(name));
+{$ELSE}
+  RmDir(name);
+{$ENDIF}
+  res := IOResult;
+{$I+}
 end;
 
 { Rename file from to name to, as a commit does. }
@@ -134,6 +171,10 @@ begin
   TestKit.Check(FileUtil.WriteToSet(t, FB, r, SizeOf(r)), 'B''s copy writes');
   r.a := 14;
   TestKit.Check(FileUtil.WriteToSet(t, FD, r, SizeOf(r)), 'D''s copy writes');
+{$I-}
+  MkDir('TMP\BAK');
+  res := IOResult;
+{$I+}
   MoveFile(FA, FileUtil.BackupName(FA));
   if stage >= 2 then begin
     MoveFile(FB, FileUtil.BackupName(FB));
@@ -155,6 +196,9 @@ end;
 
 begin
   TestKit.Start('TFILEUTL');
+  { no copy or backup folder yet, so the first write makes them (another test's files in them would keep them) }
+  RemoveFolder('TMP\BAK');
+  RemoveFolder('TMP');
   FileUtil.DeleteFile(NAME);
   TestKit.Check(not FileUtil.ReadRecord(NAME, back, SizeOf(back)), 'a missing file does not read');
   FileUtil.DeleteFile(NAME);
@@ -181,10 +225,24 @@ begin
   TestKit.Check(not FileUtil.OpenReadOnly(f, NAME), 'an erased file is gone');
   TestKit.Check(FileUtil.DeleteChecked(NAME), 'a missing file counts as erased');
   { the temporary copy }
-  TestKit.CheckEqualsS(TEMP, FileUtil.TempName(NAME), 'the copy''s name ends in $');
+  TestKit.CheckEqualsS(TEMP, FileUtil.TempName(NAME), 'the copy is in TMP\ (#1084)');
+  TestKit.CheckEqualsS('SAVE\TMP\SAVGAMA.DAT', FileUtil.TempName('SAVE\SAVGAMA.DAT'), 'in the file''s own folder');
+  TestKit.CheckEqualsS('C:\SAVE\TMP\BAK\SAVGAMA.DAT', FileUtil.BackupName('C:\SAVE\SAVGAMA.DAT'),
+                       'and its backup in TMP\BAK\');
+  TestKit.CheckEqualsS('A:TMP\X.DAT', FileUtil.TempName('A:X.DAT'), 'a drive''s current folder is its folder');
+  TestKit.Check(FileUtil.TempName(FCHA) <> FileUtil.TempName(FCHX), 'a .cha''s copy and a .chx''s keep apart');
+  TestKit.Check(FileUtil.TempName(FCHA) <> FileUtil.BackupName(FCHA), 'and a file''s copy and its backup');
   TestKit.Check(WriteOne(NAME, r, SizeOf(r)), 'a record writes again');
   TestKit.Check(not FileUtil.OpenReadOnly(f, TEMP), 'and leaves no copy behind');
-  TestKit.CheckEqualsS('TFU.TM%', FileUtil.BackupName(NAME), 'the backup''s name ends in %');
+  TestKit.Check(FileUtil.MakeTempFolder(NAME), 'its folder is there');
+  TestKit.CheckEqualsS('TMP\BAK\TFU.TMP', FileUtil.BackupName(NAME), 'the backup is in TMP\BAK\');
+  { a name whose backup would not fit a path is not written: it would be cut short }
+  body := '';
+  while Length(body) + Length(FileUtil.BACKUP_FOLDER) < SizeOf(FileUtil.TPathName) - 1 do
+    body := body + 'A';
+  TestKit.Check(FileUtil.MakeTempFolder(body), 'a name whose backup just fits a path has its folder');
+  TestKit.Check(not FileUtil.MakeTempFolder(body + 'A'), 'one longer does not');
+  TestKit.Check(not FileUtil.RewriteTemp(f, body + 'A'), 'and its copy is not opened');
   { an I/O error left pending (a missing file opened) does not make a file that is there read as missing }
 {$I-}
   Assign(f, 'TFUZ.ZZZ');
@@ -331,6 +389,43 @@ begin
   TestKit.Check(not FileUtil.Exists(FB) and not FileUtil.Exists(FC) and not FileUtil.Exists(FD),
                 'the files it erases are gone');
   TestKit.Check(NoneLeft, 'no backup is left');
+  { a commit a version before #1084 was ended in, its backups and copies at the '$' and '%' names, is still undone }
+  WriteNumber(FB, 2);
+  WriteRaw('TFUA.DA%', 1);
+  WriteRaw('TFUB.DA$', 12);
+  NamesSet(s);
+  TestKit.Check(FileUtil.RecoverSet(s), 'an old-style ended commit is undone');
+  TestKit.CheckEqualsL(1, NumberIn(FA), 'A is the old one');
+  TestKit.CheckEqualsL(2, NumberIn(FB), 'B stays');
+  TestKit.Check(not FileUtil.Exists('TFUA.DA%') and not FileUtil.Exists('TFUB.DA$'), 'and nothing old-style is left');
+  { an old-style backup left by a finished commit goes with the next commit }
+  WriteRaw('TFUB.DA%', 9);
+  NewASet(s, 71);
+  TestKit.Check(FileUtil.CommitSet(s), 'the next commit is put in place');
+  TestKit.CheckEqualsL(71, NumberIn(FA), 'A is its');
+  TestKit.Check(not FileUtil.Exists('TFUB.DA%'), 'and the old-style backup is gone');
+  TestKit.Check(NoneLeft, 'with no copy or backup left');
+  { a dual-classed character's .cha and .chx are put in place together (#1084) }
+  FileUtil.NewSet(s, '');
+  r.a := 81;
+  TestKit.Check(FileUtil.WriteToSet(s, FCHA, r, SizeOf(r)), 'the .cha''s copy writes');
+  r.a := 82;
+  TestKit.Check(FileUtil.WriteToSet(s, FCHX, r, SizeOf(r)), 'and the .chx''s');
+  TestKit.Check(FileUtil.CommitSet(s), 'the two are put in place');
+  TestKit.CheckEqualsL(81, NumberIn(FCHA), 'the .cha is its own');
+  TestKit.CheckEqualsL(82, NumberIn(FCHX), 'and the .chx its own');
+  FileUtil.NewSet(s, '');
+  r.a := 83;
+  TestKit.Check(FileUtil.WriteToSet(s, FCHA, r, SizeOf(r)), 'the .cha''s copy writes again');
+  r.a := 84;
+  TestKit.Check(FileUtil.WriteToSet(s, FCHX, r, SizeOf(r)), 'and the .chx''s');
+  TestKit.Check(FileUtil.CommitSet(s), 'the two replace the old ones');
+  TestKit.CheckEqualsL(83, NumberIn(FCHA), 'the .cha is the new one');
+  TestKit.CheckEqualsL(84, NumberIn(FCHX), 'and the .chx');
+  TestKit.Check(not FileUtil.Exists(FileUtil.BackupName(FCHA)) and not FileUtil.Exists(FileUtil.BackupName(FCHX)),
+                'with no backup left');
+  FileUtil.DeleteFile(FCHA);
+  FileUtil.DeleteFile(FCHX);
   FileUtil.DeleteFile(FA);
   FileUtil.DeleteFile(FB);
   FileUtil.DeleteFile(FC);
@@ -348,8 +443,7 @@ begin
   TestKit.Check(CopyNumber(FA, 63) and not FileUtil.PutInPlace(FA), 'an old file that cannot move aside fails');
   TestKit.CheckEqualsL(62, NumberIn(FA), 'and A is the old one');
   TestKit.Check(not FileUtil.Exists(FileUtil.TempName(FA)), 'the copy erased');
-  RmDir(FileUtil.BackupName(FA));
-  ioRes := IOResult;
+  RemoveFolder(FileUtil.BackupName(FA));
   { the copy cannot be renamed in: it is gone by then }
   TestKit.Check(CopyNumber(FA, 64), 'a copy is written');
   FileUtil.DeleteFile(FileUtil.TempName(FA));
