@@ -869,6 +869,8 @@ begin
   GameVars.downedCount := 0;
   GameVars.stinkHead := nil;
   GameVars.lastMissileItem := nil;
+  { no thrown weapon noted for Retrieve Thrown yet (#1118) }
+  CbtActs.thrownCount := 0;
   { no one has been seen casting yet (Silence, #1087) }
   CbtActs.seenCasting := [];
   { nor doing fire or cold damage (Resist Fire and Resist Cold, #1087) }

@@ -1,10 +1,70 @@
 { Tests for the combat core's rules that need no screen: the move and aim menus' cursor keys (CbtActs.DirOfKey), a
   blow's damage with a backstab and a ranger's bonus (CbtActs.WeaponDamage), the missiles a volley leaves
-  (CbtActs.AmmoLeft) and the wilderness arena's feature classes (CombatSt.TerrainClass). }
+  (CbtActs.AmmoLeft), the wilderness arena's feature classes (CombatSt.TerrainClass), who the aim menu's Next and Prev
+  reach (CbtActs.CanTarget's allowAlly, CbtActs.AimCycles, #1137) and a thrown weapon handed back to its thrower after
+  the fight (CbtActs.NoteThrown, ReturnThrown, #1118). }
 {$I COMPILER.INC}
 program TCbtActs;
 
-uses C_DIR, C_KEYS, CbtActs, CombatSt, TestKit;
+uses Types, C_DIR, C_KEYS, C_EFFECT, C_EQUIP, C_ITEM, GameVars, FxEngine, CharHlp, CbtActs, CombatSt, TestKit;
+
+var
+  att: Types.PCharRecord;
+  ally: Types.PCharRecord;
+  foe: Types.PCharRecord;
+  hidden: Types.PCharRecord;
+  axe: Types.TItemRec;
+  thrower: Types.PCharRecord;
+  back: Types.PItemRec;
+  name: string;
+  i: Byte;
+
+{$F+}
+{ An invisible creature's veto: it cannot be aimed at. }
+procedure Veto(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+begin
+  CbtActs.suppressTargeting := 1;
+end;
+{$F-}
+
+{ A blank creature on side hostile, with a combat record, linked in front of GameVars.creatureList. }
+function NewCreature(hostile: ShortInt): Types.PCharRecord;
+var
+  c: Types.PCharRecord;
+begin
+  GetMem(c, SizeOf(Types.TCharRecord));
+  FillChar(c^, SizeOf(Types.TCharRecord), 0);
+  GetMem(c^.combatAddr, SizeOf(Types.TCombatRec));
+  FillChar(c^.combatAddr^, SizeOf(Types.TCombatRec), 0);
+  c^.hostile := hostile;
+  c^.strCur := 18;
+  c^.itemLimits := $FF;
+  c^.nextCharAddr := GameVars.creatureList;
+  GameVars.creatureList := c;
+  NewCreature := c;
+end;
+
+{ How many items the loot holds. }
+function LootCount: Byte;
+var
+  p: Types.PItemRec;
+  n: Byte;
+begin
+  n := 0;
+  p := GameVars.treasureItems;
+  while p <> nil do begin
+    Inc(n);
+    p := p^.next;
+  end;
+  LootCount := n;
+end;
+
+{ att throws the hand axe: it drops into the loot, as MakeAttack drops it, and is noted. }
+procedure Throw(c: Types.PCharRecord);
+begin
+  CharHlp.PrependItemCopy(GameVars.treasureItems, @axe);
+  CbtActs.NoteThrown(c, GameVars.treasureItems);
+end;
 
 begin
   TestKit.Start('TCBTACTS');
@@ -46,6 +106,78 @@ begin
   TestKit.CheckEqualsL($21, CombatSt.TerrainClass(225, True), 'terrain 225 after Yarash');
   TestKit.CheckEqualsL($11, CombatSt.TerrainClass(102, True), 'terrain 102 after Yarash');
   TestKit.CheckEqualsL($28, CombatSt.TerrainClass(126, True), 'a class without bit 7 is kept after Yarash');
+
+  { who the aim reaches (#1137) }
+  GetMem(GameVars.zone1, SizeOf(GameVars.zone1^));
+  FillChar(GameVars.zone1^, SizeOf(GameVars.zone1^), 0);
+  GameVars.effectFns[C_EFFECT.INVISIBLE] := Veto;
+  att := NewCreature(0);
+  ally := NewCreature(0);
+  foe := NewCreature(1);
+  hidden := NewCreature(1);
+  FxEngine.AddEffect(hidden, C_EFFECT.INVISIBLE, 0, 0, False);
+  TestKit.Check(CbtActs.CanTarget(att, att, False), 'CanTarget: the attacker may always aim at itself');
+  TestKit.Check(not CbtActs.CanTarget(att, ally, False), 'not at an ally without allowAlly');
+  TestKit.Check(CbtActs.CanTarget(att, ally, True), 'at an ally with it');
+  TestKit.Check(CbtActs.CanTarget(att, foe, False), 'at an enemy either way');
+  TestKit.Check(not CbtActs.CanTarget(att, hidden, True), 'not at an invisible enemy');
+  TestKit.Check(not CbtActs.CanTarget(att, nil, True), 'nor at nothing');
+  GameVars.aimEnemiesOn := 1;
+  TestKit.Check(CbtActs.AimCycles(att, att, False) and CbtActs.AimCycles(att, att, True),
+                'Aim Cycles ENEMIES: Next and Prev reach the attacker itself');
+  TestKit.Check(CbtActs.AimCycles(att, foe, False), 'a weapon''s aim reaches an enemy');
+  TestKit.Check(not CbtActs.AimCycles(att, ally, False), 'and not an ally');
+  TestKit.Check(not CbtActs.AimCycles(att, hidden, False), 'nor an enemy it cannot target');
+  TestKit.Check(CbtActs.AimCycles(att, ally, True), 'a spell that is not offensive reaches an ally');
+  TestKit.Check(not CbtActs.AimCycles(att, foe, True), 'and not an enemy');
+  TestKit.Check(CbtActs.AimCycles(hidden, foe, True), 'a monster''s own side is its allies');
+  GameVars.aimEnemiesOn := 0;
+  TestKit.Check(CbtActs.AimCycles(att, ally, False) and CbtActs.AimCycles(att, foe, False),
+                'Aim Cycles ALL: a weapon''s aim reaches allies and enemies, as SSI''s did');
+  TestKit.Check(CbtActs.AimCycles(att, foe, True), 'and so does a cure''s');
+  TestKit.Check(not CbtActs.AimCycles(att, hidden, False), 'but not one it cannot target');
+
+  { a thrown weapon back to its thrower (#1118) }
+  GetMem(CharHlp.baseItems, SizeOf(CharHlp.baseItems^));
+  FillChar(CharHlp.baseItems^, SizeOf(CharHlp.baseItems^), 0);
+  CharHlp.baseItems^[C_ITEM.HAND_AXE].slot := C_EQUIP.WEAPON;
+  CharHlp.baseItems^[C_ITEM.HAND_AXE].hands := 1;
+  CharHlp.baseItems^[C_ITEM.HAND_AXE].classMask := $FF;
+  CharHlp.baseItems^[C_ITEM.HAND_AXE].props := C_ITEM.PROP_THROWN;
+  FillChar(axe, SizeOf(axe), 0);
+  axe.itemType := C_ITEM.HAND_AXE;
+  axe.nameIds[3] := 1;
+  GameVars.treasureItems := nil;
+  CbtActs.thrownCount := 0;
+  Throw(att);
+  Throw(foe);
+  TestKit.CheckEqualsL(1, CbtActs.thrownCount, 'NoteThrown notes a party member''s throw, not a monster''s');
+  TestKit.Check(CbtActs.ReturnThrown(1, thrower, back, name), 'the thrower takes the axe back');
+  TestKit.Check(thrower = att, 'the one who threw it');
+  TestKit.Check((att^.itemsAddr <> nil) and (att^.itemsAddr = back), 'it is in its items');
+  TestKit.Check((back <> nil) and (back^.equipped <> 0), 'readied, the weapon hand being empty');
+  TestKit.Check(att^.equipped[C_EQUIP.WEAPON] = back, 'in the weapon hand');
+  TestKit.CheckEqualsL(1, LootCount, 'and gone from the loot, the monster''s left');
+  TestKit.Check(not CbtActs.ReturnThrown(1, thrower, back, name), 'it is not handed back twice');
+  { a second axe, the hand full }
+  Throw(att);
+  TestKit.Check(CbtActs.ReturnThrown(2, thrower, back, name), 'a second throw comes back');
+  TestKit.Check((back <> nil) and (back^.equipped = 0), 'not readied, the hand being full');
+  TestKit.CheckEqualsL(1, LootCount, 'the loot keeps the monster''s');
+  { a thrower who has left the party }
+  Throw(ally);
+  GameVars.creatureList := GameVars.creatureList^.nextCharAddr^.nextCharAddr^.nextCharAddr;
+  TestKit.Check(GameVars.creatureList = att, 'the ally and the monsters are off the list');
+  TestKit.Check(not CbtActs.ReturnThrown(3, thrower, back, name), 'a thrower no longer in the party gets nothing');
+  TestKit.CheckEqualsL(2, LootCount, 'and the axe stays in the loot');
+  { a thrower carrying all it can }
+  while att^.itemsAddr <> nil do
+    CharHlp.RemoveItem(att, att^.itemsAddr);
+  for i := 1 to C_ITEM.CARRY_MAX do
+    CharHlp.AppendItemCopy(att^.itemsAddr, @axe);
+  Throw(att);
+  TestKit.Check(not CbtActs.ReturnThrown(4, thrower, back, name), 'a thrower who cannot carry it gets nothing');
+  TestKit.CheckEqualsL(3, LootCount, 'and the axe stays in the loot');
 
   TestKit.Done;
 end.

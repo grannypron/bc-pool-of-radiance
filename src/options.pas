@@ -119,6 +119,9 @@ begin
       C_OPT.OPT_FOOTSTEPS..C_OPT.OPT_SPELLS: s.flags[opt] := Ord(GameVars.soundGroups and Options.GroupBit(opt) <> 0);
       C_OPT.OPT_QUICK: s.flags[opt] := GameVars.quickEnds;
       C_OPT.OPT_MAGIC: s.flags[opt] := GameVars.quickMagicOn;
+      C_OPT.OPT_GEAR: s.flags[opt] := GameVars.gearChangesOn;
+      C_OPT.OPT_AIM: s.flags[opt] := GameVars.aimEnemiesOn;
+      C_OPT.OPT_RETRIEVE: s.flags[opt] := GameVars.retrieveThrownOn;
       C_OPT.OPT_COMPANION: s.flags[opt] := GameVars.companionOn;
       C_OPT.OPT_CLUES: s.flags[opt] := GameVars.clueNotesOn;
       C_OPT.OPT_COMBAT_LOG: s.flags[opt] := GameVars.combatLogOn;
@@ -149,6 +152,9 @@ begin
           GameVars.soundGroups := GameVars.soundGroups or Options.GroupBit(opt);
       C_OPT.OPT_QUICK: GameVars.quickEnds := s.flags[opt];
       C_OPT.OPT_MAGIC: GameVars.quickMagicOn := s.flags[opt];
+      C_OPT.OPT_GEAR: GameVars.gearChangesOn := s.flags[opt];
+      C_OPT.OPT_AIM: GameVars.aimEnemiesOn := s.flags[opt];
+      C_OPT.OPT_RETRIEVE: GameVars.retrieveThrownOn := s.flags[opt];
       C_OPT.OPT_COMPANION: GameVars.companionOn := s.flags[opt];
       C_OPT.OPT_CLUES: GameVars.clueNotesOn := s.flags[opt];
       C_OPT.OPT_COMBAT_LOG: GameVars.combatLogOn := s.flags[opt];

@@ -63,12 +63,18 @@ const
   { the first setting under the Quick Mode heading }
   OPT_QUICK = 16;
   OPT_MAGIC = 17;
-  OPT_COMPANION = 18;
-  OPT_CLUES = 19;
+  { quick mode re-equips the party's weapons and shields (#1127) }
+  OPT_GEAR = 18;
+  { the aim menu's Next and Prev reach one side only, ENEMIES, or every creature, ALL (#1137) }
+  OPT_AIM = 19;
+  { a single thrown weapon goes back to its thrower after the fight (#1118) }
+  OPT_RETRIEVE = 20;
+  OPT_COMPANION = 21;
+  OPT_CLUES = 22;
   { the combat log (#841), and how many messages it keeps }
-  OPT_COMBAT_LOG = 20;
-  OPT_LOG_LINES = 21;
-  OPT_COUNT = 21;
+  OPT_COMBAT_LOG = 23;
+  OPT_LOG_LINES = 24;
+  OPT_COUNT = 24;
   { the Sound page's settings, from the music to the sound effects; every other setting is the Game page's }
   OPT_FIRST_SOUND = OPT_MUSIC;
   OPT_LAST_SOUND = OPT_SPELLS;

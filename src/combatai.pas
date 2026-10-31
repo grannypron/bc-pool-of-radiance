@@ -42,6 +42,13 @@ function CalcWeaponPriority(creature: Types.PCharRecord; item: Types.PItemRec): 
   fight would not spend it on one, except Silence, since one silenced caster is what it is for. }
 function SpellImpact(creature: Types.PCharRecord; spell: Byte): Byte;
 
+{ True when creature keeps the weapon and shield it holds, which EquipWeaponAndShield then leaves alone: with Allow Gear
+  Changes off (GameVars.gearChangesOn), a creature that comes under the player (CharHlp.ComesUnderPlayer). NPCs,
+  animated dead and monsters re-equip whatever the setting (#1127). }
+function KeepsGear(creature: Types.PCharRecord): Boolean;
+
+procedure EquipWeaponAndShield(creature: Types.PCharRecord);
+
 implementation
 
 uses C_ITEM, C_NPC, C_TERR, C_COND, GameDefs, GameVars, Crt, CbtActs, FxEngine, C_EFFECT, C_EQUIP, C_CLASS, C_STATUS,
@@ -112,8 +119,6 @@ function FinishRound(creature: Types.PCharRecord): Boolean; forward;
 function CheckKeystroke(creature: Types.PCharRecord): Boolean; forward;
 
 function CheckMorale(creature: Types.PCharRecord): Boolean; forward;
-
-procedure EquipWeaponAndShield(creature: Types.PCharRecord); forward;
 
 procedure CombatAiControl(creature: Types.PCharRecord);
 var
@@ -436,7 +441,7 @@ begin
       if (i <> slot) and (p <> nil) and (GameVars.arenaLoc[i].size <> 0) then
         if CharHlp.Team(p) <> CharHlp.EnemyTeam(creature) then
           friends := friends + [i]
-        else if (p^.enabled <> 0) and CbtActs.CanTarget(creature, p) then
+        else if (p^.enabled <> 0) and CbtActs.CanTarget(creature, p, True) then
           enemies := enemies + [i];
     end;
     found := Pathing.RouteStep(slot, enemies, [], avoid, CbtMap.OccupantAt, dir, goal);
@@ -614,7 +619,7 @@ begin
       if (target <> nil) and ((target^.enabled = 0) or (target^.hostile = creature^.hostile)) then
         target := nil;
       if target <> nil then
-        if CbtActs.CanTarget(creature, target) then begin
+        if CbtActs.CanTarget(creature, target, True) then begin
           tx := CbtMap.CombatCellX(target);
           ty := CbtMap.CombatCellY(target);
           range := weaponRange;
@@ -637,14 +642,14 @@ begin
           if CharHlp.HasRangedWeapon(creature)
              and (not CharHlp.HasThrowableWeapon(creature))
              and (CbtMap.CountTargets(creature, 1) > 0) then begin
-            { pure missile weapon with an enemy adjacent: re-equip. A cursed bow cannot be swapped: the turn ends, or
-              CombatAiControl would call back here for ever (#713) }
+            { pure missile weapon with an enemy adjacent: re-equip. A cursed bow, or any bow with Allow Gear Changes
+              off (#1127), cannot be swapped: the turn ends, or CombatAiControl would call back here for ever (#713) }
             CombatAi.EquipWeaponAndShield(creature);
             done := True;
             if CharHlp.HasRangedWeapon(creature) and (not CharHlp.HasThrowableWeapon(creature)) then
               canAct := not CombatAi.FinishRound(creature);
           end else if (CbtMap.CalcDistance(creature, target) = 1)
-                  or CbtActs.CanTarget(creature, target) then
+                  or CbtActs.CanTarget(creature, target, True) then
             inRange := True;
         end;
       end;
@@ -825,7 +830,8 @@ end;
 
 { Re-equip creature: pick the best usable weapon by CalcWeaponPriority (unarmed damage sets the melee bar) and the best
   shield (plus + 1). The ranged pick wins when it beats half the melee score, has ammo, and either is trueRanged or no
-  enemy is adjacent. Cursed items are never swapped out. Prints the creature info if anything changed. }
+  enemy is adjacent. Cursed items are never swapped out. Prints the creature info if anything changed. Nothing changes
+  for a creature that KeepsGear (Allow Gear Changes off, #1127). }
 procedure EquipWeaponAndShield(creature: Types.PCharRecord);
 var
   bestRanged: Types.PItemRec;
@@ -843,6 +849,7 @@ var
   trueRanged: Boolean;
   hasAmmo: Boolean;
 begin
+  if CombatAi.KeepsGear(creature) then Exit;
   { stop counting the current weapon/shield hands }
   if creature^.equipped[C_EQUIP.WEAPON] <> nil then
     creature^.handsEquipped := creature^.handsEquipped
@@ -961,6 +968,11 @@ begin
   CharHlp.RecalcStats(creature);
   if changed then
     CharDisp.CombatPrintCreatureInfo(creature);
+end;
+
+function KeepsGear(creature: Types.PCharRecord): Boolean;
+begin
+  KeepsGear := (GameVars.gearChangesOn = 0) and CharHlp.ComesUnderPlayer(creature);
 end;
 
 procedure ToggleQuickMagic;

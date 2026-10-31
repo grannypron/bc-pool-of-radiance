@@ -1517,7 +1517,7 @@ begin
   GameVars.combatTarget := target;
   if target = nil then
     Exit;
-  if not CbtActs.CanTarget(creature, target) then Exit;
+  if not CbtActs.CanTarget(creature, target, True) then Exit;
   { the range of the Charm Person the gaze applies }
   if not EffHndlr.InSight(creature, target, GameDefs.spellTable[C_SPELL.CHARM_PERSON].rangeFixed) then Exit;
   CharDisp.PrintNameString(creature, 'Gazes...', 10, False);
