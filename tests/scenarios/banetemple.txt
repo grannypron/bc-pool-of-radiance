@@ -1,6 +1,8 @@
 # Tests Dirten's restored temple (#682). The fixture places save A at (13,7) in the freed temple, 14 days after
 # Dirten left. On the altar square he should greet the party with his portrait and open a temple charging ten percent
-# less: Cure Light Wounds costs 90 gold pieces. Leaving the temple should restore the normal view.
+# less: Cure Light Wounds costs 90 gold pieces. Leaving the temple should restore the normal view. The Heal list holds
+# twelve services and Exit (#1125), and Repair on its bottom line quotes the party's total at the same tenth off; this
+# build's steps alone, as the golden build has no Repair.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
@@ -15,12 +17,18 @@ press ret
 wait APPRAISE
 checkpoint temple
 press h
-wait HEAL EXIT
+wait HEAL.*EXIT
+checkpoint heal
 press down down ret
 wait PAY FOR CURE
 checkpoint price
 press n
-wait HEAL EXIT
+wait HEAL.*EXIT
+candidate: press r
+candidate: wait PAY FOR CURE
+candidate: checkpoint repair
+candidate: press n
+candidate: wait HEAL.*EXIT
 press esc
 wait APPRAISE
 press e

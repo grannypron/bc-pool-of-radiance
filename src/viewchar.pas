@@ -31,6 +31,12 @@ procedure PaladinCure(p, tgt: Types.PCharRecord);
   joins one of its stacks whole (CharHlp.JoinsWhole, #1088), or item's weight would overload it. }
 function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 
+{ The inventory's action line for creature's item: Ready, then Use, Trade, Drop or Deposit, Halve, Join and Sell as
+  they apply. The I key is Id at a shop's or temple's counter, offered on every item as SSI offered it, so that the
+  line does not tell which items are magic (#1115); elsewhere it is Info, on an item with a spell page. Halve is
+  dropped when the complete line would exceed 40 columns. }
+function ItemMenuLine(creature: Types.PCharRecord; item: Types.PItemRec): Types.TStr40;
+
 implementation
 
 uses Crt, GameDefs, GameVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
@@ -798,9 +804,6 @@ begin
   TextRend.DisplayAndPause(LightGreen, 'press a key');
 end;
 
-{ Builds the selected item's action line. Actions depend on the character,
-  interface, and item state. Identification and spell Info share I but are never
-  offered together. Drop Halve when the complete line would exceed 40 columns. }
 function ItemMenuLine(creature: Types.PCharRecord; item: Types.PItemRec): Types.TStr40;
 const
   { the bottom line's columns, and MenuVertical's ' Exit' }
@@ -827,7 +830,8 @@ begin
   { the characters that may trade may sell, but only in a shop }
   if CharHlp.MayTrade(creature) and (GameVars.ifcState = C_IFC.SHOP_TEMPLE) then
     s := s + ' Sell';
-  if (GameVars.ifcState = C_IFC.SHOP_TEMPLE) and (item^.unidMask <> 0) then
+  { Id on every item at the counter: offered only where something was hidden, it marked the magic ones (#1115) }
+  if GameVars.ifcState = C_IFC.SHOP_TEMPLE then
     s := s + ' Id'
   else if SpellInf.HasItemPage(item) then
     s := s + ' Info';
@@ -975,7 +979,7 @@ begin
                ViewChar.SellItem(sel)
              else
                ch := ' ';
-        'I': if (GameVars.ifcState = C_IFC.SHOP_TEMPLE) and (sel^.unidMask <> 0) then
+        'I': if GameVars.ifcState = C_IFC.SHOP_TEMPLE then
                ViewChar.IdentifyItem(sel, vmRedraw)
              else if SpellInf.HasItemPage(sel) then begin
                ViewChar.ItemInfo(creature, sel, idx);

@@ -114,6 +114,8 @@ type
       (CharHlp.GetClassLevel). 0 for every other character. A human changes class once (#879); the field stays a mask,
       as the .chx files already written hold it. }
     formerClasses: Byte;
+    { CharExt.EXT_* bits: EXT_ANIMATE_JOINED for a creature that joined the party through Animate Dead (#1089). }
+    flags: Byte;
   end;
   TCharRecord = record
     { character name }

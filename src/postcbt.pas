@@ -5,9 +5,32 @@ unit PostCbt;
 
 interface
 
+uses Types;
+
+type
+  { The monsters Animate Dead raised on the party's side that PostCombatCreatureCleanup keeps to join the party
+    (#1089), out of the creature list, and the names of those it could not keep for want of room. }
+  TRisen = record
+    kept: array[1..Types.MAX_PARTY] of Types.PCharRecord;
+    keptCount: Byte;
+    lost: array[1..Types.MAX_PARTY] of Types.TStr40;
+    lostCount: Byte;
+  end;
+
 { Settles the outcome, awards experience, runs the loot menus, and frees the
   combat state. }
 procedure PostCombat;
+
+{ Monsters and hostile creatures are removed, counting the ones not enabled in C_GBVM.MONSTERS_DEFEATED; the others get
+  their combat records freed, and while the Quick Ends With Fight setting is on (GameVars.quickEnds) party members leave
+  Quick (quickfight 0) so that the treasure screen and the next combat find them under manual control. NPCs and animated
+  creatures keep quickfight, as Space in combat leaves them. When the party won (won), a monster Animate Dead raised on
+  its side and still animated is kept instead, while the party has room for it (#1089): taken out of the list with its
+  combat record freed and its Animate Dead effect's stored side made the party's, so that Dispel Magic ending the spell
+  (EffHndlr.EffAnimateDead, which gives the creature back that side) leaves a party member on the party's side, and
+  marked CharExt.EXT_ANIMATE_JOINED; it goes into risen.kept for JoinRisen. One with no room is removed as before, its
+  name in risen.lost. curChar is left at the list head. }
+procedure PostCombatCreatureCleanup(won: Boolean; var risen: TRisen);
 
 { Runs the post-combat loot menu. When only money or items remain, opens that
   menu directly. }
@@ -15,9 +38,9 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Types, Crt, C_MSG, C_SPELL, GameVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM, C_MONEY, Stats,
-  Bestiary, BeastFil, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal,
-  CbtActs;
+uses Crt, C_MSG, C_SPELL, GameVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM, C_MONEY, C_EFFECT, Stats,
+  Bestiary, BeastFil, Border, CharHlp, CharExt, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice,
+  ClassCal, CbtActs;
 
 var
   { Combat outcome. }
@@ -433,22 +456,66 @@ begin
   until done;
 end;
 
-{ Monsters and hostile creatures are removed, counting the ones not enabled in C_GBVM.MONSTERS_DEFEATED; the others get
-  their combat records freed, and while the Quick Ends With Fight setting is on (GameVars.quickEnds) party members leave
-  Quick (quickfight 0) so that the treasure screen and the next combat find them under manual control. NPCs and animated
-  creatures keep quickfight, as Space in combat leaves them. curChar is left at the list head. }
-procedure PostCombatCreatureCleanup;
+{ True for a monster Animate Dead raised on the party's side that is animated still: one that may join the party. }
+function RisenForParty(p: Types.PCharRecord): Boolean;
+begin
+  RisenForParty := IsMonster(p) and (p^.status = C_STATUS.ANIMATED) and (p^.hostile = 0);
+end;
+
+{ Take p out of the creature list, freeing nothing: it is not the list's head, since the party comes first. }
+procedure Unlink(p: Types.PCharRecord);
+var
+  prev: Types.PCharRecord;
+begin
+  prev := GameVars.creatureList;
+  while (prev <> nil) and (prev^.nextCharAddr <> p) do
+    prev := prev^.nextCharAddr;
+  if prev <> nil then
+    prev^.nextCharAddr := p^.nextCharAddr;
+  p^.nextCharAddr := nil;
+end;
+
+{ Ready risen monster p, out of the list, to join: no combat record, its Animate Dead effect's side the party's (the
+  effect's strength holds the side in bit 4 and the caster level below it, Magic.SpellAnimateDead), and the mark. }
+procedure KeepRisen(p: Types.PCharRecord);
+var
+  effect: Types.PEffectRec;
+begin
+  if p^.combatAddr <> nil then begin
+    FreeMem(p^.combatAddr, SizeOf(Types.TCombatRec));
+    p^.combatAddr := nil;
+  end;
+  if CharHlp.HasEffect(p, C_EFFECT.ANIMATE_DEAD, effect) then
+    effect^.strength := effect^.strength and $0F;
+  p^.portExt.flags := p^.portExt.flags or CharExt.EXT_ANIMATE_JOINED;
+end;
+
+procedure PostCombatCreatureCleanup(won: Boolean; var risen: TRisen);
 var
   p: Types.PCharRecord;
   next: Types.PCharRecord;
+  room: Integer;
 begin
+  risen.keptCount := 0;
+  risen.lostCount := 0;
+  room := Types.MAX_PARTY - GameVars.zone1^[C_GBVM.PARTY_SIZE];
   GameVars.zone1^[C_GBVM.MONSTERS_DEFEATED] := 0;
   p := GameVars.creatureList;
   while p <> nil do begin
-    if IsMonster(p) or (p^.hostile = 1) then begin
+    next := p^.nextCharAddr;
+    if won and RisenForParty(p) and (risen.keptCount < room) then begin
+      Unlink(p);
+      KeepRisen(p);
+      Inc(risen.keptCount);
+      risen.kept[risen.keptCount] := p;
+      p := next;
+    end else if IsMonster(p) or (p^.hostile = 1) then begin
+      if won and RisenForParty(p) and (risen.lostCount < Types.MAX_PARTY) then begin
+        Inc(risen.lostCount);
+        risen.lost[risen.lostCount] := p^.name;
+      end;
       if p^.enabled <> 1 then
         Inc(GameVars.zone1^[C_GBVM.MONSTERS_DEFEATED]);
-      next := p^.nextCharAddr;
       GameVars.curChar := p;
       SaveLoad.RemoveCreature(IsMonster(p), True);
       p := next;
@@ -498,6 +565,37 @@ begin
   if row > 0 then
     c := MenuCore.MenuHorizontal('', C_MSG.CONTINUE_PROMPT, White, White, White, True, False, ext);
   CbtActs.thrownCount := 0;
+end;
+
+{ The risen monsters kept (#1089) join the party (EclMenu.JoinParty, as a script-joined NPC joins), and a window says
+  "<NAME> joins the party." for each and "<NAME> collapses; the party is full." for each one there was no room for,
+  until a key. curChar is left at the list head. }
+procedure JoinRisen(var risen: TRisen);
+var
+  i: Byte;
+  row: Byte;
+  ext: Boolean;
+  c: Char;
+begin
+  if risen.keptCount + risen.lostCount = 0 then
+    Exit;
+  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
+  row := 0;
+  for i := 1 to risen.keptCount do begin
+    EclMenu.JoinParty(risen.kept[i]);
+    TextRend.DisplayMessageWindow(5, row + 5, 34, 22, LightGreen, True, risen.kept[i]^.name + ' joins the party.');
+    Inc(row, 2);
+  end;
+  { the window's rows run out after nine lines; the rest go unnamed }
+  i := 1;
+  while (i <= risen.lostCount) and (row <= 16) do begin
+    TextRend.DisplayMessageWindow(5, row + 5, 34, 22, LightGreen, True,
+                                  risen.lost[i] + ' collapses; the party is full.');
+    Inc(row, 2);
+    Inc(i);
+  end;
+  c := MenuCore.MenuHorizontal('', C_MSG.CONTINUE_PROMPT, White, White, White, True, False, ext);
+  GameVars.curChar := GameVars.creatureList;
 end;
 
 { Each Okay NPC claims (npcTreasureShare and 7) shares, every other creature one share. Each coin type above 0 is cut
@@ -559,13 +657,20 @@ end;
   THAC0 adjustments, party movement, no-items and mirror duel, and write what the Bestiary learned in the fight, the
   next fight a new encounter for it (#842). }
 procedure PostCombat;
+var
+  risen: TRisen;
 begin
   GameVars.zone1^[C_GBVM.COMBAT_RESULT] := 0;
   nonEscapedHostileFound := False;
   GameVars.ifcState := C_IFC.LOOT;
   PostCbt.DetermineCombatResults;
-  PostCbt.PostCombatCreatureCleanup;
+  { only a won fight brings the dead along: a party that fled leaves them behind, and a duel is no battle (#1089) }
+  PostCbt.PostCombatCreatureCleanup(combatWon and not partyFled and not GameVars.partyDefeated and
+                                    not GameVars.duelFlag, risen);
   if not GameVars.partyDefeated or GameVars.duelFlag then begin
+    { before the loot, so that a new member can carry some, and before Retrieve Thrown, which hands a weapon back only
+      to a thrower in the party: a risen monster's own throws come back to it once it has joined }
+    PostCbt.JoinRisen(risen);
     PostCbt.RetrieveThrownWeapons;
     PostCbt.NpcTreasureShare;
     PostCbt.PostCombatSummary(expShare);

@@ -2,7 +2,8 @@
   the change does to the record (ClassCal.ChangeClass), the levels a resting class lends (CharHlp.GetClassLevel,
   ClassResting) before and after the class followed passes it, the hit dice each class gives (ClassCal.HitDice,
   HpMaximum, HpMinimum), training (CharHlp.CanTrain), no second change (#879), the party menu's refusals
-  (ChgClass.Refusal), and the .chx file that keeps the class left (CharExt). }
+  (ChgClass.Refusal), and the .chx file that keeps the class left (CharExt), with the flags beside it (#1089) and a
+  version 1 file from before them. }
 {$I COMPILER.INC}
 program TDualCls;
 
@@ -12,11 +13,23 @@ uses Types, C_STAT, C_ALIGN, C_CLASS, C_LEVEL, C_RACE, C_STATUS, GameDefs, FileU
 const
   FN = 'TDC';
 
+type
+  { a version 1 .chx file, from before TCharExt.flags }
+  TExtFile1 = record
+    sig: string[4];
+    version: Byte;
+    name: string[Types.NAME_LEN];
+    randByte: Byte;
+    formerClasses: Byte;
+  end;
+
 var
   c: Types.PCharRecord;
   d: Types.PCharRecord;
   s: FileUtil.TFileSet;
   i: Byte;
+  old: TExtFile1;
+  f: file;
 
 { c: a human fighter of level lvl, Str 18, Int 17, Wis 12, Dex 16, Con 14, Cha 10, lawful neutral. }
 procedure Fighter(lvl: ShortInt);
@@ -216,6 +229,36 @@ begin
   c^.portExt.formerClasses := C_LEVEL.FIGHTER_BIT;
   CharExt.ReadExt(c, FN);
   TestKit.CheckEqualsL(0, c^.portExt.formerClasses, 'and with none a character is ordinary');
+
+  { the flags (#1089) }
+  Fighter(5);
+  c^.portExt.flags := CharExt.EXT_ANIMATE_JOINED;
+  TestKit.Check(CharExt.HasExt(c), 'a creature that joined through Animate Dead needs a .chx');
+  FileUtil.NewSet(s, '');
+  TestKit.Check(CharExt.WriteExt(s, c, FN) and FileUtil.CommitSet(s), 'which is written');
+  d^ := c^;
+  FillChar(d^.portExt, SizeOf(d^.portExt), 0);
+  CharExt.ReadExt(d, FN);
+  TestKit.CheckEqualsL(CharExt.EXT_ANIMATE_JOINED, d^.portExt.flags, 'and its mark read back');
+  TestKit.CheckEqualsL(0, d^.portExt.formerClasses, 'with no class left');
+  { a version 1 file, written before the flags }
+  FillChar(old, SizeOf(old), 0);
+  old.sig := 'CEXT';
+  old.version := 1;
+  old.name := c^.name;
+  old.randByte := c^.randByte;
+  old.formerClasses := C_LEVEL.FIGHTER_BIT;
+  Assign(f, FN + '.chx');
+  Rewrite(f, 1);
+  BlockWrite(f, old, SizeOf(old));
+  Close(f);
+  FillChar(d^.portExt, SizeOf(d^.portExt), $FF);
+  CharExt.ReadExt(d, FN);
+  TestKit.CheckEqualsL(C_LEVEL.FIGHTER_BIT, d^.portExt.formerClasses, 'a version 1 file still gives the class left');
+  TestKit.CheckEqualsL(0, d^.portExt.flags, 'and no flags');
+  Fighter(5);
+  FileUtil.NewSet(s, '');
+  TestKit.Check(CharExt.WriteExt(s, c, FN) and FileUtil.CommitSet(s), 'an ordinary character''s save erases it again');
 
   FreeMem(c, SizeOf(Types.TCharRecord));
   FreeMem(d, SizeOf(Types.TCharRecord));

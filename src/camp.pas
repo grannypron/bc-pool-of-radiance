@@ -19,7 +19,7 @@ implementation
 
 uses Types, Crt, C_MSG, GameDefs, GameVars, CharGen, GameTime, C_EFFECT, C_KEYS, C_STATUS, C_IFC, C_SPELL, C_LEVEL,
   FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
-  CharDisp, Party, Dice, UsualSpl, Clock, Explore, FixPlan;
+  CharDisp, Party, Dice, UsualSpl, Clock, Explore, FixPlan, CharExt;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -259,10 +259,47 @@ begin
   DisplaySpellSlots := any;
 end;
 
+{ After a rest (GameTime.rested): each member that joined through Animate Dead and has been raised to life since
+  (CharExt.SlipsAway) leaves the party with all it carries, "<NAME> slipped away while the party slept." (#1089). The
+  one member left is never taken. curChar stays unless it was the one that left. }
+procedure SlipAway;
+var
+  p: Types.PCharRecord;
+  next: Types.PCharRecord;
+  cur: Types.PCharRecord;
+  gone: Boolean;
+begin
+  if not GameTime.rested then
+    Exit;
+  cur := GameVars.curChar;
+  gone := False;
+  p := GameVars.creatureList;
+  while p <> nil do begin
+    next := p^.nextCharAddr;
+    if CharExt.SlipsAway(p) and ((p <> GameVars.creatureList) or (next <> nil)) then begin
+      CharDisp.PrintNameString(p, 'slipped away while the party slept.', 0, True);
+      if cur = p then
+        cur := nil;
+      GameVars.curChar := p;
+      SaveLoad.RemoveCreature(False, True);
+      gone := True;
+    end;
+    p := next;
+  end;
+  if cur = nil then
+    cur := GameVars.creatureList;
+  GameVars.curChar := cur;
+  if gone then begin
+    Border.ClearBox(17, 1, 38, 11);
+    CharDisp.DisplayParty(GameVars.curChar);
+  end;
+end;
+
 { Seed the rest clock (Clock.SetFromMinutes) from the party's longest spell-prep time, run GameTime.CampRest, then clear
   the clock and update the misc-info line. With Auto Memorize on (GameVars.autoMemorizeOn, #1119), each member first
   queues its usual spells (UsualSpl.QueueUsualSpells), as Pools of Darkness memorizes again what was cast, unless it is
-  animated or out of action, or already has a spell pending: a set picked in Memorize wins. }
+  animated or out of action, or already has a spell pending: a set picked in Memorize wins. After the rest a member
+  who joined through Animate Dead and was raised slips away (SlipAway). }
 procedure RestForSpellPrep(var interrupted: Boolean);
 var
   p: Types.PCharRecord;
@@ -287,6 +324,7 @@ begin
   Clock.SetFromMinutes(GameTime.restTime, total);
   interrupted := GameTime.CampRest(True);
   FillChar(GameTime.restTime, SizeOf(GameTime.restTime), 0);
+  Camp.SlipAway;
   CharDisp.PrintMiscInfo;
 end;
 
@@ -970,6 +1008,9 @@ begin
     end;
   end;
   ShowReport;
+  { a member that joined through Animate Dead and was raised slips away, when the clerics' rest passed any time }
+  if rested then
+    Camp.SlipAway;
   CharDisp.DisplayParty(GameVars.curChar);
   CharDisp.PrintMiscInfo;
 end;
