@@ -18,8 +18,8 @@ procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
 
 implementation
 
-uses Crt, C_MSG, GameVars, EclMenu, ViewChar, Money, C_KEYS, C_IFC, Border, CharHlp, MenuCore, TextRend, CharDisp,
-  MoneyCal, Party;
+uses Crt, C_MSG, C_SPELL, GameDefs, GameVars, EclMenu, ViewChar, Money, C_KEYS, C_IFC, Border, CharHlp, MenuCore,
+  TextRend, CharDisp, MoneyCal, Party;
 
 { Temporarily formats each item name as a 30-column menu row with a right-aligned
   price, runs the Buy menu, then restores the normal labels. cursor and idx
@@ -79,8 +79,37 @@ begin
   end;
 end;
 
-{ Buy loop: each chosen item is paid for from the current character's coins when they cover the price, otherwise from
-  the pooled treasure money. Runs until the menu is left with a key other than Buy or Enter. }
+{ True when the player buys item after seeing it. A scroll whose spells can be read (identified, as the magic shop's
+  are, #1091) lists its spells in the message window, one a line, and asks; anything else is bought without asking. }
+function WantsItem(item: Types.PItemRec): Boolean;
+var
+  i: Byte;
+  id: Byte;
+  first: Boolean;
+begin
+  WantsItem := True;
+  if CharHlp.ItemReadable(item) and (item^.unidMask = 0) then begin
+    first := True;
+    for i := 1 to SizeOf(item^.spells) do begin
+      id := CharHlp.ScrollSpellAt(item, i);
+      if id <> C_SPELL.NONE then begin
+        if first then
+          CharDisp.MessageText('The scroll holds:', LightGreen, True);
+        first := False;
+        { each spell from the start of the next line, as CharDisp.PrintTwoLines starts its second }
+        GameVars.curCol := C_MSG.TEXT_LEFT;
+        Inc(GameVars.curRow);
+        CharDisp.MessageText(GameDefs.spellNames[id], White, False);
+      end;
+    end;
+    if not first then
+      WantsItem := MenuCore.YesNoMenu('Buy it? ', LightMagenta, LightGreen, White) = 'Y';
+  end;
+end;
+
+{ Buy loop: each chosen item, once the player still wants it (WantsItem), is paid for from the current character's
+  coins when they cover the price, otherwise from the pooled treasure money. Runs until the menu is left with a key
+  other than Buy or Enter. }
 procedure ShopBuyMenu;
 var
   itemToBuy: Types.PItemRec;
@@ -98,10 +127,10 @@ begin
   idx := 0;
   repeat
     Shop.ShopBuyItemSelection(c, itemToBuy, cursor, idx);
+    done := False;
     if (c <> 'B') and (c <> C_KEYS.ENTER) then
       done := True
-    else begin
-      done := False;
+    else if Shop.WantsItem(itemToBuy) then begin
       price := itemToBuy^.value;
       payer := MoneyCal.WhoPays(GameVars.curChar, price);
       if payer = MoneyCal.PAY_NOBODY then

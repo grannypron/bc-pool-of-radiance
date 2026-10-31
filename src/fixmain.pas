@@ -95,6 +95,7 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O BeastMnu}
 {$O BeastFil}
 {$O Sage}
+{$O MagicShp}
 
 begin
   GameInit.GameInit2;

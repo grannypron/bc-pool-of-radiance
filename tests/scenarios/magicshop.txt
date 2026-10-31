@@ -1,0 +1,30 @@
+# Tests the magic shop in New Phlan (#1091, #1158). The fixture places save A on the shop's square, (11,12), which was
+# an arms and armor shop. Look runs the shop's event: the greeting, then Yes opens the counter and Buy the stock, the
+# wares and then the magic-user scrolls. Buy on the first scroll lists its three spells and asks; No buys nothing. The
+# golden build has the arms shop here, so the greeting and the stock differ by design.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/magicshop
+# Load the slot directly by pressing its letter (#652).
+press l a
+wait AREA 120
+press l
+wait YES NO
+checkpoint greeting
+press y
+wait BUY
+checkpoint counter
+press b
+checkpoint stock
+# The first scroll, below the seven wares.
+press down down down down down down down b
+wait YES NO
+checkpoint scroll
+press n
+checkpoint not-bought
+press esc
+wait BUY
+press e
+wait AREA|YES NO
+checkpoint left

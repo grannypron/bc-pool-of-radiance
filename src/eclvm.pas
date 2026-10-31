@@ -20,7 +20,8 @@ implementation
 uses Types, C_AREA, C_NPC, C_MSG, GameDefs, GameVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_ECL, C_LEVEL, C_IFC, C_GBVM, C_SOUND, C_MONEY, C_STATUS, C_TIME, VaultMnu, EclTrace, Border,
   Camp, EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
-  StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal, Bestiary, Sage, JrnlSeen{$IFDEF FPC}, TpRand{$ENDIF};
+  StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal, Bestiary, Sage, MagicShp,
+  JrnlSeen{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { stop the VM and return control to the player }
@@ -71,6 +72,9 @@ const
   PROG_CAMP = 9;
   { the sage in New Phlan's east tavern (#868), whom a DataPat fix to New Phlan's script calls: no SSI script uses 10 }
   PROG_SAGE = 10;
+  { the magic shop in New Phlan (#1091, #1158), whose stock a DataPat fix to New Phlan's script fills with it before
+    entering the shop: no SSI script uses 11 }
+  PROG_MAGIC_SHOP = 11;
   { The ids of the three wilderness scripts; each selects a gLocType (C_AREA's LOC_WILD_WEST, LOC_WILD_CENTRAL or
     LOC_WILD_EAST). Their values equal C_ECL.IF_GT, C_ECL.IF_LE and C_ECL.IF_GE, but they are script ids, not opcodes. }
   { location type 2, Western Wilderness }
@@ -1631,8 +1635,9 @@ begin
 end;
 
 { PROGRAM: restore the backed-up current character, then run program var 1: PROG_TRAINING (the training hall menu),
-  PROG_WIN_GAME, PROG_CAMP (camp with the IP preserved, then EXIT) or PROG_SAGE (the sage's counsel, Sage.SageMenu,
-  then the script goes on). Other values do nothing. }
+  PROG_WIN_GAME, PROG_CAMP (camp with the IP preserved, then EXIT), PROG_SAGE (the sage's counsel, Sage.SageMenu,
+  then the script goes on) or PROG_MAGIC_SHOP (the magic shop's stock, MagicShp.StockShop, which the script then
+  enters). Other values do nothing. }
 procedure EclProgram;
 var
   v: Byte;
@@ -1661,6 +1666,8 @@ begin
     end;
     PROG_SAGE:
       Sage.SageMenu;
+    PROG_MAGIC_SHOP:
+      MagicShp.StockShop;
   end;
 end;
 

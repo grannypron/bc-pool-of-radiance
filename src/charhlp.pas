@@ -788,8 +788,8 @@ begin
         item^.name := item^.name + ' '
       else if ((1 shl (i - 1)) = mask) or ((i = 1) and (mask > 4) and (item^.itemType <> C_ITEM.FLASK_OF_OIL)) or
         ((i = 2) and not Odd(mask)) or ((i = 3) and (item^.itemType = C_ITEM.FLASK_OF_OIL)) or
-        (((item^.itemType = C_ITEM.ARROW) or (item^.itemType = C_ITEM.QUARREL)) and
-         (item^.nameIds[3] <> C_ITEM.NAME_SILVER)) then begin
+        (((item^.itemType = C_ITEM.ARROW) or (item^.itemType = C_ITEM.QUARREL) or
+          (item^.itemType = C_ITEM.DART)) and (item^.nameIds[3] <> C_ITEM.NAME_SILVER)) then begin
         item^.name := item^.name + 's ';
         appended := True;
       end else
