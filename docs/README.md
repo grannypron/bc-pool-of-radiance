@@ -11,6 +11,16 @@ This directory contains build instructions, release notes, implementation histor
 | [`CHANGELOG.md`](CHANGELOG.md) | Player-facing release notes: new features, gameplay and interface changes, fixes, and compatibility information. |
 | [`DETAILED-CHANGES.md`](DETAILED-CHANGES.md) | Developer-facing change history with implementation details, issue and commit references, data fixes, refactors, tests, and tooling changes. |
 
+## Distribution readmes
+
+[`dist-readmes/`](dist-readmes/) contains the platform-specific `README.TXT` files copied into native distribution archives. They explain how to start the game, locate original game data, choose data and save folders, and use the files bundled with each release.
+
+| File | Distribution |
+| --- | --- |
+| [`linux-readme.txt`](dist-readmes/linux-readme.txt) | Linux x86_64 and i386 archives. |
+| [`macos-readme.txt`](dist-readmes/macos-readme.txt) | macOS Apple Silicon archive. |
+| [`windows-readme.txt`](dist-readmes/windows-readme.txt) | Windows x64 and x86 archives. |
+
 ## Screen mockups
 
 [`screen-mocks/`](screen-mocks/) contains plain-text specifications for game and setup-program screens. In addition to an ASCII layout, most files document colors, available commands, and keyboard shortcuts. They are design and implementation references rather than screenshots.

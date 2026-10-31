@@ -5,7 +5,7 @@
 #   scripts/package-native.sh v1.4 [TARGET...]    the default targets: x86_64-linux i386-linux x86_64-win64 i386-win32
 #
 # Run this after build-native.sh has built each target. Each archive holds the game and poolcfg, this release's data
-# files from src/binaries, a README (scripts/linux-readme.txt or scripts/windows-readme.txt) and SHA256.TXT:
+# files from src/binaries, a README (docs/dist-readmes/linux-readme.txt or windows-readme.txt) and SHA256.TXT:
 #   x86_64-linux  dist/pool-of-radiance-<version>-linux-x86_64.tar.gz
 #   i386-linux    dist/pool-of-radiance-<version>-linux-i386.tar.gz
 #   x86_64-win64  dist/pool-of-radiance-<version>-windows-x64.zip, with SDL3.dll
@@ -68,7 +68,7 @@ for t in "${targets[@]}"; do
         continue
     fi
     [ ${#data[@]} -eq 0 ] || (cd "$root/src/binaries" && cp "${data[@]}" "$dir/")
-    cp "$root/scripts/$readme" "$dir/README.TXT"
+    cp "$root/docs/dist-readmes/$readme" "$dir/README.TXT"
     files=("${programs[@]}" ${data[@]+"${data[@]}"})
     (cd "$dir" && sha256sum "${files[@]}") > "$dir/SHA256.TXT"
     chmod 0644 "$dir"/*

@@ -4,16 +4,21 @@
 #
 #   scripts/sdl3-setup.sh            build SDL3 for this host and the cross targets fpc-setup.sh builds compilers for
 #   scripts/sdl3-setup.sh --print    print the folder SDL3 is (or would be) installed in, and stop
+#   scripts/sdl3-setup.sh --pack DIR set up as usual, then pack each target into DIR as goldbox-toolchain publishes it
+#                                    (scripts/toolchain-release.sh)
 #
-# build/toolchain selects the SDL version. Each target installs below $FPC_PREFIX/sdl3-<version>/<target>, using
-# ~/fpc as the default prefix. Static libraries keep the Linux and macOS game builds self-contained:
+# build/toolchain (or the file TOOLCHAIN_FILE names) selects the SDL version and the recipe (recipe=N), the revision
+# of how this script builds it. Each target installs below $FPC_PREFIX/sdl3-<version>/<target>, using ~/fpc as the
+# default prefix. Static libraries keep the Linux and macOS game builds self-contained:
 #   x86_64-linux    lib/libSDL3.a
 #   i386-linux      lib/libSDL3.a, when gcc -m32 links (a 32-bit C library is installed: Arch's lib32-glibc, Debian's
 #                   gcc-multilib); otherwise it is left out, and said so
 #   i386-win32      bin/SDL3.dll, which the game loads and the package ships; lib/libSDL3.a (mingw) is unused
 #   x86_64-win64    bin/SDL3.dll, likewise
 #   aarch64-darwin  lib/libSDL3.a (on an Apple Silicon Mac; there is no Intel Mac target)
-# A target already built is skipped.
+# A target already built is skipped. With TOOLCHAIN_RELEASES set, a target not yet built is downloaded from release
+# sdl3-<version>-r<recipe> first (see scripts/toolchain-release.sh), and only the rest are compiled. SDL_GIT_URL
+# builds from a mirror of SDL's repository, at tag release-<version>, instead of the release tarball from GitHub.
 #
 # The build requires CMake and Ninja. Linux uses the system packages. On macOS, missing tools are downloaded at the
 # pinned versions, verified against their published SHA-256 sums, and stored under $FPC_PREFIX/tools/bin. Nothing
@@ -22,16 +27,24 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-version="$(sed -n 's/^sdl3=\([0-9.]*\).*/\1/p' "$root/build/toolchain" 2> /dev/null | head -n 1)"
-[ -n "$version" ] || { echo "sdl3-setup.sh: build/toolchain has no sdl3=<version> line." >&2; exit 1; }
+toolchain="${TOOLCHAIN_FILE:-$root/build/toolchain}"
+version="$(sed -n 's/^sdl3=\([0-9.]*\).*/\1/p' "$toolchain" 2> /dev/null | head -n 1)"
+[ -n "$version" ] || { echo "sdl3-setup.sh: $toolchain has no sdl3=<version> line." >&2; exit 1; }
+recipe="$(sed -n 's/^recipe=\([0-9]*\).*/\1/p' "$toolchain" 2> /dev/null | head -n 1)"
+recipe="${recipe:-1}"
 prefix_root="${FPC_PREFIX:-$HOME/fpc}"
 prefix="$prefix_root/sdl3-$version"
+tag="sdl3-$version-r$recipe"
 
-if [ "${1:-}" = "--print" ]; then
-    echo "$prefix"
-    exit 0
-fi
-[ $# -eq 0 ] || { echo "sdl3-setup.sh: unknown option $1 (the only option is --print)" >&2; exit 2; }
+pack=""
+case "${1:-}" in
+    --print) echo "$prefix"; exit 0 ;;
+    --pack) [ $# -eq 2 ] || { echo "sdl3-setup.sh: --pack needs the folder to pack into." >&2; exit 2; }
+            pack="$2" ;;
+    "") ;;
+    *) echo "sdl3-setup.sh: unknown option $1 (the options are --print and --pack DIR)" >&2; exit 2 ;;
+esac
+. "$(dirname "${BASH_SOURCE[0]}")/toolchain-release.sh"
 
 case "$(uname -s)-$(uname -m)" in
     Linux-x86_64) targets=(x86_64-linux i386-win32 x86_64-win64) ;;
@@ -46,14 +59,33 @@ if [ "${targets[0]}" = x86_64-linux ]; then
     fi
 fi
 
-# Every target already built needs neither the tools nor the source, which a CI image deletes once it has built them.
+# Pack every target when asked to, and stop.
+finish() {
+    local t
+    if [ -n "$pack" ]; then
+        for t in "${targets[@]}"; do
+            release_pack "$prefix_root" "sdl3-$version/$t" "$tag-$t.tar.zst" "$pack"
+            echo "sdl3-setup.sh: packed $pack/$tag-$t.tar.zst"
+        done
+    fi
+    exit 0
+}
+
+# Download the targets not yet built that have a published build.
 missing=0
 for t in "${targets[@]}"; do
-    [ -f "$prefix/$t/lib/libSDL3.a" ] || missing=1
+    [ -f "$prefix/$t/lib/libSDL3.a" ] && continue
+    if release_fetch "$tag" "$tag-$t.tar.zst" "$prefix_root"; then
+        echo "sdl3-setup.sh: SDL3 $version for $t installed in $prefix/$t from release $tag"
+    else
+        release_missing "SDL3 $version for $t" "$tag"
+        missing=1
+    fi
 done
+# Every target already built needs neither the tools nor the source, which a CI image deletes once it has built them.
 if [ $missing -eq 0 ]; then
-    echo "sdl3-setup.sh: SDL3 $version is already in $prefix (${targets[*]})"
-    exit 0
+    echo "sdl3-setup.sh: SDL3 $version is in $prefix (${targets[*]})"
+    finish
 fi
 
 # The Forgejo macOS runner has neither tool on PATH, so install private copies when needed.
@@ -109,11 +141,18 @@ if [ ! -f "$source/CMakeLists.txt" ]; then
     echo "sdl3-setup.sh: downloading SDL3 $version..."
     rm -rf "$source" "$source.download"
     mkdir -p "$source.download"
-    curl -fsSL "https://github.com/libsdl-org/SDL/releases/download/release-$version/SDL3-$version.tar.gz" \
-        -o "$source.download/SDL3.tar.gz"
-    tar -xzf "$source.download/SDL3.tar.gz" -C "$source.download"
-    mv "$source.download/SDL3-$version" "$source"
-    rm -rf "$source.download"
+    if [ -n "${SDL_GIT_URL:-}" ]; then
+        git init -q "$source.download"
+        git -C "$source.download" fetch -q --depth 1 "$SDL_GIT_URL" "refs/tags/release-$version"
+        git -C "$source.download" checkout -q FETCH_HEAD
+        mv "$source.download" "$source"
+    else
+        curl -fsSL "https://github.com/libsdl-org/SDL/releases/download/release-$version/SDL3-$version.tar.gz" \
+            -o "$source.download/SDL3.tar.gz"
+        tar -xzf "$source.download/SDL3.tar.gz" -C "$source.download"
+        mv "$source.download/SDL3-$version" "$source"
+        rm -rf "$source.download"
+    fi
 fi
 
 # Build both forms. Linux and macOS use the static library; Windows ships the DLL.
@@ -147,3 +186,4 @@ for t in "${targets[@]}"; do
 done
 
 echo "sdl3-setup.sh: SDL3 $version installed in $prefix (${targets[*]})"
+finish

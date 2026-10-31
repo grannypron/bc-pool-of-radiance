@@ -19,12 +19,12 @@
 # Pull requests from forks are blocked because their code would run inside the private image. Checkout uses git
 # directly instead of actions/checkout, so jobs do not download actions from another service.
 #
-# The native job builds and tests the Linux and Windows ports in the same image, which also holds the pinned Free
-# Pascal and SDL3 builds under FPC_PREFIX (/opt/fpc), the MinGW cross-compilers and Wine. The setup scripts reuse
-# those installs; when build/toolchain's pins move past the image's, they build the new ones in the job until the
-# image is rebuilt. release-native packages each target with package-native.sh and attaches it to the DOS release.
-# Both jobs run only when the repository variable NATIVE_CI is 'true', which is set once CI_IMAGE has that
-# toolchain (#1106).
+# The native job builds and tests the Linux and Windows ports in the same image, which holds the MinGW
+# cross-compilers and Wine. The setup scripts download build/toolchain's Free Pascal and SDL3 from goldbox-toolchain's
+# releases on this forge into FPC_PREFIX (/opt/fpc), and never compile them here (TOOLCHAIN_FETCH_ONLY): a pin with no
+# release fails the job until it is tagged in goldbox-toolchain. release-native packages each target with
+# package-native.sh and attaches it to the DOS release. Both jobs run only when the repository variable NATIVE_CI is
+# 'true' (#1106).
 #
 # macOS jobs run directly on the private Apple Silicon runner, not in the Linux image. The macos job builds and tests
 # every push and pull request. release-macos signs, notarizes, staples, packages, and uploads the app after the DOS
@@ -176,8 +176,8 @@ jobs:
       vars.NATIVE_CI == 'true'
       && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: docker
-    # The image's toolchain makes this quick; a job that must build its own needs much longer.
-    timeout-minutes: 90
+    # The toolchain is downloaded, never built here; the Windows tests under Wine take the longest.
+    timeout-minutes: 30
     container:
       image: ${{ vars.CI_IMAGE }}
       credentials:
@@ -185,7 +185,7 @@ jobs:
         password: ${{ secrets.REGISTRY_TOKEN || 'none' }}
     strategy:
       matrix:
-        target: [x86_64-linux, x86_64-win64, i386-win32]
+        target: [x86_64-linux, i386-linux, x86_64-win64, i386-win32]
     env:
       FPC_PREFIX: /opt/fpc
     steps:
@@ -202,8 +202,14 @@ jobs:
           auth="Authorization: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
           git -c http.extraHeader="$auth" fetch -q --tags origin '+refs/heads/*:refs/remotes/origin/*' "+$REF:refs/ci/head"
           git checkout -q --detach "$SHA"
-      - name: Toolchain (Free Pascal and SDL3, already in the image)
-        run: scripts/fpc-setup.sh && scripts/sdl3-setup.sh
+      - name: Toolchain (Free Pascal and SDL3, from goldbox-toolchain's releases)
+        env:
+          CLONE_URL: ${{ github.event.repository.clone_url }}
+          TOOLCHAIN_FETCH_ONLY: 1
+        run: |
+          # https://<forge>/talonius/pool-of-radiance.git, less its owner and name.
+          export TOOLCHAIN_RELEASES="${CLONE_URL%/*/*}/talonius/goldbox-toolchain/releases/download"
+          scripts/fpc-setup.sh && scripts/sdl3-setup.sh
       # Windows tests run under Wine.
       - name: Run the ${{ matrix.target }} unit tests
         run: scripts/build-native.sh --test ${{ matrix.target }}
@@ -214,7 +220,7 @@ jobs:
     needs: [release, native]
     if: vars.NATIVE_CI == 'true' && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: docker
-    timeout-minutes: 90
+    timeout-minutes: 30
     container:
       image: ${{ vars.CI_IMAGE }}
       credentials:
@@ -225,6 +231,8 @@ jobs:
         include:
           - target: x86_64-linux
             archive: linux-x86_64.tar.gz
+          - target: i386-linux
+            archive: linux-i386.tar.gz
           - target: x86_64-win64
             archive: windows-x64.zip
           - target: i386-win32
@@ -254,8 +262,14 @@ jobs:
           git checkout "$TAG" -- src build
           echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct "$TAG")" >> "$GITHUB_ENV"
           echo "BUILD_REF=$TAG" >> "$GITHUB_ENV"
-      - name: Toolchain (Free Pascal and SDL3, already in the image)
-        run: scripts/fpc-setup.sh && scripts/sdl3-setup.sh
+      - name: Toolchain (Free Pascal and SDL3, from goldbox-toolchain's releases)
+        env:
+          CLONE_URL: ${{ github.event.repository.clone_url }}
+          TOOLCHAIN_FETCH_ONLY: 1
+        run: |
+          # https://<forge>/talonius/pool-of-radiance.git, less its owner and name.
+          export TOOLCHAIN_RELEASES="${CLONE_URL%/*/*}/talonius/goldbox-toolchain/releases/download"
+          scripts/fpc-setup.sh && scripts/sdl3-setup.sh
       - name: Build ${{ matrix.target }}
         run: scripts/build-native.sh ${{ matrix.target }}
       - name: Package
@@ -340,14 +354,14 @@ jobs:
           export NOTARY_ISSUER="$(cat /etc/forgejo-runner/signing/notary-issuer)"
           scripts/macos-sign.sh
       # Put project data files beside the stapled app, where the game expects them. They remain outside the signed
-      # bundle. The archive unpacks directly into a game directory, and scripts/macos-readme.txt explains how the app
-      # locates retail data and chooses its writable save directory (#1064).
+      # bundle. The archive unpacks directly into a game directory, and docs/dist-readmes/macos-readme.txt explains how
+      # the app locates retail data and chooses its writable save directory (#1064).
       - name: Package
         run: |
           stage="$(mktemp -d)"
           ditto "obj/native/macos/Pool of Radiance.app" "$stage/Pool of Radiance.app"
           [ ! -d src/binaries ] || find src/binaries -maxdepth 1 -type f -exec cp {} "$stage/" \;
-          cp scripts/macos-readme.txt "$stage/README.TXT"
+          cp docs/dist-readmes/macos-readme.txt "$stage/README.TXT"
           mkdir -p dist
           rm -f "dist/pool-of-radiance-$TAG-macos.zip"
           (cd "$stage" && ditto -c -k --sequesterRsrc . "$OLDPWD/dist/pool-of-radiance-$TAG-macos.zip")
