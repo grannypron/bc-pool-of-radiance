@@ -21,6 +21,27 @@ procedure ToggleQuickMagic;
   leaves quick-fight. The combat menu and the AI's key check both call it (#640). }
 procedure AllToManual;
 
+{ True when creature's side knows what item is, so the AI may choose by it: the item is identified (unidMask 0), or
+  creature is not on the party's side (CharHlp.Team 1), whose monsters know their own gear. The party's AI weighs only
+  what the player could see (#1143). }
+function KnowsItem(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
+
+{ Weapon score for EquipWeaponAndShield: damage dice product, +8 per plus, +2 per damage bonus (holy water against an
+  undead target scores 8), launchers +2 per extra shot, one-handed +3. Zero when it would exceed 3 hands, for an aligned
+  weapon of another alignment, for the Javelin of Lightning and when cursed. A weapon creature does not know
+  (KnowsItem) is scored as the mundane weapon: no plus, and none of the last three, which only identifying shows
+  (#1143). }
+function CalcWeaponPriority(creature: Types.PCharRecord; item: Types.PItemRec): Byte;
+
+{ How many creatures spell, cast by creature (the creature acting, GameVars.curChar), would usefully affect now; 0
+  when it is not worth casting (#1086, #1087). Cure Light Wounds: 1 with a wounded ally to cure. Any other spell that
+  is not offensive, which the AI casts on the caster: 1 while the caster is not under its effect; Resist Fire and
+  Resist Cold only once an enemy has been seen doing that element's damage this fight (FxEngine.seenElements), and
+  Protection From Normal Missiles only while an enemy has a missile weapon readied. An offensive spell: how many
+  CbtActs.BestAim finds it would affect; an area spell needs 2 of them, as a player keeping the spell for the next
+  fight would not spend it on one, except Silence, since one silenced caster is what it is for. }
+function SpellImpact(creature: Types.PCharRecord; spell: Byte): Byte;
+
 implementation
 
 uses C_ITEM, C_NPC, C_TERR, C_COND, GameDefs, GameVars, Crt, CbtActs, FxEngine, C_EFFECT, C_EQUIP, C_CLASS, C_STATUS,
@@ -161,12 +182,37 @@ begin
     TurnUndeadAi := False;
 end;
 
-{ How many creatures spell, cast by creature (the creature acting, GameVars.curChar), would usefully affect now; 0
-  when it is not worth casting (#1086). Cure Light Wounds: 1 with a wounded ally to cure (FindCureTarget). Any other
-  spell that is not offensive, which the AI casts on the caster: 1 while the caster is not under its effect, so no
-  second Bless. An offensive spell: how many CbtActs.BestAim finds it would affect, where it will obviously do
-  something (CbtActs.SpellCanAffect); an area spell (aiRadius > 0) needs SPELL_FLOOR of them, as a player keeping the
-  spell for the next fight would not spend it on one. }
+{ True when an enabled enemy of creature has been seen doing elem damage this fight (FxEngine.seenElements). }
+function EnemySeenDoing(creature: Types.PCharRecord; elem: Byte): Boolean;
+var
+  i: Byte;
+  p: Types.PCharRecord;
+begin
+  EnemySeenDoing := False;
+  for i := 1 to Pathing.LastSlot do begin
+    p := GameVars.creatureArr[i];
+    if p <> nil then
+      if (p^.enabled <> 0) and (CharHlp.Team(p) = CharHlp.EnemyTeam(creature))
+         and ((FxEngine.seenElements[i] and elem) <> 0) then
+        EnemySeenDoing := True;
+  end;
+end;
+
+{ True when an enabled enemy of creature has a missile weapon readied (CharHlp.HasRangedWeapon), which anyone can see. }
+function EnemyHasMissiles(creature: Types.PCharRecord): Boolean;
+var
+  i: Byte;
+  p: Types.PCharRecord;
+begin
+  EnemyHasMissiles := False;
+  for i := 1 to Pathing.LastSlot do begin
+    p := GameVars.creatureArr[i];
+    if p <> nil then
+      if (p^.enabled <> 0) and (CharHlp.Team(p) = CharHlp.EnemyTeam(creature)) and CharHlp.HasRangedWeapon(p) then
+        EnemyHasMissiles := True;
+  end;
+end;
+
 function SpellImpact(creature: Types.PCharRecord; spell: Byte): Byte;
 const
   SPELL_FLOOR = 2;
@@ -175,20 +221,28 @@ var
   effect: Types.PEffectRec;
   eff: Byte;
   count: Byte;
+  threat: Boolean;
 begin
   SpellImpact := 0;
   if spell = C_SPELL.CURE_LIGHT_WOUNDS then begin
     if CbtActs.FindCureTarget(creature, tgt) then
       SpellImpact := 1;
   end else if GameDefs.spellTable[spell].offensive = 0 then begin
+    case spell of
+      C_SPELL.RESIST_FIRE: threat := CombatAi.EnemySeenDoing(creature, C_EFFECT.ELEM_FIRE);
+      C_SPELL.RESIST_COLD: threat := CombatAi.EnemySeenDoing(creature, C_EFFECT.ELEM_COLD);
+      C_SPELL.PROT_NORMAL_MISSILES: threat := CombatAi.EnemyHasMissiles(creature);
+    else
+      threat := True;
+    end;
     eff := GameDefs.spellTable[spell].effect;
-    if (eff = 0) or not CharHlp.HasEffect(creature, eff, effect) then
+    if threat and ((eff = 0) or not CharHlp.HasEffect(creature, eff, effect)) then
       SpellImpact := 1;
   end else begin
     { no targets picked yet }
     FillChar(GameVars.spellTargets, SizeOf(GameVars.spellTargets), 0);
     if CbtActs.BestAim(spell, count) <> nil then
-      if (GameDefs.spellTable[spell].aiRadius = 0) or (count >= SPELL_FLOOR) then
+      if (GameDefs.spellTable[spell].aiRadius = 0) or (spell = C_SPELL.SILENCE) or (count >= SPELL_FLOOR) then
         SpellImpact := count;
   end;
 end;
@@ -202,7 +256,8 @@ end;
 
 { Pick an equipped item whose spell effect the AI should use; needs itemUseAllowed, a remaining enemy team and no
   anti-magic. Over 1d7 passes the minimum aiPriority drops from 7, and the first equipped item that is not readable, has
-  special < $80 and has an effect DecideCastSpell accepts is used through Magic.UseItem. }
+  special < $80 and has an effect DecideCastSpell accepts is used through Magic.UseItem. The party's AI passes over an
+  item it has not identified (KnowsItem), whose spell the player could not know to choose it by (#1143). }
 function SelectItemToUse(creature: Types.PCharRecord): Boolean;
 var
   lowPri: Byte;
@@ -226,7 +281,7 @@ begin
         { the spell Use would cast: none past spellTable, which is not rated, as SelectSpellToCast leaves such entries
           out (#708) }
         effect := CharHlp.ItemSpell(item);
-        if (item^.equipped <> 0) and (effect <> C_SPELL.NONE) then
+        if (item^.equipped <> 0) and (effect <> C_SPELL.NONE) and CombatAi.KnowsItem(creature, item) then
           if CombatAi.DecideCastSpell(creature, effect, lowPri) then
             chosen := item;
         item := item^.next;
@@ -244,7 +299,8 @@ end;
   memorized) or past the table is left out. Each is weighed by how many it would affect (SpellImpact) times its
   aiPriority, and one is drawn at random by weight, so the big plays come up most and the AI still fumbles now and
   then; one that would do nothing, or has priority 0, is never drawn (#1086). It goes to CbtActs.CastSpellCombat,
-  whose result is returned. SSI drew at random over passes of falling priority, whatever the spell would do. }
+  whose result is returned. SSI drew at random over passes of falling priority, whatever the spell would do. Nothing
+  is cast in an anti-magic area (CharHlp.AntiMagicArea), where the Cast menu is not offered either (#1120). }
 function SelectSpellToCast(creature: Types.PCharRecord): Boolean;
 var
   list: Types.TSpellSlots;
@@ -257,7 +313,7 @@ var
   chosen: Byte;
 begin
   count := 0;
-  if creature^.combatAddr^.castAllowed <> 0 then
+  if (creature^.combatAddr^.castAllowed <> 0) and not CharHlp.AntiMagicArea then
     for k := 0 to Types.SPELL_SLOT_LAST do
       { a pending entry (bit 7) is past the table too }
       if (creature^.memorizedSpells[k] > 0) and (creature^.memorizedSpells[k] <= C_SPELL.TABLE_LAST) then begin
@@ -723,17 +779,21 @@ begin
   end;
 end;
 
-{ Weapon score for EquipWeaponAndShield: damage dice product, +8 per plus, +2 per damage bonus (holy water against an
-  undead target scores 8), launchers +2 per extra shot, one-handed +3. Zero when it would exceed 3 hands, for an aligned
-  weapon of another alignment, for the Javelin of Lightning and when cursed. }
+function KnowsItem(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
+begin
+  KnowsItem := (item^.unidMask = 0) or (CharHlp.Team(creature) <> 0);
+end;
+
 function CalcWeaponPriority(creature: Types.PCharRecord; item: Types.PItemRec): Byte;
 var
   pri: Byte;
   base: Types.TBaseItemRec;
+  known: Boolean;
 begin
+  known := CombatAi.KnowsItem(creature, item);
   base := CharHlp.BaseItem(item^.itemType)^;
   pri := base.dmgSmDice * base.dmgSmRolls;
-  if item^.plus > 0 then
+  if known and (item^.plus > 0) then
     pri := pri + item^.plus * 8;
   if base.dmgSmMod > 0 then
     pri := pri + base.dmgSmMod * 2;
@@ -749,14 +809,17 @@ begin
   if base.hands + creature^.handsEquipped > 3 then
     { not enough hands }
     pri := 0;
-  { aligned weapon }
-  if item^.special = C_EFFECT.ALIGNED_WEAPON then
-    if (item^.effect and $F) <> creature^.alignment then
+  { what only identifying the weapon tells: an unidentified one is scored as the mundane weapon (#1143) }
+  if known then begin
+    { aligned weapon }
+    if item^.special = C_EFFECT.ALIGNED_WEAPON then
+      if (item^.effect and $F) <> creature^.alignment then
+        pri := 0;
+    if item^.effect = C_SPELL.ITEM_JAVELIN_LIGHTNING + C_SPELL.ITEM_EFFECT_SHIFT then
       pri := 0;
-  if item^.effect = C_SPELL.ITEM_JAVELIN_LIGHTNING + C_SPELL.ITEM_EFFECT_SHIFT then
-    pri := 0;
-  if item^.cursed <> 0 then
-    pri := 0;
+    if item^.cursed <> 0 then
+      pri := 0;
+  end;
   CalcWeaponPriority := pri;
 end;
 
@@ -817,8 +880,11 @@ begin
     { shield slot }
     if CharHlp.BaseItem(itType)^.slot = C_EQUIP.SHIELD then
       if (CharHlp.BaseItem(itType)^.classMask and creature^.itemLimits) > 0 then begin
-        { a cursed shield is never picked, as CalcWeaponPriority scores a cursed weapon 0 }
-        if (item^.plus >= 0) and (item^.cursed = 0) then
+        { a cursed shield is never picked, as CalcWeaponPriority scores a cursed weapon 0; an unidentified one is
+          scored as a mundane shield (#1143) }
+        if not CombatAi.KnowsItem(creature, item) then
+          pri := 1
+        else if (item^.plus >= 0) and (item^.cursed = 0) then
           pri := item^.plus + 1
         else
           pri := 0;

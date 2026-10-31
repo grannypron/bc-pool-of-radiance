@@ -60,6 +60,9 @@ Most of these changes are small on their own, but together they make the game ea
 The fixes below cover both visible bugs and rare failures that could damage a save, hang combat, or behave differently across platforms.
 
 - The combat AI, the party's in Quick mode and the monsters' alike, casts a spell only where it obviously does something: no Hold Person or Charm Person on scorpions and skeletons, no Sleep on the undead, no Silence on creatures it hasn't seen cast, no second Bless. It favours the spell that does the most, still now and then not the best, and saves its area spells for two or more.
+- The combat AI casts Silence at a single enemy it has seen cast, no longer drops a Stinking Cloud on creatures already in one or already retching, and casts Resist Fire or Resist Cold only once an enemy has done fire or cold damage in the fight, and Protection From Normal Missiles only while an enemy holds a bow or other missile weapon.
+- In Quick mode your characters no longer pick out magic weapons and shields you haven't identified: an unidentified +2 sword looks like any other sword to them, as it does to you, and they don't use an unidentified wand or other magic item.
+- AI casters, yours in Quick mode and the monsters', no longer cast spells where magic doesn't work, such as the Lizard Men's keep.
 - On Linux and macOS, `poolcfg` leaves without saving if its terminal goes away, instead of running on in the background at full speed; run with its input or output redirected, it says it needs a terminal instead of crashing.
 - Free the Temple of Bane before taking Dirten's mission and the bishop no longer sends him along: he thanks you and Dirten goes to restore the temple himself. A party already stuck with him says farewell to him at the temple's altar. Once destroyed, the altar also stays destroyed.
 - The priests of Tyr now offer to take the Mad Man into their care, and he leaves the party if you agree, instead of being told to drop him.

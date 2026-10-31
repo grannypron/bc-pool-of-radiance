@@ -78,11 +78,17 @@ function FindCureTarget(creature: Types.PCharRecord; var tgt: Pointer): Boolean;
   throws, resistances and the like are hidden, and never count. }
 function SpellCanAffect(spell: Byte; target, caster: Types.PCharRecord): Boolean;
 
+{ How many of GameVars.curChar's enemies a Stinking Cloud aimed at cell (x, y) would usefully catch (SpellCanAffect):
+  each creature once, in the cloud's 2x2 block (GameDefs.cloudDir: the aim cell, E, SE, S), on a cell the cloud can
+  fill (terrain cost below 255). 0 when the block holds anyone not of the enemy team. }
+function CloudCatch(x, y: ShortInt): Byte;
+
 { The best aim of spell for the creature acting (GameVars.curChar), among the enemies in its range (CbtMap.CountTargets)
   it may target (enabled, CbtActs.CanTarget): for an area spell (aiRadius > 0), the one whose area catches the most
-  enemies spell can affect (SpellCanAffect) and no one else (AreaHitsNonEnemy), ties at random; for any other, one at
-  random of those spell can affect and not among GameVars.spellTargets already. count is how many it would affect:
-  the area's catch, or those it can affect up to its count of targets (CharHlp.SpellArea). nil and 0 when none. }
+  enemies spell can affect (SpellCanAffect) and no one else (AreaHitsNonEnemy; Stinking Cloud counts its own 2x2 block,
+  CloudCatch), ties at random; for any other, one at random of those spell can affect and not among
+  GameVars.spellTargets already. count is how many it would affect: the area's catch, or those it can affect up to its
+  count of targets (CharHlp.SpellArea). nil and 0 when none. }
 function BestAim(spell: Byte; var count: Byte): Types.PCharRecord;
 
 procedure SelectCombatTargets(spell: Byte; b: Boolean; var cast: Boolean);
@@ -1091,6 +1097,48 @@ begin
     PartyKnows := Bestiary.Knows(Bestiary.Entry(i)^, fact);
 end;
 
+{ True when creature stands in a Stinking Cloud: ConsiderStinkingCloud's test, a cloud cell under any of its own cells
+  (CbtMap.ProbeDirection, C_DIR.CENTER). }
+function InCloud(creature: Types.PCharRecord): Boolean;
+var
+  crIdx: Byte;
+  terrIdx: Byte;
+begin
+  CbtMap.ProbeDirection(creature, C_DIR.CENTER, crIdx, terrIdx);
+  InCloud := terrIdx = C_TERR.STINKING_CLOUD;
+end;
+
+function CloudCatch(x, y: ShortInt): Byte;
+var
+  crIdx: array[1..4] of Byte;
+  terr: Byte;
+  caught: Byte;
+  k: Byte;
+  j: Byte;
+  first: Boolean;
+  p: Types.PCharRecord;
+begin
+  CloudCatch := 0;
+  caught := 0;
+  for k := 1 to 4 do begin
+    CbtMap.GetArenaContents(x + GameDefs.dirDX[GameDefs.cloudDir[k]], y + GameDefs.dirDY[GameDefs.cloudDir[k]],
+                            crIdx[k], terr);
+    if (terr = 0) or (GameDefs.terrainInfo[terr].cost >= 255) then
+      crIdx[k] := 0;
+    if crIdx[k] > 0 then begin
+      p := GameVars.creatureArr[crIdx[k]];
+      if CharHlp.Team(p) <> CharHlp.EnemyTeam(GameVars.curChar) then Exit;
+      first := True;
+      for j := 1 to k - 1 do
+        if crIdx[j] = crIdx[k] then
+          first := False;
+      if first and CbtActs.SpellCanAffect(C_SPELL.STINKING_CLOUD, p, GameVars.curChar) then
+        Inc(caught);
+    end;
+  end;
+  CloudCatch := caught;
+end;
+
 function SpellCanAffect(spell: Byte; target, caster: Types.PCharRecord): Boolean;
 var
   effect: Types.PEffectRec;
@@ -1121,7 +1169,8 @@ begin
             not CbtActs.PartyKnows(caster, target, C_BEAST.IMMUNE_SLEEP_CHARM);
     end;
     C_SPELL.SNAKE_CHARM: ok := target^.name = C_SPELL.SNAKE_NAME;
-    C_SPELL.STINKING_CLOUD: ok := not FxEngine.CloudProof(target);
+    { a creature nauseated already, or standing in a cloud that tries it each round, gains nothing from a new one }
+    C_SPELL.STINKING_CLOUD: ok := not FxEngine.CloudSpares(target) and not CbtActs.InCloud(target);
     C_SPELL.CAUSE_DISEASE: ok := target^.charType <> CharHlp.UNDEAD_TYPE;
     C_SPELL.SILENCE: ok := CbtMap.CombatSlot(target) in CbtActs.seenCasting;
   end;
@@ -1158,9 +1207,13 @@ begin
       if radius > 0 then begin
         if not CbtActs.AreaHitsNonEnemy(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), radius) then begin
           caught := 0;
-          for j := 1 to GameVars.targetCount do
-            if CbtActs.SpellCanAffect(spell, GameVars.creatureArr[GameVars.targetList[j].idx], GameVars.curChar) then
-              Inc(caught);
+          if spell = C_SPELL.STINKING_CLOUD then
+            { the cloud fills a 2x2 block, not the radius around the aim }
+            caught := CbtActs.CloudCatch(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p))
+          else
+            for j := 1 to GameVars.targetCount do
+              if CbtActs.SpellCanAffect(spell, GameVars.creatureArr[GameVars.targetList[j].idx], GameVars.curChar) then
+                Inc(caught);
           if caught > count then begin
             count := caught;
             best := p;
