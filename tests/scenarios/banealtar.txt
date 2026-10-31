@@ -1,0 +1,12 @@
+# Tests the Temple of Bane's altar staying destroyed (#1139). The fixture is bane's, save A beside the altar at (13,7),
+# with the temple freed without Dirten and its altar destroyed on an earlier visit (C_GBVM.BANE_ALTAR_DESTROYED = 1).
+# Stepping onto the altar shows its remains, not the offer to destroy it again.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/banealtar
+press l a
+wait AREA 120
+press up
+wait AREA
+checkpoint remains

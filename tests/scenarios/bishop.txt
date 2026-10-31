@@ -1,0 +1,25 @@
+# Tests the bishop's study once the Temple of Bane is freed without Dirten (#1139). The fixture places save A on the
+# study's square in New Phlan, (10,5), summoned by City Hall, with the temple freed but its reward not yet paid and
+# Dirten never joined. Look runs the study's event: the bishop thanks the party and Dirten goes to restore the temple
+# without joining. The save records [$4A9C] = $FF and [$4A79] = 0, the state the temple's altar takes as freed with
+# Dirten.
+boot NORAND
+ignore POOL OF RADIANCE V
+ignore \d{4}/\d\d/\d\d \d\d:\d\d
+wait RADIANCE
+put saves/bishop
+press l a
+wait AREA 120
+press l
+wait CONTINUE
+checkpoint thanks
+press ret
+wait AREA
+checkpoint party
+press e
+wait CAMP
+press s b
+wait ^SAVE: EXIT
+press ret
+wait CAMP
+saves thanked SAVGAMB.DAT

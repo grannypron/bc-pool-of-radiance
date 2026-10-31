@@ -66,4 +66,8 @@ the text matches (an animated picture) is only a warning.
 | `stojanow` | Stojanow Gate once taken (#683), from save A moved there (`saves/stojanow`): the cheer before the gatehouse and behind it, once a visit, and the guard room become barracks |
 | `bane` | the Temple of Bane freed with Dirten in the party (#682), from save A moved beside its altar with a member made Dirten (`saves/bane`): the fight won with Alt-X, the farewell, the day kept in the save, the rebuilding |
 | `banetemple` | Dirten's temple 14 days on (#682, `saves/banetemple`): his welcome, the temple, Cure Light Wounds at 90 gold pieces, the view restored |
+| `banestuck` | a party stuck with Dirten (#1139), from bane's fixture with the temple freed without him and him in the party after (`saves/banestuck`): his farewell at the altar, then the rebuilding |
+| `banealtar` | the Temple of Bane's altar destroyed on an earlier visit (#1139, `saves/banealtar`): its remains, not the offer to destroy it again |
+| `bishop` | the bishop's study once the temple is freed without Dirten (#1139), save A on its square, (10,5) (`saves/bishop`): the bishop's thanks, Dirten not joining, `[$4A9C]` and `[$4A79]` in the save |
+| `madman` | the Temple of Tyr with the Mad Man in the party (#1138), save A on its square, (8,4) (`saves/madman`): the priest's question, No (the greeting and the offer of healing), then Yes (he leaves the party) |
 | `ssiformat` | against SSI's own v1.3 (`tests/regress.sh drive_c/POOLRAD/SSI obj tests/scenarios/ssiformat.txt`): the `.CHA` file Remove writes and the files saving A into D writes are SSI's (`CHARLIST.TXT` is left out: a party member stays on the roster, #754), with SSI's heap pointers, the unused name bytes and the saved script masked |
