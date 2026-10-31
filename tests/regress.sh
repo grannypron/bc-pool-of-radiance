@@ -22,7 +22,7 @@
 # gives the machine that card (goldbox-player's opl2, or sb2 with its OPL2); the golden build's results are kept apart,
 # in record-adlib.json or record-sb.json. With sb, the candidate's SBSFX.DAT is staged too (copied from
 # drive_c/POOLRAD, where scripts/sbsfx.py writes it, when the candidate folder has none); a golden build without one runs
-# without it, its effects on the speaker.
+# without it, its effects on the speaker. SOUND=none sets the letter to S, no sound device (#1156), on the same machine.
 # MEMSIZE=N gives the emulator N MB instead of goldbox-player's 1 MB: more gives the game EMS, which it loads its
 # overlays from (STING Ctrl-Y says from EMS or disk). Its golden results are kept apart too: record-16mb.json,
 # record-vga-16mb.json and so on.
@@ -60,12 +60,14 @@ case "${SOUND:-}" in
     "") ;;
     adlib) letter=A; sound=(--opl opl2) ;;
     sb) letter=B; sound=(--sb sb2 --stage SBSFX.DAT) ;;
-    *) echo "regress.sh: SOUND is adlib or sb" >&2; exit 2 ;;
+    none) letter=S ;;
+    *) echo "regress.sh: SOUND is adlib, sb or none" >&2; exit 2 ;;
 esac
-if [ ${#sound[@]} -gt 0 ]; then
-    mkdir -p "$root/obj"
-    sed "2s/.*/$letter\r/" "$config" > "$root/obj/regress-$SOUND.CFG"
-    config="$root/obj/regress-$SOUND.CFG"
+if [ -n "${SOUND:-}" ]; then
+    # staged under its own name, which must be POOL.CFG for the game to read it
+    mkdir -p "$root/obj/regress-$SOUND"
+    sed "2s/.*/$letter\r/" "$config" > "$root/obj/regress-$SOUND/POOL.CFG"
+    config="$root/obj/regress-$SOUND/POOL.CFG"
     record="${record%.json}-$SOUND.json"
 fi
 # the Sound Blaster's samples: scripts/sbsfx.py writes them into the play install, and a build without them (the golden)

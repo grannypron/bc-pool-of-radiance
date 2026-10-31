@@ -24,6 +24,8 @@ const
   A_WARN = $1F;
   A_BAD = $1C;
   A_CHANGED = $1A;
+  { a line that cannot be changed: light grey (#1156) }
+  A_OFF = $17;
   A_HOT = $1F;
   { the highlight, a stepping line's choice not picked, the title bar (grey, as Borland's menu bar) }
   A_HIGHLIGHT = $30;

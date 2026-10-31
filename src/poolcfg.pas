@@ -661,6 +661,28 @@ begin
   SettingRow := 3 + CfgFile.SettingLine(opt);
 end;
 
+{ POOL.CFG as Setup will write it gives the game no sound device (CfgFile.NoSoundDevice), so the Sound Settings page
+  shows Music and Sound OFF and greys its lines, which the arrows pass by (#1156). Never natively, where the game plays
+  Digital Audio whatever the letter (#1097). }
+function NoDevice: Boolean;
+begin
+{$IFDEF FPC}
+  NoDevice := False;
+{$ELSE}
+  NoDevice := CfgFile.NoSoundDevice(cfg.sound);
+{$ENDIF}
+end;
+
+{ The settings a settings page cannot change: without a sound device the Sound page's (CfgFile.Silenced). }
+function Locked(opt: Byte): Boolean;
+var
+  skip: CfgFile.TOptSet;
+begin
+  skip := [];
+  CfgFile.Silenced(NoDevice, skip);
+  Locked := opt in skip;
+end;
+
 { What setting opt does, its lines split at '|', for the About box. }
 function AboutText(opt: Byte): string;
 begin
@@ -679,12 +701,7 @@ begin
     C_OPT.OPT_MUSIC: AboutText := 'Every tune at once.';
     C_OPT.OPT_TITLE_MUSIC: AboutText := 'The title theme.';
     C_OPT.OPT_BATTLE_MUSIC: AboutText := 'The music as a fight starts.';
-{$IFDEF FPC}
     C_OPT.OPT_SOUND: AboutText := 'Every sound effect at once|(Ctrl-S in the game).';
-{$ELSE}
-    C_OPT.OPT_SOUND: AboutText := 'Every sound effect at once|(Ctrl-S in the game).||' +
-                                  'With no sound device in|POOL.CFG the game stays|silent whatever this says.';
-{$ENDIF}
     C_OPT.OPT_FOOTSTEPS: AboutText := 'The party''s steps.';
     C_OPT.OPT_RANGED: AboutText := 'Missiles in flight and their|hits and misses.';
     C_OPT.OPT_MELEE: AboutText := 'Melee attacks'' hits and|misses.';
@@ -725,7 +742,8 @@ begin
   end;
 end;
 
-{ The About box for setting opt: its name, what it does, its default and its key. }
+{ The About box for setting opt: its name, what it does, its default and its key; for a setting without a sound device
+  to play on (Locked), how to get one. }
 procedure DrawAbout(opt: Byte);
 var
   text: string;
@@ -745,12 +763,20 @@ begin
     Delete(text, 1, bar);
     Inc(row);
   end;
+  if Locked(opt) then begin
+    Inc(row);
+    TuiKit.PutText(48, row, TuiKit.A_WARN, 'No sound device in POOL.CFG:');
+    TuiKit.PutText(48, row + 1, TuiKit.A_WARN, 'pick one on the Hardware page');
+    TuiKit.PutText(48, row + 2, TuiKit.A_WARN, 'to change these.');
+    Inc(row, 3);
+  end;
   Inc(row);
   TuiKit.PutText(48, row, TuiKit.A_TEXT, 'Default  ' + CfgFile.StoredValue(defaults, opt));
   TuiKit.PutText(48, row + 1, TuiKit.A_TEXT, 'Key      ' + CfgFile.KeyName(opt));
 end;
 
-{ Setting opt on its row, highlighted when sel: its label, and its value, or a stepping line's two choices. }
+{ Setting opt on its row, highlighted when sel: its label, and its value (CfgFile.ShownValue), or a stepping line's two
+  choices; all in TuiKit.A_OFF, and never highlighted, when it cannot be changed (Locked). }
 procedure DrawSettingLine(opt: Byte; sel: Boolean);
 var
   row: Byte;
@@ -761,18 +787,23 @@ var
 begin
   row := SettingRow(opt);
   TuiKit.PutRun(3, row, TuiKit.A_TEXT, ' ', 42);
-  TuiKit.PutText(4, row, TuiKit.A_TEXT, CfgFile.SettingLabel(opts, opt));
+  attr := TuiKit.A_TEXT;
+  if Locked(opt) then
+    attr := TuiKit.A_OFF;
+  TuiKit.PutText(4, row, attr, CfgFile.SettingLabel(opts, opt));
   attr := TuiKit.A_VALUE;
   if SettingChanged(opt) then
     attr := TuiKit.A_CHANGED;
+  if Locked(opt) then
+    attr := TuiKit.A_OFF;
   if CfgFile.StepNames(opt, left, right) then
     value := left + ' ' + right
   else
-    value := CfgFile.StoredValue(opts, opt);
+    value := CfgFile.ShownValue(opts, opt, NoDevice);
   if SettingChanged(opt) then
     value := value + '*';
   TuiKit.PutText(28, row, attr, value);
-  if sel then begin
+  if sel and not Locked(opt) then begin
     TuiKit.Recolor(3, row, 42, TuiKit.A_HIGHLIGHT);
     if CfgFile.StepNames(opt, left, right) then
       if stepRight then
@@ -807,7 +838,7 @@ begin
 end;
 
 { Settings page page (POOLOPT.CFG's settings, as the game's Settings screen lists them) until Escape, or F10 saves
-  and leaves. }
+  and leaves. A setting that cannot be changed (Locked) is passed by; when they all are, the keys change nothing. }
 procedure SettingsPage(page: Byte);
 var
   sel: Byte;
@@ -817,7 +848,7 @@ var
   left: CfgFile.TName;
   right: CfgFile.TName;
   stepping: Boolean;
-  { the other page's settings, which the arrows pass by }
+  { the other page's settings, and those that cannot be changed (Locked), which the arrows pass by }
   other: CfgFile.TOptSet;
   first: Byte;
   last: Byte;
@@ -827,13 +858,20 @@ begin
   first := 0;
   last := 0;
   for opt := 1 to C_OPT.OPT_COUNT do
-    if CfgFile.SettingPage(opt) <> page then
+    if (CfgFile.SettingPage(opt) <> page) or Locked(opt) then
       other := other + [opt]
     else begin
       if first = 0 then
         first := opt;
       last := opt;
     end;
+  { a page with nothing to change keeps its first line for the About box }
+  if first = 0 then
+    for opt := C_OPT.OPT_COUNT downto 1 do
+      if CfgFile.SettingPage(opt) = page then
+        first := opt;
+  if last = 0 then
+    last := first;
   sel := first;
   stepRight := False;
   DrawSettings(page, sel);
@@ -841,6 +879,8 @@ begin
   repeat
     TuiKit.GetKey(ch, ext);
     stepping := CfgFile.StepNames(sel, left, right);
+    if Locked(sel) and ((ext and (ch <> C_KEYS.F10)) or (ch in [' ', C_KEYS.ENTER])) then
+      ch := C_KEYS.NONE;
     if ext then
       case ch of
         C_KEYS.UP: sel := CfgFile.NextSetting(sel, False, other);
