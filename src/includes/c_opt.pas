@@ -45,7 +45,7 @@ const
   { the most lines read from POOLOPT.CFG; anything after them is ignored, and dropped when the file is written }
   MAX_LINES = 100;
   { The settings, in the Settings screen's order, the Game page's around the Sound page's (OPT_FIRST_SOUND to
-    OPT_LAST_SOUND); the sub-settings follow the setting they come under. }
+    OPT_LAST_SOUND); the sub-settings follow the setting or heading (CfgFile.Heading) they come under. }
   OPT_SPEED = 1;
   OPT_PORTRAITS_ALL = 2;
   OPT_MONSTERS = 3;
@@ -73,13 +73,30 @@ const
   OPT_RETRIEVE = 20;
   OPT_COMPANION = 21;
   OPT_CLUES = 22;
+  { the Camp page's settings (OPT_FIRST_CAMP to OPT_LAST_CAMP): Rest memorizes each caster's usual spells when none
+    is pending (#1119), and under the Fix heading (#1129) what Fix may use besides the clerics' spells: scrolls,
+    potions, and a paladin's weekly cure and daily laying on of hands }
+  OPT_AUTO_MEMORIZE = 23;
+  OPT_FIX_SCROLLS = 24;
+  OPT_FIX_POTIONS = 25;
+  OPT_FIX_CURE = 26;
+  OPT_FIX_HEAL = 27;
   { the combat log (#841), and how many messages it keeps }
-  OPT_COMBAT_LOG = 23;
-  OPT_LOG_LINES = 24;
-  OPT_COUNT = 24;
-  { the Sound page's settings, from the music to the sound effects; every other setting is the Game page's }
+  OPT_COMBAT_LOG = 28;
+  OPT_LOG_LINES = 29;
+  OPT_COUNT = 29;
+  { the Sound page's settings, from the music to the sound effects, and the Camp page's; every other setting is the
+    Game page's }
   OPT_FIRST_SOUND = OPT_MUSIC;
   OPT_LAST_SOUND = OPT_SPELLS;
+  OPT_FIRST_CAMP = OPT_AUTO_MEMORIZE;
+  OPT_LAST_CAMP = OPT_FIX_HEAL;
+  { the pages the settings are shown on (CfgFile.SettingPage), in the order the game's Settings screen and POOLCFG
+    offer them }
+  OPT_PAGE_GAME = 1;
+  OPT_PAGE_SOUND = 2;
+  OPT_PAGE_CAMP = 3;
+  OPT_PAGES = 3;
   { the settings that are ON or OFF }
   OPT_FIRST_FLAG = OPT_PORTRAITS_ALL;
   OPT_LAST_FLAG = OPT_COMBAT_LOG;

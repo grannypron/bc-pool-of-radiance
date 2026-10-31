@@ -19,7 +19,7 @@ implementation
 
 uses Types, Crt, C_MSG, GameDefs, GameVars, CharGen, GameTime, C_EFFECT, C_KEYS, C_STATUS, C_IFC, C_SPELL, C_LEVEL,
   FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
-  CharDisp, Party, Dice, UsualSpl, Clock, Explore;
+  CharDisp, Party, Dice, UsualSpl, Clock, Explore, FixPlan;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -120,60 +120,6 @@ begin
     Camp.ResetMemorize(p);
     Camp.ResetScribe(p);
     p := p^.nextCharAddr;
-  end;
-end;
-
-{ How many of the current character's memorized and pending spells are of this class and level; an id outside the spell
-  table counts for none. }
-function SlotsUsed(lvl, typ: ShortInt): Byte;
-var
-  count: Byte;
-  i: Byte;
-  id: Byte;
-begin
-  count := 0;
-  for i := 0 to SizeOf(GameVars.curChar^.memorizedSpells) - 1 do begin
-    id := GameVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
-    if CharHlp.IsSpell(id) then
-      if (GameDefs.spellTable[id].levelSp = lvl) and (GameDefs.spellTable[id].castClassSp = typ) then
-        Inc(count);
-  end;
-  SlotsUsed := count;
-end;
-
-{ Put spell id, pending, in the current character's first empty memorized-spell slot; placed is False when every slot is
-  taken. }
-procedure PutPending(id: Byte; var placed: Boolean);
-var
-  i: Byte;
-begin
-  i := 0;
-  while (i < SizeOf(GameVars.curChar^.memorizedSpells)) and (GameVars.curChar^.memorizedSpells[i] <> 0) do
-    Inc(i);
-  placed := i < SizeOf(GameVars.curChar^.memorizedSpells);
-  if placed then
-    GameVars.curChar^.memorizedSpells[i] := id + C_SPELL.PENDING_FLAG;
-end;
-
-{ True when spells of class typ (0 cleric, 1 magic-user) and level lvl have memorize slots (TCharRecord.slots): levels
-  1..3 of the two classes. }
-function HasSlotKind(lvl, typ: ShortInt): Boolean;
-begin
-  HasSlotKind := (lvl >= 1) and (lvl <= 3) and (typ >= 0) and (typ <= 1);
-end;
-
-{ Return the current character's spell allowance for a class and level minus its memorized and pending spells of that
-  class and level, or 0 when as many or more are memorized than allowed (e.g. after level drain), or for a class and
-  level with no slots (HasSlotKind). }
-function SpellSlotsRemaining(lvl, typ: ShortInt): Byte;
-var
-  count: Byte;
-begin
-  SpellSlotsRemaining := 0;
-  if Camp.HasSlotKind(lvl, typ) then begin
-    count := Camp.SlotsUsed(lvl, typ);
-    if count < GameVars.curChar^.slots[typ, lvl] then
-      SpellSlotsRemaining := GameVars.curChar^.slots[typ, lvl] - count;
   end;
 end;
 
@@ -291,7 +237,8 @@ begin
       if GameVars.curChar^.slots[typ, lvl] = 0 then
         s := s + '     '
       else begin
-        s := s + '  ' + StrUtil.NumStr(lvl) + ':' + StrUtil.NumStr(Camp.SpellSlotsRemaining(lvl, typ));
+        s := s + '  ' + StrUtil.NumStr(lvl) + ':' + StrUtil.NumStr(UsualSpl.SpellSlotsRemaining(GameVars.curChar, lvl,
+                                                                                               typ));
         has := True;
       end;
     if has then begin
@@ -313,13 +260,23 @@ begin
 end;
 
 { Seed the rest clock (Clock.SetFromMinutes) from the party's longest spell-prep time, run GameTime.CampRest, then clear
-  the clock and update the misc-info line. }
+  the clock and update the misc-info line. With Auto Memorize on (GameVars.autoMemorizeOn, #1119), each member first
+  queues its usual spells (UsualSpl.QueueUsualSpells), as Pools of Darkness memorizes again what was cast, unless it is
+  animated or out of action, or already has a spell pending: a set picked in Memorize wins. }
 procedure RestForSpellPrep(var interrupted: Boolean);
 var
   p: Types.PCharRecord;
   total: Word;
   t: Word;
 begin
+  if GameVars.autoMemorizeOn <> 0 then begin
+    p := GameVars.creatureList;
+    while p <> nil do begin
+      if (p^.status <> C_STATUS.ANIMATED) and (p^.enabled <> 0) and not UsualSpl.HasPending(p) then
+        UsualSpl.QueueUsualSpells(p);
+      p := p^.nextCharAddr;
+    end;
+  end;
   total := 0;
   p := GameVars.creatureList;
   while p <> nil do begin
@@ -333,23 +290,6 @@ begin
   CharDisp.PrintMiscInfo;
 end;
 
-{ Sort memorized spells by their masked IDs, keeping the pending flag attached to each spell. }
-procedure SortMemorizedSpells;
-var
-  i: Byte;
-  j: Byte;
-  tmp: Byte;
-begin
-  for i := 0 to SizeOf(GameVars.curChar^.memorizedSpells) - 2 do
-    for j := i to SizeOf(GameVars.curChar^.memorizedSpells) - 1 do
-      if (GameVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK) > (GameVars.curChar^.memorizedSpells[j] and
-                                                                       C_SPELL.ID_MASK) then begin
-        tmp := GameVars.curChar^.memorizedSpells[i];
-        GameVars.curChar^.memorizedSpells[i] := GameVars.curChar^.memorizedSpells[j];
-        GameVars.curChar^.memorizedSpells[j] := tmp;
-      end;
-end;
-
 { Remember the current character's memorized and pending spells as its usual spells (UsualSpl.SetUsualSpells). }
 procedure RememberUsualSpells;
 var
@@ -359,40 +299,6 @@ begin
   for i := 0 to SizeOf(spells) - 1 do
     spells[i] := GameVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
   UsualSpl.SetUsualSpells(GameVars.curChar, spells);
-end;
-
-{ Mark as pending each of the current character's usual spells that it lacks, still knows and has a free slot for, in
-  turn, so later ones see the slots the earlier ones took. }
-procedure QueueUsualSpells;
-var
-  usual: Types.TSpellSlots;
-  have: Types.TSpellSlots;
-  i: Byte;
-  j: Byte;
-  id: Byte;
-  found: Boolean;
-  placed: Boolean;
-begin
-  if UsualSpl.GetUsualSpells(GameVars.curChar, usual) then begin
-    for i := 0 to SizeOf(have) - 1 do
-      have[i] := GameVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
-    for i := 0 to SizeOf(usual) - 1 do begin
-      id := usual[i];
-      if (id > 0) and (id <= SizeOf(GameVars.curChar^.spellsKnown)) then begin
-        { a copy already memorized or pending covers this one }
-        found := False;
-        for j := 0 to SizeOf(have) - 1 do
-          if (not found) and (have[j] = id) then begin
-            have[j] := 0;
-            found := True;
-          end;
-        if (not found) and (GameVars.curChar^.spellsKnown[id] <> 0) then
-          if Camp.SpellSlotsRemaining(GameDefs.spellTable[id].levelSp, GameDefs.spellTable[id].castClassSp) > 0 then
-            Camp.PutPending(id, placed);
-      end;
-    end;
-    Camp.SortMemorizedSpells;
-  end;
 end;
 
 { Magic.belowListHook for the memorize list: show the spell slots again under it after the spell page covers them. }
@@ -413,19 +319,13 @@ var
   notEmpty: Boolean;
   redraw: Boolean;
   spellId: Byte;
-  i: Byte;
   idx: Integer;
-  pending: Boolean;
   placed: Boolean;
 begin
   if Camp.CanDoSpellActivity(ACT_MEMORIZE) then begin
     done := False;
-    pending := False;
-    for i := 0 to SizeOf(GameVars.curChar^.memorizedSpells) - 1 do
-      if GameVars.curChar^.memorizedSpells[i] > C_SPELL.ID_MASK then
-        pending := True;
-    if not pending then
-      Camp.QueueUsualSpells;
+    if not UsualSpl.HasPending(GameVars.curChar) then
+      UsualSpl.QueueUsualSpells(GameVars.curChar);
     idx := -1;
     spellId := Magic.SpellMenu(5, 5, idx, notEmpty);
     redraw := True;
@@ -449,13 +349,13 @@ begin
         redraw := True;
         if spellId = C_SPELL.NONE then
           done := True
-        else if Camp.SpellSlotsRemaining(GameDefs.spellTable[spellId].levelSp,
-                                         GameDefs.spellTable[spellId].castClassSp) > 0
+        else if UsualSpl.SpellSlotsRemaining(GameVars.curChar, GameDefs.spellTable[spellId].levelSp,
+                                             GameDefs.spellTable[spellId].castClassSp) > 0
         then begin
           { Sorting puts empty spell slots first; a full array takes nothing }
-          Camp.PutPending(spellId, placed);
+          UsualSpl.PutPending(GameVars.curChar, spellId, placed);
           if placed then
-            Camp.SortMemorizedSpells;
+            UsualSpl.SortMemorizedSpells(GameVars.curChar);
         end;
       end;
     end;
@@ -516,7 +416,7 @@ begin
         else
           redraw := True;
       end else if (spellId > SizeOf(GameVars.curChar^.spellsKnown)) or
-          not Camp.HasSlotKind(GameDefs.spellTable[spellId].levelSp, GameDefs.spellTable[spellId].castClassSp)
+          not UsualSpl.HasSlotKind(GameDefs.spellTable[spellId].levelSp, GameDefs.spellTable[spellId].castClassSp)
       then begin
         { a scroll byte past the spells a character can know, or a spell with no memorize slot, is not scribed }
         redraw := True;
@@ -865,120 +765,138 @@ begin
   end;
 end;
 
-{ Fix, as in Curse of the Azure Bonds and Pools of Darkness: rest while the party's clerics cure and heal everyone. Each
-  cleric level-3 slot of a conscious (status OKAY) caster cures one condition -- disease first (Cure Disease also clears
-  mummy rot, which would block the healing), then blindness, then Bestow Curse. Each level-1 slot of such a caster who
-  knows Cure Light Wounds heals 1d8, cast only as often as the party's wounds need on average. The casts go to the least
-  busy caster, and the rest lasts as long as the busiest one needs by the memorize rule: 4 hours (6 with a level-3
-  spell) plus 15 minutes per spell level. Nothing happens unless the whole rest is completed; interrupted reports a rest
-  broken off by a scripted random interruption. A party with no cleric, or with none conscious, is told so and does not
-  rest, as is a party with nothing Fix can treat or no slot to treat it with; the message stays in the message window,
-  without waiting for a key (#681). Fix's healing is spells, so in an anti-magic area (CharHlp.AntiMagicArea) it says
-  "Spells cannot be cast in this area." and nobody rests (#877). }
+{ Fix, as in Curse of the Azure Bonds and Pools of Darkness: rest while the party's clerics cure and heal everyone
+  (#1129). FixPlan plans the clerics' spells: each conscious (status OKAY) cleric's slots cure the conditions in turn --
+  a drained level (Restoration, which no cleric here has the level for), disease (Cure Disease also clears mummy rot,
+  which would block the healing), blindness, then Bestow Curse -- and Cure Light Wounds heal 1d8 each, cast only as
+  often as the wounds they can reach need on average; the casts go to the least busy caster, and the rest lasts as long
+  as the busiest one needs by the memorize rule. With Use Scrolls on, the party first reads its scrolls of Restoration
+  on the drained, before the plan, so a cleric given back a level brings its slots to the same Fix. Nothing the
+  clerics cast happens unless the whole rest is completed; interrupted reports a rest broken off by a scripted random
+  interruption. After a completed rest, or with nothing for the clerics to cast, the scrolls, potions and paladin's
+  powers the Fix settings allow treat what is left (FixPlan.NextUse). What Fix used, and each level-drained cleric who
+  lacks a cure it would cast undrained, are then listed in the message window, which waits for a key between pages and
+  keeps the last. With nothing done at all, a party with no cleric, or with none conscious, is told so, as is a party
+  with nothing Fix can treat or no slot to treat it with; the message stays in the message window, without waiting for
+  a key (#681). Fix's healing is magic, so in an anti-magic area (CharHlp.AntiMagicArea) it says "Spells cannot be cast
+  in this area." and nobody rests (#877). }
 procedure CampFixMenu(var interrupted: Boolean);
 const
-  { Conditions, cured in this order. }
-  FIX_DISEASE = 1;
-  FIX_BLIND = 2;
-  FIX_CURSE = 3;
+  { the most lines Fix's report keeps; a use past them is still made, and the last line says so }
+  REPORT_LINES = 24;
+  { the most items and powers one Fix uses: each use spends what it uses, so this only guards against a use that
+    spends nothing }
+  USES_MAX = 100;
 var
-  { the members planned for; a longer creature list is not looked at past Types.MAX_PARTY }
-  members: array[1..Types.MAX_PARTY] of Types.PCharRecord;
-  { Free level-1 (Cure Light Wounds) and level-3 slots, and the casts given to each member. }
-  l1Free: array[1..Types.MAX_PARTY] of Byte;
-  l3Free: array[1..Types.MAX_PARTY] of Byte;
-  l1Casts: array[1..Types.MAX_PARTY] of Byte;
-  l3Casts: array[1..Types.MAX_PARTY] of Byte;
-  cures: array[1..Types.MAX_PARTY, FIX_DISEASE..FIX_CURSE] of Boolean;
+  plan: FixPlan.TFixPlan;
+  use: FixPlan.TFixUse;
+  report: array[1..REPORT_LINES] of string[100];
+  reportCount: Byte;
+  { how many items and powers were used }
+  used: Byte;
   p: Types.PCharRecord;
-  n: Byte;
   i: Byte;
-  kind: Byte;
-  anyCure: Boolean;
-  { set when a treatable member has a condition, cured or not }
-  anyCondition: Boolean;
-  need: Word;
-  wanted: Word;
-  healCasts: Word;
+  k: Byte;
+  cond: Byte;
+  spell: Byte;
   { counts the Cure Light Wounds rolls; a Word, as healCasts can pass 255 }
   cast: Word;
   healPool: Word;
-  total: Word;
   hp: Word;
   done: Boolean;
-  { the members with cleric levels, and those of them conscious enough to cast }
-  clerics: Byte;
-  ableClerics: Byte;
+  { whether the clerics cast anything, and whether the rest was completed so the item pass may follow }
+  rested: Boolean;
+  goOn: Boolean;
+  { why nothing was done, when nothing was }
+  msg: string[40];
 
-  { Fix treats the statuses RestoreHitPoints accepts. }
-  function Treatable(creature: Types.PCharRecord): Boolean;
+  { Add line s to the report. }
+  procedure Note(s: string);
   begin
-    Treatable := creature^.status in [C_STATUS.OKAY, C_STATUS.ANIMATED, C_STATUS.UNCONSCIOUS, C_STATUS.DYING];
+    if reportCount < REPORT_LINES then begin
+      Inc(reportCount);
+      report[reportCount] := s;
+    end else
+      report[REPORT_LINES] := 'Fix used more than this list shows.';
   end;
 
-  function HasCondition(creature: Types.PCharRecord; cond: Byte): Boolean;
+  { Carry out use, and note it: "<PC> used <item> during Fix.", naming the member it was used on when that is someone
+    else, or what the paladin did. }
+  procedure Perform(var use: FixPlan.TFixUse);
   var
-    effect: Types.PEffectRec;
+    name: string[80];
   begin
-    case cond of
-      FIX_DISEASE: HasCondition := CharHlp.HasEffect(creature, C_EFFECT.DISEASED, effect) or
-                                   CharHlp.HasEffect(creature, C_EFFECT.DISEASE_STRENGTH, effect) or
-                                   CharHlp.HasEffect(creature, C_EFFECT.ROT_NO_HEAL, effect);
-      FIX_BLIND: HasCondition := CharHlp.HasEffect(creature, C_EFFECT.BLIND, effect);
+    Inc(used);
+    case use.kind of
+      FixPlan.USE_LAY_ON_HANDS: begin
+                                  if ViewChar.PaladinHeal(use.user, use.target) then
+                                    CharDisp.PrintHpRestoreMsg(use.target);
+                                  if use.user = use.target then
+                                    Note(use.user^.name + ' laid on hands during Fix.')
+                                  else
+                                    Note(use.user^.name + ' laid hands on ' + use.target^.name + ' during Fix.');
+                                end;
+      FixPlan.USE_PALADIN_CURE: begin
+                                  ViewChar.PaladinCure(use.user, use.target);
+                                  Note(use.user^.name + ' cured ' + use.target^.name + '''s disease during Fix.');
+                                end;
     else
-      HasCondition := CharHlp.HasEffect(creature, C_EFFECT.BESTOW_CURSE, effect);
-    end;
-  end;
-
-  function CureSpell(cond: Byte): Byte;
-  begin
-    case cond of
-      FIX_DISEASE: CureSpell := C_SPELL.CURE_DISEASE;
-      FIX_BLIND: CureSpell := C_SPELL.CURE_BLINDNESS;
-    else
-      CureSpell := C_SPELL.REMOVE_CURSE;
-    end;
-  end;
-
-  { Minutes member j needs to memorize its casts again. }
-  function CasterTime(j: Byte): Word;
-  var
-    t: Word;
-  begin
-    t := 0;
-    if l3Casts[j] > 0 then
-      t := 360
-    else if l1Casts[j] > 0 then
-      t := 240;
-    CasterTime := t + 15 * l1Casts[j] + 45 * l3Casts[j];
-  end;
-
-  { Give one cast to the least busy member with a free slot for it: spell 0 is Cure Light Wounds, any other spell a
-    level-3 cure the member must know. False when nobody can cast it. }
-  function Assign(spell: Byte): Boolean;
-  var
-    j: Byte;
-    best: Byte;
-    free: Boolean;
-  begin
-    best := 0;
-    for j := 1 to n do begin
-      if spell = 0 then
-        free := l1Free[j] > 0
+      { the label goes with the item, which the cast may use up }
+      CharHlp.ItemLabel(use.item, False);
+      name := use.item^.name;
+      Magic.CastItemSpellOn(use.user, use.item, use.spell, use.target);
+      if use.user = use.target then
+        Note(use.user^.name + ' used ' + name + ' during Fix.')
       else
-        free := (l3Free[j] > 0) and (members[j]^.spellsKnown[spell] <> 0);
-      if free then
-        if (best = 0) or (CasterTime(j) < CasterTime(best)) then best := j;
+        Note(use.user^.name + ' used ' + name + ' on ' + use.target^.name + ' during Fix.');
     end;
-    if best <> 0 then
-      if spell = 0 then begin
-        Dec(l1Free[best]);
-        Inc(l1Casts[best]);
-      end else begin
-        Dec(l3Free[best]);
-        Inc(l3Casts[best]);
+  end;
+
+  { Note each level-drained cleric who lacks a cure it would cast undrained (FixPlan.DrainedOutOf) for a condition a
+    treatable member still has: one line for each such cleric, naming the first cure. }
+  procedure NoteDrained;
+  var
+    c: Types.PCharRecord;
+    m: Types.PCharRecord;
+    kind: Byte;
+    missing: Byte;
+  begin
+    c := GameVars.creatureList;
+    while c <> nil do begin
+      missing := C_SPELL.NONE;
+      for kind := FixPlan.FIX_FIRST to FixPlan.FIX_LAST do
+        if (missing = C_SPELL.NONE) and FixPlan.DrainedOutOf(c, FixPlan.CureSpell(kind)) then begin
+          m := GameVars.creatureList;
+          while m <> nil do begin
+            if FixPlan.Treatable(m) and (FixPlan.CondCount(m, kind) > 0) then
+              missing := FixPlan.CureSpell(kind);
+            m := m^.nextCharAddr;
+          end;
+        end;
+      if missing <> C_SPELL.NONE then
+        Note(c^.name + ' is level drained and can''t cast ' + GameDefs.spellNames[missing] + '.');
+      c := c^.nextCharAddr;
+    end;
+  end;
+
+  { Show the report in the message window, each line from the start of a line, waiting for a key (CharDisp.MessageWait)
+    before a line that starts below the window; the last page stays. }
+  procedure ShowReport;
+  var
+    n: Byte;
+  begin
+    for n := 1 to reportCount do begin
+      if n > 1 then begin
+        { a line that ended short of the window's edge leaves the cursor on it: the next starts below }
+        if GameVars.curCol <> C_MSG.TEXT_LEFT then begin
+          GameVars.curCol := C_MSG.TEXT_LEFT;
+          Inc(GameVars.curRow);
+        end;
+        if GameVars.curRow > C_MSG.TEXT_BOTTOM then
+          CharDisp.MessageWait;
       end;
-    Assign := best <> 0;
+      CharDisp.MessageText(report[n], LightGreen, (n = 1) or (GameVars.curRow > C_MSG.TEXT_BOTTOM));
+    end;
   end;
 
 begin
@@ -987,97 +905,71 @@ begin
     CharDisp.PrintMessage('Spells cannot be cast in this area.');
     Exit;
   end;
-  n := 0;
-  need := 0;
-  clerics := 0;
-  ableClerics := 0;
-  p := GameVars.creatureList;
-  while (p <> nil) and (n < Types.MAX_PARTY) do begin
-    Inc(n);
-    members[n] := p;
-    l1Free[n] := 0;
-    l3Free[n] := 0;
-    l1Casts[n] := 0;
-    l3Casts[n] := 0;
-    if CharHlp.GetClassLevel(p, C_LEVEL.CLERIC_BIT) > 0 then begin
-      Inc(clerics);
-      if p^.status = C_STATUS.OKAY then Inc(ableClerics);
-    end;
-    if p^.status = C_STATUS.OKAY then begin
-      if p^.spellsKnown[C_SPELL.CURE_LIGHT_WOUNDS] <> 0 then l1Free[n] := p^.clericSpells[1];
-      l3Free[n] := p^.clericSpells[3];
-    end;
-    if Treatable(p) and (p^.hpCur < p^.hpMax) then Inc(need, p^.hpMax - p^.hpCur);
-    p := p^.nextCharAddr;
-  end;
-  if clerics = 0 then begin
-    CharDisp.PrintMessage('No clerics available to heal.');
-    Exit;
-  end;
-  if ableClerics = 0 then begin
-    CharDisp.PrintMessage('No cleric is in a condition to heal.');
-    Exit;
-  end;
-  { Plan the cures, then as many Cure Light Wounds as the wounds need at 4.5 hp each. }
-  anyCure := False;
-  anyCondition := False;
-  for kind := FIX_DISEASE to FIX_CURSE do
-    for i := 1 to n do begin
-      cures[i, kind] := False;
-      if Treatable(members[i]) then
-        if HasCondition(members[i], kind) then begin
-          anyCondition := True;
-          if Assign(CureSpell(kind)) then begin
-            cures[i, kind] := True;
-            anyCure := True;
+  reportCount := 0;
+  used := 0;
+  { Restoration's scrolls first, so a restored cleric's slots count in the plan }
+  while (used < USES_MAX) and FixPlan.NextUse(True, use) do
+    Perform(use);
+  FixPlan.Plan(plan);
+  rested := FixPlan.HasCasts(plan);
+  goOn := True;
+  if rested then begin
+    Clock.SetFromMinutes(GameTime.restTime, FixPlan.RestMinutes(plan));
+    interrupted := GameTime.CampRest(False);
+    done := (GameTime.restTime[C_TIME.DAYS] = 0) and (GameTime.restTime[C_TIME.HOURS] = 0) and
+            (GameTime.restTime[C_TIME.TURNS] = 0) and (GameTime.restTime[C_TIME.MINUTES] = 0);
+    FillChar(GameTime.restTime, SizeOf(GameTime.restTime), 0);
+    goOn := done and not interrupted;
+    if goOn then begin
+      for i := 1 to plan.n do
+        for cond := FixPlan.FIX_FIRST to FixPlan.FIX_LAST do
+          for k := 1 to plan.cures[i, cond] do begin
+            spell := FixPlan.CureSpell(cond);
+            GameVars.spellTargets[1] := plan.members[i];
+            GameVars.spellTargetCount := 1;
+            GameVars.spellId := spell;
+            GameVars.spellFns[spell];
+            GameVars.spellId := C_SPELL.NONE;
           end;
+      healPool := 0;
+      for cast := 1 to plan.healCasts do Inc(healPool, Dice.RollDice(1, 8));
+      for i := 1 to plan.n do begin
+        p := plan.members[i];
+        if FixPlan.Treatable(p) and (p^.hpCur < p^.hpMax) and (healPool > 0) and not FixPlan.Rotted(p) then begin
+          hp := p^.hpMax - p^.hpCur;
+          if hp > healPool then hp := healPool;
+          if FxEngine.RestoreHitPoints(p, hp, False) then Dec(healPool, hp);
         end;
-    end;
-  wanted := (2 * need + 8) div 9;
-  healCasts := 0;
-  while healCasts < wanted do
-    if Assign(0) then
-      Inc(healCasts)
-    else
-      wanted := healCasts;
-  if (healCasts = 0) and not anyCure then begin
-    { the dead and the like are not Fix's to treat, so they leave nothing to do }
-    if (need = 0) and not anyCondition then
-      CharDisp.PrintMessage('Further healing would do no good.')
-    else
-      CharDisp.PrintMessage('Further healing isn''t possible.');
-    Exit;
-  end;
-  total := 0;
-  for i := 1 to n do
-    if total < CasterTime(i) then total := CasterTime(i);
-  Clock.SetFromMinutes(GameTime.restTime, total);
-  interrupted := GameTime.CampRest(False);
-  done := (GameTime.restTime[C_TIME.DAYS] = 0) and (GameTime.restTime[C_TIME.HOURS] = 0) and
-          (GameTime.restTime[C_TIME.TURNS] = 0) and (GameTime.restTime[C_TIME.MINUTES] = 0);
-  FillChar(GameTime.restTime, SizeOf(GameTime.restTime), 0);
-  if done and not interrupted then begin
-    for i := 1 to n do
-      for kind := FIX_DISEASE to FIX_CURSE do
-        if cures[i, kind] then begin
-          GameVars.spellTargets[1] := members[i];
-          case kind of
-            FIX_DISEASE: Magic.SpellCureDisease;
-            FIX_BLIND: Magic.SpellCureBlindness;
-            FIX_CURSE: Magic.SpellRemoveCurse;
-          end;
-        end;
-    healPool := 0;
-    for cast := 1 to healCasts do Inc(healPool, Dice.RollDice(1, 8));
-    for i := 1 to n do begin
-      p := members[i];
-      if Treatable(p) and (p^.hpCur < p^.hpMax) and (healPool > 0) then begin
-        hp := p^.hpMax - p^.hpCur;
-        if hp > healPool then hp := healPool;
-        if FxEngine.RestoreHitPoints(p, hp, False) then Dec(healPool, hp);
       end;
     end;
   end;
+  if goOn then begin
+    while (used < USES_MAX) and FixPlan.NextUse(False, use) do
+      Perform(use);
+    NoteDrained;
+  end;
+  if not rested and (used = 0) then begin
+    { the dead and the like are not Fix's to treat, so they leave nothing to do }
+    if plan.clerics = 0 then
+      msg := 'No clerics available to heal.'
+    else if plan.ableClerics = 0 then
+      msg := 'No cleric is in a condition to heal.'
+    else if (plan.need = 0) and not plan.anyCondition then
+      msg := 'Further healing would do no good.'
+    else
+      msg := 'Further healing isn''t possible.';
+    if reportCount = 0 then
+      CharDisp.PrintMessage(msg)
+    else begin
+      { the report's notes say why: the message goes above them }
+      if reportCount < REPORT_LINES then
+        Inc(reportCount);
+      for i := reportCount downto 2 do
+        report[i] := report[i - 1];
+      report[1] := msg;
+    end;
+  end;
+  ShowReport;
   CharDisp.DisplayParty(GameVars.curChar);
   CharDisp.PrintMiscInfo;
 end;

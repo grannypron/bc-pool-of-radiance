@@ -69,6 +69,14 @@ var
   companionOn: Byte;
   { the Clue Book Notes setting, under the Companion Tools: nonzero shows the Clue Book's map keys on their map (#856) }
   clueNotesOn: Byte;
+  { the Auto Memorize setting: nonzero has Rest queue each caster's usual spells when it has none pending (#1119) }
+  autoMemorizeOn: Byte;
+  { the Fix settings (#1129): nonzero lets Fix use scrolls, potions, a paladin's cure and a paladin's laying on of
+    hands for what the clerics' spells leave }
+  fixScrollsOn: Byte;
+  fixPotionsOn: Byte;
+  fixCureOn: Byte;
+  fixHealOn: Byte;
   { the Combat Log setting: nonzero keeps the fight's messages for F7 in combat, when CbtLog.Usable (#841) }
   combatLogOn: Byte;
   { the Log Lines setting: how many messages the combat log keeps, CbtLog.MIN_ENTRIES..MAX_ENTRIES }

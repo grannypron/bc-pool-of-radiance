@@ -149,7 +149,7 @@ begin
   TestKit.CheckEqualsL(1, s.speed, 'the default speed is 1');
   TestKit.CheckEqualsL(50, s.logLines, 'the default log keeps 50 lines');
   for opt := C_OPT.OPT_FIRST_FLAG to C_OPT.OPT_LAST_FLAG do
-    if opt in [C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION] then
+    if opt in [C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION, C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL] then
       TestKit.CheckEqualsL(0, CfgFile.Flag(s, opt), CfgFile.KeyName(opt) + ' is off by default')
     else
       TestKit.CheckEqualsL(1, CfgFile.Flag(s, opt), CfgFile.KeyName(opt) + ' is on by default');
@@ -170,17 +170,29 @@ begin
   TestKit.CheckEqualsL(C_OPT.OPT_MAGIC, CfgFile.NextSetting(C_OPT.OPT_SPEED, False,
                        [C_OPT.OPT_GEAR..C_OPT.OPT_LOG_LINES]), 'Up wraps past the settings skipped');
 
-  { the Game and Sound pages (#1088) }
-  TestKit.Check(CfgFile.SoundSetting(C_OPT.OPT_MUSIC) and CfgFile.SoundSetting(C_OPT.OPT_SPELLS),
+  { the Game, Sound (#1088) and Camp pages (#1119, #1129) }
+  TestKit.Check((CfgFile.SettingPage(C_OPT.OPT_MUSIC) = C_OPT.OPT_PAGE_SOUND) and
+                (CfgFile.SettingPage(C_OPT.OPT_SPELLS) = C_OPT.OPT_PAGE_SOUND),
                 'the music and the sound effects are the Sound page''s');
-  TestKit.Check(not CfgFile.SoundSetting(C_OPT.OPT_AUTO_JOIN) and not CfgFile.SoundSetting(C_OPT.OPT_QUICK),
-                'Auto Join and Quick Mode are the Game page''s');
+  TestKit.Check((CfgFile.SettingPage(C_OPT.OPT_AUTO_JOIN) = C_OPT.OPT_PAGE_GAME) and
+                (CfgFile.SettingPage(C_OPT.OPT_QUICK) = C_OPT.OPT_PAGE_GAME) and
+                (CfgFile.SettingPage(C_OPT.OPT_COMBAT_LOG) = C_OPT.OPT_PAGE_GAME),
+                'Auto Join, Quick Mode and the combat log are the Game page''s');
+  TestKit.Check((CfgFile.SettingPage(C_OPT.OPT_AUTO_MEMORIZE) = C_OPT.OPT_PAGE_CAMP) and
+                (CfgFile.SettingPage(C_OPT.OPT_FIX_HEAL) = C_OPT.OPT_PAGE_CAMP),
+                'Auto Memorize and the Fix settings are the Camp page''s');
   TestKit.CheckEqualsL(0, CfgFile.SettingLine(C_OPT.OPT_SPEED), 'the Game page starts with the speed');
   TestKit.CheckEqualsL(4, CfgFile.SettingLine(C_OPT.OPT_AUTO_JOIN), 'Auto Join after the portraits');
   TestKit.CheckEqualsL(6, CfgFile.SettingLine(C_OPT.OPT_QUICK), 'Quick Mode under its heading, past the sound');
   TestKit.CheckEqualsL(8, CfgFile.SettingLine(C_OPT.OPT_GEAR), 'Allow Gear Changes under Quick Mode, after Use Magic');
   TestKit.CheckEqualsL(10, CfgFile.SettingLine(C_OPT.OPT_RETRIEVE), 'Aim Cycles and Retrieve Thrown after it');
   TestKit.CheckEqualsL(14, CfgFile.SettingLine(C_OPT.OPT_LOG_LINES), 'the Game page ends with the log lines');
+  TestKit.CheckEqualsS('Quick Mode', CfgFile.Heading(C_OPT.OPT_QUICK), 'the Quick Mode heading');
+  TestKit.CheckEqualsS('Fix', CfgFile.Heading(C_OPT.OPT_FIX_SCROLLS), 'the Fix heading (#1129)');
+  TestKit.CheckEqualsS('', CfgFile.Heading(C_OPT.OPT_FIX_POTIONS), 'and none on the other lines');
+  TestKit.CheckEqualsL(0, CfgFile.SettingLine(C_OPT.OPT_AUTO_MEMORIZE), 'the Camp page starts with Auto Memorize');
+  TestKit.CheckEqualsL(2, CfgFile.SettingLine(C_OPT.OPT_FIX_SCROLLS), 'the Fix settings under their heading');
+  TestKit.CheckEqualsL(5, CfgFile.SettingLine(C_OPT.OPT_FIX_HEAL), 'four of them');
   TestKit.CheckEqualsL(0, CfgFile.SettingLine(C_OPT.OPT_MUSIC), 'the Sound page starts with the music');
   TestKit.CheckEqualsL(9, CfgFile.SettingLine(C_OPT.OPT_SPELLS), 'and ends with the spell effects');
 
@@ -195,6 +207,13 @@ begin
   TestKit.CheckEqualsL(10, s.logLines, 'LOGLINES 10, the fewest');
   TestKit.CheckEqualsS('D:\CURSE\', s.paths[1], 'a path');
   TestKit.CheckEqualsS('C:\CURSE\SAVE\', s.paths[2], 'a blank path leaves the default');
+  TestKit.Check(ReadText('AUTOMEMORIZE=OFF' + CRLF + 'FIXSCROLLS=ON' + CRLF + 'FixPotions = on' + CRLF +
+                         'FIXPALADINCURE=1' + CRLF + 'FIXPALADINHEAL=ON' + CRLF) = CfgFile.CFG_READ,
+                'the camp settings read (#1119, #1129)');
+  TestKit.CheckEqualsL(0, CfgFile.Flag(s, C_OPT.OPT_AUTO_MEMORIZE), 'AUTOMEMORIZE off');
+  TestKit.Check((CfgFile.Flag(s, C_OPT.OPT_FIX_SCROLLS) = 1) and (CfgFile.Flag(s, C_OPT.OPT_FIX_POTIONS) = 1) and
+                (CfgFile.Flag(s, C_OPT.OPT_FIX_CURE) = 1) and (CfgFile.Flag(s, C_OPT.OPT_FIX_HEAL) = 1),
+                'the four Fix settings on');
   TestKit.Check(ReadText('SPEED=9' + CRLF + 'SPEED=A' + CRLF + 'LOGLINES=60' + CRLF + 'LOGLINES=61' + CRLF +
                          'LOGLINES=9' + CRLF + 'LOGLINES=abc' + CRLF + 'MUSIC=maybe' + CRLF + 'SPEED=10')
                 = CfgFile.CFG_FIXED, 'bad values are a fixed read');
@@ -228,6 +247,11 @@ begin
   TestKit.CheckEqualsL(C_OPT.OPT_AIM, LineNo(C_OPT.OPT_NAME, 'AIMCYCLES=ENEMIES'), 'Aim Cycles at ENEMIES by default');
   TestKit.CheckEqualsL(C_OPT.OPT_RETRIEVE, LineNo(C_OPT.OPT_NAME, 'RETRIEVETHROWN=ON'),
                        'Retrieve Thrown on by default');
+  TestKit.CheckEqualsL(C_OPT.OPT_AUTO_MEMORIZE, LineNo(C_OPT.OPT_NAME, 'AUTOMEMORIZE=ON'),
+                       'Auto Memorize on by default');
+  TestKit.CheckEqualsL(C_OPT.OPT_FIX_SCROLLS, LineNo(C_OPT.OPT_NAME, 'FIXSCROLLS=OFF'), 'Use Scrolls off by default');
+  TestKit.CheckEqualsL(C_OPT.OPT_FIX_HEAL, LineNo(C_OPT.OPT_NAME, 'FIXPALADINHEAL=OFF'),
+                       'Use Paladin''s Heal off by default');
   TestKit.CheckEqualsL(C_OPT.KEY_COUNT, LineNo(C_OPT.OPT_NAME, 'POOLSSAVE=C:\POOLS\SAVE\'), 'the last key');
   TestKit.CheckEqualsL(C_OPT.KEY_COUNT + 1, LineNo(C_OPT.OPT_NAME, 'NEWKEY=1'), 'then the unknown lines');
   TestKit.CheckEqualsL(C_OPT.KEY_COUNT + 2, LineNo(C_OPT.OPT_NAME, '; a note'), 'in their order, the blank dropped');
