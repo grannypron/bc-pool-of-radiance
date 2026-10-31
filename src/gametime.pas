@@ -15,6 +15,9 @@ var
   { Time rested since the party made camp (Camp.CampMainMenu clears it), in five-minute ticks: CheckRestingHeal heals
     at every 288 (a day). }
   healTicks: Word;
+  { Set by CampRest when the party rested at all, a five-minute tick or more: the camp's cue for what happens while the
+    party sleeps (Camp.SlipAway). }
+  rested: Boolean;
 
 { Rests in five-minute ticks, advancing the clock, healing, and preparing
   spells. In interactive mode the player first chooses the duration. A keypress
@@ -333,6 +336,7 @@ var
   stop: Boolean;
 begin
   CampRest := False;
+  rested := False;
   i := 1;
   cur := GameVars.creatureList;
   while (cur <> nil) and (i <= SizeOf(prepTimers)) do begin
@@ -363,6 +367,7 @@ begin
     end;
     if not stop then begin
       GameTime.DecrementRestTime(5, C_TIME.MINUTES);
+      rested := True;
       Inc(cnt);
       if cnt >= 5 then begin
         GameTime.DisplayRestTime(0);
@@ -402,4 +407,5 @@ begin
   { Turbo Pascal clears no variable }
   FillChar(restTime, SizeOf(restTime), 0);
   healTicks := 0;
+  rested := False;
 end.

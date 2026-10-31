@@ -85,9 +85,13 @@ procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
   aligned weapon or a boulder. }
 procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
 
-{ GetMem + LoadCreatureData + random portrait head and body by gender and a randomly picked class + AddCharToParty +
-  LoadCharIconAnim(True). No-op when the party already has 8 members (C_GBVM.PARTY_SIZE > 7). }
+{ GetMem + LoadCreatureData + JoinParty. No-op when the party already has 8 members (C_GBVM.PARTY_SIZE > 7). }
 procedure AddCreatureToParty(id: Byte);
+
+{ Join creature, a monster's record outside the list, to the party as a script-joined NPC joins: a new duplicate key
+  (randByte), a random portrait head and body by gender and a randomly picked class, SaveLoad.AddCharToParty (it
+  becomes curChar) and its icon (SaveLoad.LoadCharIconAnim(True)). The caller has checked there is room. }
+procedure JoinParty(creature: Types.PCharRecord);
 
 implementation
 
@@ -599,7 +603,7 @@ begin
   end;
 end;
 
-procedure AddCreatureToParty(id: Byte);
+procedure JoinParty(creature: Types.PCharRecord);
 const
   { portrait-head selectors indexed by gender (male, female) and a 1d8 roll }
   npcPortraitHeads: array[0..1, 1..8] of Byte = (
@@ -623,14 +627,11 @@ const
     (6, 6, 6, 6, 6),
     (8, 10, 8, 10, 8));
 var
-  creature: Types.PCharRecord;
   cnt: Byte;
   i: ShortInt;
   classes: array[1..4] of Byte;
 begin
-  if GameVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY then Exit;
-  GetMem(creature, SizeOf(Types.TCharRecord));
-  EclMenu.LoadCreatureData(id, creature);
+  creature^.nextCharAddr := nil;
   with creature^ do begin
     randByte := Random(256);
     cnt := 0;
@@ -655,6 +656,16 @@ begin
   end;
   SaveLoad.AddCharToParty(creature);
   SaveLoad.LoadCharIconAnim(True);
+end;
+
+procedure AddCreatureToParty(id: Byte);
+var
+  creature: Types.PCharRecord;
+begin
+  if GameVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY then Exit;
+  GetMem(creature, SizeOf(Types.TCharRecord));
+  EclMenu.LoadCreatureData(id, creature);
+  EclMenu.JoinParty(creature);
 end;
 
 begin
