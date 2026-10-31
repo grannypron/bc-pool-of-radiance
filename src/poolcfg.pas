@@ -44,7 +44,7 @@ const
   PATH_COL = 20;
   FIELD_WIDTH = 56;
   { the longest path that can be typed: a DOS path's 79 characters, natively 255 }
-  PATH_TYPED = C_OPT.MAX_PATH_TEXT + C_OPT.LONGEST_NAME;
+  PATH_TYPED = C_OPT.MAX_PATH_TEXT + C_OPT.LONGEST_NAME + C_OPT.WORK_FOLDERS;
   { the program that reads POOL.CFG: START under DOS, the game itself natively }
 {$IFDEF FPC}
   GAME_PROG = 'POOLRAD';

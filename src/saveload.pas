@@ -96,8 +96,8 @@ procedure FreeParty;
 
 implementation
 
-uses DiskRec, Crt, C_AREA, GameDefs, GameVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
-  C_KEYS, C_GBVM, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
+uses Dos, DiskRec, Crt, C_AREA, GameDefs, GameVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D,
+  MapTiles, C_KEYS, C_GBVM, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
   UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_LEVEL, CharDisp, CharExt, BeastFil{$IFDEF FPC}, NatFile{$ENDIF};
 
 type
@@ -184,9 +184,12 @@ begin
   repeat
     { an error still pending would make the Rewrite do nothing }
     ioRes := IOResult;
-    Assign(f, FileUtil.TempName(fn));
-    Rewrite(f);
-    ioRes := IOResult;
+    if FileUtil.MakeTempFolder(fn) then begin
+      Assign(f, FileUtil.TempName(fn));
+      Rewrite(f);
+      ioRes := IOResult;
+    end else
+      ioRes := 3;
   until (ioRes = 0) or not SaveMenu.AskSaveDisk('Cannot write', fn);
   { Escape gave up: the roster stays as it was }
   if ioRes <> 0 then Exit;
@@ -742,7 +745,13 @@ var
   ok: Boolean;
   { the save file's copy was created: it is closed after the writes }
   opened: Boolean;
+  { the date, which is not used: asking for it is what counts }
+  year, month, day, weekDay: Word;
 begin
+  { DOS stamps the save's files with its own date, which DOSBox-X moves past midnight only when a program asks for the
+    date or time. The game reads the BIOS ticks instead (#469), so without this a game left running overnight saved
+    with the day it started on (#1126). Natively the host's clock stamps them, and the call is harmless. }
+  Dos.GetDate(year, month, day, weekDay);
   { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL leaves
     the old area's there until then }
   GameVars.zone0^.previousScriptId := GameVars.eclScriptId;

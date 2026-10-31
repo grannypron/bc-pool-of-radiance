@@ -127,7 +127,7 @@ function ReadValue(var s: TSettings; key: Byte; value: string): Boolean;
 function ReadOptions(dir: FileUtil.TPathName; var s: TSettings; var bad: Byte): TReadResult;
 
 { Write s as POOLOPT.CFG in folder dir: every key in order, then each line of the old file whose key this version does
-  not know, kept for a newer one (blank lines dropped). It is written beside the old file as POOLOPT.CF$
+  not know, kept for a newer one (blank lines dropped). It is written as TMP\POOLOPT.CFG beside the old file
   (FileUtil.TempName) and put in its place, so a failed write leaves the old file. A folder dir that is not there yet
   is made first, with any above it, as a save makes its folder (FileUtil.MakeFolder): a new save folder, or natively a
   new per-user one, keeps the settings from the first change (#1067). True when it was written. }
@@ -525,7 +525,7 @@ begin
   WriteOptions := False;
   name := dir + C_OPT.OPT_NAME;
   ioRes := IOResult;
-  if not FileUtil.MakeFolder(dir) then Exit;
+  if not FileUtil.MakeFolder(dir) or not FileUtil.MakeTempFolder(name) then Exit;
   Assign(newFile, FileUtil.TempName(name));
   Rewrite(newFile);
   if IOResult <> 0 then Exit;

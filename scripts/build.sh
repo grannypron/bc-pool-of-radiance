@@ -233,7 +233,8 @@ if [ $run_tests -eq 1 ]; then
     mkdir -p "$root/obj/tests"
     # Compiler logs use the test name as a DOS filename, so test names must fit in eight characters.
     mkdir -p "$root/build/logs/tests"
-    rm -f "$root"/obj/tests/* "$root"/build/logs/tests/*.OUT "$root"/build/logs/TEST_*.OUT
+    # -r: the TMP folder FileUtil writes its temporary copies and backups in (#1084)
+    rm -rf "$root"/obj/tests/* "$root"/build/logs/tests/*.OUT "$root"/build/logs/TEST_*.OUT
     # Generate a batch file that rebuilds every test and runs it from obj\tests. Tests append their results to
     # TEST.LOG. The compiler searches obj\tests first, then obj for shared objects such as SOUNDDRV.OBJ.
     {
