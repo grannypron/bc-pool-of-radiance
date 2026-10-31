@@ -1,8 +1,9 @@
 # Build and test every push to main and every pull request. Version tags also create releases. Each run rebuilds the
 # v1.1, v1.2, and v1.3 tags and compares them with SSI's original executables.
 #
-# workflow_dispatch can release a tag that predates this workflow. It uses that tag's src/ and build/ directories
-# with the current scripts/ and release scripts.
+# workflow_dispatch with a tag releases it, even one that predates this workflow: it uses that tag's src/ and build/
+# directories with the current scripts/ and release scripts. With the tag left empty it only builds and tests main, as
+# a push does, without making a tag (and so without notifying the repository's watchers).
 #
 # Publishing waits for both the normal build and historical reproduction jobs. A toolchain or image change that
 # alters SSI's executables therefore stops the release.
@@ -47,8 +48,8 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: The version tag to build and release, for example v1.1
-        required: true
+        description: The version tag to build and release, for example v1.1; leave it empty to only build and test
+        required: false
         type: string
 
 jobs:
@@ -118,7 +119,7 @@ jobs:
 
   release:
     needs: [build, reproduce]
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    if: (github.event_name == 'workflow_dispatch' && inputs.tag != '') || startsWith(github.ref, 'refs/tags/v')
     runs-on: docker
     # build.sh gives DOSBox-X ten minutes; this catches hangs elsewhere in the job.
     timeout-minutes: 20
@@ -218,7 +219,9 @@ jobs:
 
   release-native:
     needs: [release, native]
-    if: vars.NATIVE_CI == 'true' && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v'))
+    if: >-
+      vars.NATIVE_CI == 'true'
+      && ((github.event_name == 'workflow_dispatch' && inputs.tag != '') || startsWith(github.ref, 'refs/tags/v'))
     runs-on: docker
     timeout-minutes: 30
     container:
@@ -311,7 +314,7 @@ jobs:
 
   release-macos:
     needs: [release]
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    if: (github.event_name == 'workflow_dispatch' && inputs.tag != '') || startsWith(github.ref, 'refs/tags/v')
     runs-on: macos-arm64
     # Allow for notarization even though Apple usually responds within a few minutes.
     timeout-minutes: 120
