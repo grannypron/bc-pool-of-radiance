@@ -43,14 +43,14 @@ begin
   c := ch;
 end;
 
-function FakeAsk(const msg: String): Boolean;
+function FakeAsk(msg: String): Boolean;
 begin
   Inc(asked);
   said := msg;
   FakeAsk := answer;
 end;
 
-function FakePay(const quote: String; cost: LongInt): Boolean;
+function FakePay(quote: String; cost: LongInt): Boolean;
 begin
   quoted := quote;
   if payOk then
@@ -58,13 +58,13 @@ begin
   FakePay := payOk;
 end;
 
-procedure FakeSay(const msg: String);
+procedure FakeSay(msg: String);
 begin
   said := msg;
 end;
 
 { The game's side of a deed, as each game carries it out on its record. }
-procedure FakeAct(const dd: TTempleDeed);
+procedure FakeAct(dd: TTempleDeed);
 begin
   Inc(acted);
   with ch do begin

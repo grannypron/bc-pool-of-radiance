@@ -32,7 +32,8 @@
   neither.
 
   Carried over from goldbox-tp7's shared/play/towncore.pas, which takes its canonical races from its CharType unit;
-  this game has none, so the races TownCore names are declared here, and Temple maps the game's own onto them.
+  this game has none, so the races TownCore names are declared here, and Temple maps the game's own onto them. Turbo
+  Pascal 6, which builds the DOS game, has no const parameters, so the records go by value.
 
   The unit has no variables and may be overlaid (O+). }
 {$O+,F+}
@@ -224,12 +225,12 @@ type
   { the game's side of TempleService }
   TTempleLook = procedure(var c: TTempleChar);
   { "<name> <msg>" and "cast cure anyway: "; True for Yes }
-  TTempleAsk = function(const msg: String): Boolean;
+  TTempleAsk = function(msg: String): Boolean;
   { the quote, "pay for cure ", and the fee taken from the character or else the pool; True when it was paid }
-  TTemplePay = function(const quote: String; cost: LongInt): Boolean;
+  TTemplePay = function(quote: String; cost: LongInt): Boolean;
   { "<name> <msg>" in a cleared message window, until a key }
-  TTempleSay = procedure(const msg: String);
-  TTempleDo = procedure(const d: TTempleDeed);
+  TTempleSay = procedure(msg: String);
+  TTempleDo = procedure(d: TTempleDeed);
   { the game's dice: n dice of sides }
   TTempleRoll = function(n, sides: Byte): Integer;
   { the game's own words for msg (TM_*), or '' for TempleText's }
@@ -262,7 +263,7 @@ procedure DefaultRules(var r: TTempleRules);
 procedure StandardPrices(var r: TTempleRules; divisor: Byte);
 
 { True when the temple sells service svc. }
-function Offers(const r: TTempleRules; svc: Byte): Boolean;
+function Offers(r: TTempleRules; svc: Byte): Boolean;
 
 { The services' names for the Heal menu: "Cure Blindness" .. "Restoration"; '' past TS_LAST. }
 function ServiceName(svc: Byte): String;
@@ -275,30 +276,30 @@ function TempleText(msg: Byte): String;
 function NoWords(msg: Byte): String;
 
 { What the temple says for msg: io.Words's line, or TempleText's when the game has none. }
-function TempleWords(const io: TTempleIO; msg: Byte): String;
+function TempleWords(io: TTempleIO; msg: Byte): String;
 
 { "<name> will only cost <cost> <coin> pieces.", the fee's quote. }
-function TempleQuote(const r: TTempleRules; svc: Byte; cost: LongInt): String;
+function TempleQuote(r: TTempleRules; svc: Byte; cost: LongInt): String;
 
 { Why the temple will not sell svc to c whatever is paid (TM_GONE, TM_STILL_POISONED, TM_NO_CON, TM_ELF, TM_RACE,
   TM_LEVEL), or TM_NONE. Only Raise Dead and Resurrection refuse, and only a character they would otherwise bring
   back, or one gone. }
-function TempleRefusal(const r: TTempleRules; svc: Byte; const c: TTempleChar): Byte;
+function TempleRefusal(r: TTempleRules; svc: Byte; c: TTempleChar): Byte;
 
 { Why c does not need svc (TM_NOT_BLIND .. TM_NOT_DRAINED, TM_IS_DEAD, TM_IS_STONED, TM_CANNOT_HEAL, TM_ROT), or
   TM_NONE when it would help. }
-function TempleNeed(svc: Byte; const c: TTempleChar): Byte;
+function TempleNeed(svc: Byte; c: TTempleChar): Byte;
 
 { The dice svc rolls once paid for c: the cures' d8s and bonus, Heal's 1d4, Raise Dead's and Resurrection's d100 for
   survival, Stone to Flesh's d100 for system shock; n is 0 for none. }
-procedure TempleDice(const r: TTempleRules; svc: Byte; const c: TTempleChar; var n, sides: Byte; var plus: Integer);
+procedure TempleDice(r: TTempleRules; svc: Byte; c: TTempleChar; var n, sides: Byte; var plus: Integer);
 
 { What svc does for c, paid for, with roll the sum of TempleDice's dice and plus (0 for none). }
-procedure TempleDeed(const r: TTempleRules; svc: Byte; const c: TTempleChar; roll: Integer; var d: TTempleDeed);
+procedure TempleDeed(r: TTempleRules; svc: Byte; c: TTempleChar; roll: Integer; var d: TTempleDeed);
 
 { Sells svc to the game's current character: TempleRefusal, TempleNeed (and the question when the temple charges),
   the fee, the dice, the deed and its report, through io. A service the temple does not sell does nothing. }
-procedure TempleService(const r: TTempleRules; svc: Byte; const io: TTempleIO);
+procedure TempleService(r: TTempleRules; svc: Byte; io: TTempleIO);
 
 const
   { the services Repair carries out, in the order RepairStep gives them }
@@ -315,19 +316,19 @@ function RepairStep(i: Byte): Byte;
   feebleminded (it ends blindness and disease too), else Cure Blindness and Cure Disease as it needs them. Nothing for
   the animated dead, whom Raise Dead would bring back only when the player buys it on its own, nor for a character the
   temple refuses to raise (refusal, as TempleRefusal says it) or one gone (TM_GONE). }
-procedure RepairPlan(const r: TTempleRules; const c: TTempleChar; var p: TRepairPlan);
+procedure RepairPlan(r: TTempleRules; c: TTempleChar; var p: TRepairPlan);
 
 { The price of plan p: each service's price times the times it is bought. }
-function RepairCost(const r: TTempleRules; const p: TRepairPlan): LongInt;
+function RepairCost(r: TTempleRules; p: TRepairPlan): LongInt;
 
 { "Repairing the party will cost <cost> <coin> pieces.", Repair's one quote. }
-function RepairQuote(const r: TTempleRules; cost: LongInt): String;
+function RepairQuote(r: TTempleRules; cost: LongInt): String;
 
 { Carries out plan p, paid for already, on the game's current character, with no question: each service's dice (Heal
   rolls none, and gives back every missing hit point), deed and act, in RepairStep's order. A failed survival roll or
   system shock is said and ends the plan; the rest is not done. Says TM_CURED once a plan with anything in it is done.
   Returns the price of the services left undone, for the game to give back. }
-function TempleRepair(const r: TTempleRules; const p: TRepairPlan; const io: TTempleIO): LongInt;
+function TempleRepair(r: TTempleRules; p: TRepairPlan; io: TTempleIO): LongInt;
 
 implementation
 
@@ -364,7 +365,7 @@ begin
     r.price[i] := GOLD[i] div divisor;
 end;
 
-function Offers(const r: TTempleRules; svc: Byte): Boolean;
+function Offers(r: TTempleRules; svc: Byte): Boolean;
 begin
   Offers := (svc <= TS_LAST) and (r.price[svc] >= 0);
 end;
@@ -426,7 +427,7 @@ begin
   NoWords := '';
 end;
 
-function TempleWords(const io: TTempleIO; msg: Byte): String;
+function TempleWords(io: TTempleIO; msg: Byte): String;
 var
   s: String;
 begin
@@ -436,7 +437,7 @@ begin
   TempleWords := s;
 end;
 
-function TempleQuote(const r: TTempleRules; svc: Byte; cost: LongInt): String;
+function TempleQuote(r: TTempleRules; svc: Byte; cost: LongInt): String;
 var
   s: String[12];
 begin
@@ -445,12 +446,12 @@ begin
 end;
 
 { True when c is a corpse Raise Dead or Resurrection works on: dead, or animated dead. }
-function IsCorpse(const c: TTempleChar): Boolean;
+function IsCorpse(c: TTempleChar): Boolean;
 begin
   IsCorpse := (c.status = TC_DEAD) or (c.status = TC_ANIMATED);
 end;
 
-function TempleRefusal(const r: TTempleRules; svc: Byte; const c: TTempleChar): Byte;
+function TempleRefusal(r: TTempleRules; svc: Byte; c: TTempleChar): Byte;
 var
   races: TRaceSet;
   minLevel: Byte;
@@ -487,7 +488,7 @@ end;
 { Why a cure of wounds would not heal c: the statuses the games' healing works on are okay, animated, unconscious and
   dying, and then only a wounded one without mummy rot (woundsOnly False, for Heal, which cures the rot and needs no
   wound: only the status counts). }
-function NoWoundCure(const c: TTempleChar; woundsOnly: Boolean): Byte;
+function NoWoundCure(c: TTempleChar; woundsOnly: Boolean): Byte;
 begin
   NoWoundCure := TM_NONE;
   case c.status of
@@ -505,7 +506,7 @@ begin
   end;
 end;
 
-function TempleNeed(svc: Byte; const c: TTempleChar): Byte;
+function TempleNeed(svc: Byte; c: TTempleChar): Byte;
 var
   m: Byte;
 begin
@@ -524,7 +525,7 @@ begin
   TempleNeed := m;
 end;
 
-procedure TempleDice(const r: TTempleRules; svc: Byte; const c: TTempleChar; var n, sides: Byte; var plus: Integer);
+procedure TempleDice(r: TTempleRules; svc: Byte; c: TTempleChar; var n, sides: Byte; var plus: Integer);
 begin
   n := 0;
   sides := 0;
@@ -562,7 +563,7 @@ begin
 end;
 
 { The Constitution points a raise costs c: loss, but none below SCORE_MIN. }
-function ConCost(const c: TTempleChar; loss: Byte): Byte;
+function ConCost(c: TTempleChar; loss: Byte): Byte;
 begin
   if c.conPerm <= AbilAdj.SCORE_MIN then
     ConCost := 0
@@ -574,7 +575,7 @@ end;
 
 { The deed of a paid Raise Dead or Resurrection for corpse c: the survival roll, then back okay at 1 hit point or the
   full maximum, with Animate Dead and the poison effects gone and the Constitution point taken. }
-procedure Revive(const r: TTempleRules; svc: Byte; const c: TTempleChar; roll: Integer; var d: TTempleDeed);
+procedure Revive(r: TTempleRules; svc: Byte; c: TTempleChar; roll: Integer; var d: TTempleDeed);
 var
   loss: Byte;
 begin
@@ -607,7 +608,7 @@ begin
   end;
 end;
 
-procedure TempleDeed(const r: TTempleRules; svc: Byte; const c: TTempleChar; roll: Integer; var d: TTempleDeed);
+procedure TempleDeed(r: TTempleRules; svc: Byte; c: TTempleChar; roll: Integer; var d: TTempleDeed);
 var
   needed: Boolean;
   missing: Integer;
@@ -689,7 +690,7 @@ begin
   end;
 end;
 
-procedure TempleService(const r: TTempleRules; svc: Byte; const io: TTempleIO);
+procedure TempleService(r: TTempleRules; svc: Byte; io: TTempleIO);
 var
   c, after: TTempleChar;
   d: TTempleDeed;
@@ -749,7 +750,7 @@ begin
 end;
 
 { What deed d leaves of c, as far as RepairPlan looks: the status, the hit points and the poison. }
-procedure Suppose(var c: TTempleChar; const d: TTempleDeed);
+procedure Suppose(var c: TTempleChar; d: TTempleDeed);
 begin
   if d.acts and TA_POISON <> 0 then
     c.flags := c.flags and not (TF_POISONED or TF_SLOW_POISON);
@@ -759,7 +760,7 @@ begin
     c.hp := d.hp;
 end;
 
-procedure RepairPlan(const r: TTempleRules; const c: TTempleChar; var p: TRepairPlan);
+procedure RepairPlan(r: TTempleRules; c: TTempleChar; var p: TRepairPlan);
 var
   s: TTempleChar;
   d: TTempleDeed;
@@ -807,7 +808,7 @@ begin
   end;
 end;
 
-function RepairCost(const r: TTempleRules; const p: TRepairPlan): LongInt;
+function RepairCost(r: TTempleRules; p: TRepairPlan): LongInt;
 var
   i: Byte;
   cost: LongInt;
@@ -819,7 +820,7 @@ begin
   RepairCost := cost;
 end;
 
-function RepairQuote(const r: TTempleRules; cost: LongInt): String;
+function RepairQuote(r: TTempleRules; cost: LongInt): String;
 var
   s: String[12];
 begin
@@ -827,7 +828,7 @@ begin
   RepairQuote := 'Repairing the party will cost ' + s + ' ' + r.coin + ' pieces.';
 end;
 
-function TempleRepair(const r: TTempleRules; const p: TRepairPlan; const io: TTempleIO): LongInt;
+function TempleRepair(r: TTempleRules; p: TRepairPlan; io: TTempleIO): LongInt;
 var
   c: TTempleChar;
   d: TTempleDeed;

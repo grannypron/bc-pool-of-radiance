@@ -27,8 +27,8 @@ function CanonRace(race: ShortInt): Byte;
 
 implementation
 
-uses Types, Crt, C_MSG, C_MONEY, GameVars, TextRend, Money, Magic, FxEngine, C_EFFECT, C_KEYS, C_STATUS, C_RACE,
-  Stats, Border, CharHlp, MenuCore, Shop, CharDisp, Dice, ClassCal, MoneyCal, StrUtil;
+uses Types, Crt, C_MSG, C_MONEY, C_LEVEL, GameVars, TextRend, Money, Magic, FxEngine, C_EFFECT, C_KEYS, C_STATUS,
+  C_RACE, Stats, Border, CharHlp, MenuCore, Shop, CharDisp, Dice, ClassCal, MoneyCal, StrUtil;
 
 var
   { the temple's rules, at the prices TempleMainMenu was entered with }
@@ -76,7 +76,7 @@ begin
   c.conCur := cr^.conCur;
   c.race := Temple.CanonRace(cr^.race);
   c.level := 0;
-  for i := Low(cr^.classLevels) to High(cr^.classLevels) do
+  for i := C_LEVEL.CLERIC to C_LEVEL.MONK do
     if cr^.classLevels[i] > c.level then
       c.level := cr^.classLevels[i];
   c.flags := 0;
@@ -105,7 +105,7 @@ begin
 end;
 
 { "<name> <msg>", then "cast cure anyway: " Yes or No. }
-function Ask(const msg: String): Boolean;
+function Ask(msg: String): Boolean;
 begin
   CharDisp.PrintNameString(GameVars.curChar, msg, 0, False);
   Ask := MenuCore.YesNoMenu('cast cure anyway: ', LightMagenta, LightGreen, White) = 'Y';
@@ -114,7 +114,7 @@ end;
 
 { The quote and "pay for cure "; a Yes pays from the current character first, then the pooled treasure. True only when
   it was paid. }
-function Pay(const quote: String; cost: LongInt): Boolean;
+function Pay(quote: String; cost: LongInt): Boolean;
 begin
   TextRend.ShowMessage(LightGreen, True, quote);
   Pay := False;
@@ -123,7 +123,7 @@ begin
 end;
 
 { "<name> <msg>" in a cleared message window until a key. }
-procedure Say(const msg: String);
+procedure Say(msg: String);
 begin
   CharDisp.ClearMessageWindow;
   CharDisp.PrintNameString(GameVars.curChar, msg, 0, True);
@@ -144,7 +144,7 @@ end;
 
 { Carries out a TownCore deed on the current character, in TownCore's order. PoR has no Feeblemind, so TA_FEEBLE asks
   nothing of it. }
-procedure Act(const d: TTempleDeed);
+procedure Act(d: TTempleDeed);
 var
   cr: Types.PCharRecord;
   i: Byte;
