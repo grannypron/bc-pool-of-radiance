@@ -675,6 +675,15 @@ begin
     C_OPT.OPT_SPELLS: AboutText := 'Spells being cast, and their|effects.';
     C_OPT.OPT_QUICK: AboutText := 'Quick mode ends with the|fight it was turned on in.';
     C_OPT.OPT_MAGIC: AboutText := 'Characters in quick mode|cast their spells.';
+    C_OPT.OPT_GEAR: AboutText := 'Characters in quick mode|change weapons and shields.||' +
+                                 'Off: they keep what you|readied. One holding a bow|' +
+                                 'with an enemy beside it|ends its turn instead.';
+    C_OPT.OPT_AIM: AboutText := 'What Next and Prev step|through when you aim.||' +
+                                'ENEMIES: the other side, or|your own side for a spell|' +
+                                'that is not an attack.|ALL: every creature.||Manual reaches anyone.';
+    C_OPT.OPT_RETRIEVE: AboutText := 'A thrown hammer, axe, spear|or the like goes back to|' +
+                                     'whoever threw it after the|fight, readied if the hand|' +
+                                     'is free. One who cannot|carry it leaves it in the|loot.';
     C_OPT.OPT_COMPANION: AboutText := 'The Companion Tools: F6 on|the map and camp menus.';
     C_OPT.OPT_CLUES: AboutText := 'The Companion Tools'' notes|from the Clue Book.';
     C_OPT.OPT_COMBAT_LOG: AboutText := 'Keeps the fight''s messages for|F7 to page back through.||' +

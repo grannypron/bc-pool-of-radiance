@@ -7,6 +7,17 @@ interface
 
 uses Types;
 
+const
+  { the most thrown weapons a fight notes for Retrieve Thrown; any after them stay in the loot }
+  MAX_THROWN = 24;
+
+type
+  { a thrown weapon in the loot and the party member who threw it }
+  TThrownItem = record
+    item: Types.PItemRec;
+    thrower: Types.PCharRecord;
+  end;
+
 var
   { suppress targeting }
   suppressTargeting: Byte;
@@ -18,6 +29,11 @@ var
   hostileHpPct: Byte;
   { Done flag for the acting creature's attacks; combat menus also return their extended-key flag here }
   doneRoundFlag: Boolean;
+  { the single thrown weapons that dropped into the loot this fight (GameVars.treasureItems), each with its thrower,
+    for Retrieve Thrown (#1118): MakeAttack notes them (NoteThrown), CombatSt.CombatStart clears thrownCount, and
+    PostCbt hands them back (ReturnThrown) }
+  thrownCount: Byte;
+  thrown: array[1..MAX_THROWN] of TThrownItem;
 
 procedure BeginRound(creature: Types.PCharRecord);
 
@@ -59,7 +75,27 @@ procedure RecalcAttacksLeft(creature: Types.PCharRecord);
 
 function SweepAttack(att, def: Types.PCharRecord): Boolean;
 
-function CanTarget(creature, other: Types.PCharRecord): Boolean;
+{ True when creature may aim at other: False for nil, True for itself. Without allowAlly a creature on creature's own
+  side (hostile the same) is refused (#1137). Otherwise the target's veto effects run first, then the attacker's with
+  other as its temporary target; any veto sets suppressTargeting. }
+function CanTarget(creature, other: Types.PCharRecord; allowAlly: Boolean): Boolean;
+
+{ True when the aim menu's Next and Prev step to other from creature (#1137): creature itself always; else one creature
+  may target (CanTarget), and with Aim Cycles at ENEMIES (GameVars.aimEnemiesOn) only one of the other side, or with
+  allies (a spell that is not offensive) only one of creature's own side. }
+function AimCycles(creature, other: Types.PCharRecord; allies: Boolean): Boolean;
+
+{ Note that thrower's single thrown weapon has dropped into the loot as item (the head of GameVars.treasureItems), for
+  ReturnThrown. A party member's only, and only while thrown has room. }
+procedure NoteThrown(thrower: Types.PCharRecord; item: Types.PItemRec);
+
+{ Hand thrown weapon n (1..thrownCount) back to its thrower after the fight (#1118), when the item is still in the loot,
+  the thrower is still in the party (alive or not: PoR's characters keep their items) and can carry it
+  (ViewChar.CannotCarryItem). The loot's copy goes into the thrower's items (CharHlp.AddToInventory, which joins a
+  stack under Auto Join) and leaves the loot; the copy is readied when the thrower's weapon hand is empty and the
+  ready checks pass (hands, class). thrower and back are the creature and its copy (back nil once joined to a stack),
+  and name the item's label (CharHlp.ItemLabel). False when it stays in the loot. }
+function ReturnThrown(n: Byte; var thrower: Types.PCharRecord; var back: Types.PItemRec; var name: string): Boolean;
 
 procedure CombatTurnUndead(creature: Types.PCharRecord);
 
@@ -97,7 +133,9 @@ procedure CastSpellCombat(spell, ai: Byte; var cast: Boolean);
 
 function CheckAttackAlly(att, def: Types.PCharRecord): Boolean;
 
-procedure CombatAimMenu(creature: Types.PCharRecord; range, weaponMode, groundOk: Byte; var done: Boolean; var tgt);
+{ allies: a spell that is not offensive, whose Next and Prev step through the caster's own side (AimCycles). }
+procedure CombatAimMenu(creature: Types.PCharRecord; range, weaponMode, groundOk: Byte; allies: Boolean;
+                        var done: Boolean; var tgt);
 
 function DirTowardTarget(creature, other: Types.PCharRecord): Byte;
 
@@ -128,7 +166,7 @@ implementation
 
 uses C_ITEM, C_TERR, C_COND, GameDefs, GameVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
   C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, C_SPRITE, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend,
-  StrUtil, CharDisp, AbilAdj, Dice, Blit, ClassCal, Bestiary, CbtLog, C_BEAST, Party;
+  StrUtil, CharDisp, AbilAdj, Dice, Blit, ClassCal, Bestiary, CbtLog, C_BEAST, Party, ViewChar;
 
 type
   { A spell's rule for the spell-aim count (#840): how it tells who the spell cannot affect, whatever the dice }
@@ -471,7 +509,7 @@ begin
         attacked := False;
         p := GameVars.creatureArr[adj[i]];
         if not CharHlp.IsHelpless(p) then
-          if CbtActs.CanTarget(p, creature) then
+          if CbtActs.CanTarget(p, creature, True) then
             if not CharHlp.HasEffect(p, C_EFFECT.BLOOD_DRAIN, effect) then
               if not CharHlp.HasEffect(p, C_EFFECT.BITE_HOLD, effect) then
                 for a := p^.combatAddr^.direction + 6 to p^.combatAddr^.direction + 10 do
@@ -681,10 +719,7 @@ begin
   SweepAttack := True;
 end;
 
-{ Check whether effects permit creature to attack other: False for nil, True for itself. Otherwise the target's veto
-  effects run first, then the attacker's with other as its temporary target; any veto sets
-  suppressTargeting. }
-function CanTarget(creature, other: Types.PCharRecord): Boolean;
+function CanTarget(creature, other: Types.PCharRecord; allowAlly: Boolean): Boolean;
 var
   saved: Types.PCharRecord;
 begin
@@ -695,6 +730,8 @@ begin
     CanTarget := True;
     Exit;
   end;
+  if not allowAlly and (other^.hostile = creature^.hostile) then
+    Exit;
   suppressTargeting := 0;
   FxEngine.TriggerEffectsWithCondition(C_COND.TARGET_VETO, other);
   if suppressTargeting = 0 then begin
@@ -704,6 +741,92 @@ begin
     creature^.combatAddr^.other := saved;
   end;
   CanTarget := suppressTargeting = 0;
+end;
+
+function AimCycles(creature, other: Types.PCharRecord; allies: Boolean): Boolean;
+begin
+  if (other = nil) or (creature = other) then
+    AimCycles := other <> nil
+  else if GameVars.aimEnemiesOn = 0 then
+    AimCycles := CbtActs.CanTarget(creature, other, True)
+  else if allies then
+    AimCycles := (other^.hostile = creature^.hostile) and CbtActs.CanTarget(creature, other, True)
+  else
+    AimCycles := CbtActs.CanTarget(creature, other, False);
+end;
+
+procedure NoteThrown(thrower: Types.PCharRecord; item: Types.PItemRec);
+begin
+  if (thrower^.hostile <> 0) or (thrownCount >= MAX_THROWN) then Exit;
+  Inc(thrownCount);
+  thrown[thrownCount].item := item;
+  thrown[thrownCount].thrower := thrower;
+end;
+
+function ReturnThrown(n: Byte; var thrower: Types.PCharRecord; var back: Types.PItemRec; var name: string): Boolean;
+var
+  item: Types.PItemRec;
+  prev: Types.PItemRec;
+  p: Types.PCharRecord;
+  last: Types.PItemRec;
+  saved: Types.PCharRecord;
+  base: Types.PBaseItemRec;
+begin
+  ReturnThrown := False;
+  back := nil;
+  name := '';
+  item := thrown[n].item;
+  thrower := thrown[n].thrower;
+  { still in the loot: prev is the node before it, nil for the head }
+  prev := nil;
+  if GameVars.treasureItems <> item then begin
+    prev := GameVars.treasureItems;
+    while (prev <> nil) and (prev^.next <> item) do
+      prev := prev^.next;
+    if prev = nil then Exit;
+  end;
+  { still in the party }
+  p := GameVars.creatureList;
+  while (p <> nil) and (p <> thrower) do
+    p := p^.nextCharAddr;
+  if (p = nil) or (thrower^.hostile <> 0) then Exit;
+  if ViewChar.CannotCarryItem(thrower, item) then Exit;
+  CharHlp.ItemLabel(item, False);
+  name := item^.name;
+  last := thrower^.itemsAddr;
+  while (last <> nil) and (last^.next <> nil) do
+    last := last^.next;
+  CharHlp.AddToInventory(thrower, item);
+  { the copy is the last item, unless it joined a stack whole }
+  back := thrower^.itemsAddr;
+  while (back <> nil) and (back^.next <> nil) do
+    back := back^.next;
+  if back = last then
+    back := nil;
+  { out of the loot; DetermineLootExp has read lastMissileItem already, and it moves on with the list }
+  if prev = nil then
+    GameVars.treasureItems := item^.next
+  else
+    prev^.next := item^.next;
+  if GameVars.lastMissileItem = item then
+    GameVars.lastMissileItem := item^.next;
+  item^.next := nil;
+  FreeMem(item, SizeOf(Types.TItemRec));
+  CharHlp.RecalcStats(thrower);
+  if back <> nil then begin
+    back^.equipped := 0;
+    base := CharHlp.BaseItem(back^.itemType);
+    if (thrower^.equipped[C_EQUIP.WEAPON] = nil) and (base^.slot = C_EQUIP.WEAPON) and
+       (thrower^.handsEquipped + base^.hands <= 2) and (base^.classMask and thrower^.itemLimits <> 0) then begin
+      { ToggleReadyItem readies GameVars.curChar's item, with its effect }
+      saved := GameVars.curChar;
+      GameVars.curChar := thrower;
+      FxEngine.ToggleReadyItem(back);
+      GameVars.curChar := saved;
+      CharHlp.RecalcStats(thrower);
+    end;
+  end;
+  ReturnThrown := True;
 end;
 
 { Turn undead at ClassCal.TurnLevel: one d20 roll against the turning table (ClassCal.TurnValue), applied to up to 1d12
@@ -994,6 +1117,7 @@ begin
           item^.equipped := 0;
           CharHlp.RemoveItem(att, weapon);
           GameVars.lastMissileItem := item;
+          CbtActs.NoteThrown(att, item);
         end else
           CharHlp.RemoveItem(att, weapon);
     end;
@@ -1203,7 +1327,7 @@ begin
     size := 1;
   for i := 1 to n do begin
     p := GameVars.creatureArr[slots[i]];
-    if (p^.enabled <> 0) and CbtActs.CanTarget(GameVars.curChar, p) then
+    if (p^.enabled <> 0) and CbtActs.CanTarget(GameVars.curChar, p, True) then
       if radius > 0 then begin
         if not CbtActs.AreaHitsNonEnemy(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), radius) then begin
           caught := 0;
@@ -1257,7 +1381,8 @@ var
 begin
   found := False;
   if not ai then begin
-    CbtActs.CombatAimMenu(GameVars.curChar, CharHlp.CalcSpellRange(spell), 0, ground, found, tgt);
+    CbtActs.CombatAimMenu(GameVars.curChar, CharHlp.CalcSpellRange(spell), 0, ground,
+                          GameDefs.spellTable[spell].offensive = 0, found, tgt);
     GameVars.curChar^.combatAddr^.other := tgt.cr;
   end else begin
     if GameDefs.spellTable[spell].offensive = 0 then begin
@@ -1917,7 +2042,7 @@ begin
     if (range < dist) or (GameDefs.terrainInfo[terrIdx].cost = 255) then
       valid := False;
     if underCursor <> nil then begin
-      if not CbtActs.CanTarget(cur, underCursor) then
+      if not CbtActs.CanTarget(cur, underCursor, True) then
         valid := False;
       if weaponMode = 1 then
         if (cur = underCursor)
@@ -1974,8 +2099,13 @@ end;
 
 { Run target selection, allowing cycling, manual aim and confirmation. tgt is a TAimTarget passed as an untyped var
   parameter. weaponMode is 1 for weapon attacks or 0 for spell casting. range 255 means the equipped weapon's range
-  minus 1 (1 unarmed); targets the creature may not attack are skipped. }
-procedure CombatAimMenu(creature: Types.PCharRecord; range, weaponMode, groundOk: Byte; var done: Boolean; var tgt);
+  minus 1 (1 unarmed); targets the creature may not attack are skipped. Next and Prev step through the creatures
+  AimCycles keeps: with Aim Cycles at ENEMIES the creature and its enemies, or for allies (a spell that is not
+  offensive) its own side; Manual and the cursor keys still reach anyone (#1137). The aim starts on the creature's
+  current target when the list holds it on the side wanted, else on the nearest enemy, or for allies on the creature
+  itself. }
+procedure CombatAimMenu(creature: Types.PCharRecord; range, weaponMode, groundOk: Byte; allies: Boolean;
+                        var done: Boolean; var tgt);
 var
   targets: Types.TTargetList;
   effRange: Byte;
@@ -1991,16 +2121,62 @@ var
   ch: Char;
   keyDir: Byte;
 
-  { Build the parent routine's aiming list from targets within range 127. }
+  { Build the parent routine's aiming list from targets within range 127 that AimCycles keeps; when it keeps none, every
+    one, as SSI's list was. curIdx stays within the list. }
   procedure BuildAimTargets(c: Types.PCharRecord);
   var
     i: Byte;
   begin
     Pathing.BuildTargetList(CbtMap.CombatCellX(c), CbtMap.CombatCellY(c), 127, 255, CbtMap.GetIconSize(c),
                             GameVars.arenaPtr);
-    tgtCount := GameVars.targetCount;
-    for i := 1 to tgtCount do
-      targets[i] := GameVars.targetList[i];
+    tgtCount := 0;
+    for i := 1 to GameVars.targetCount do
+      if CbtActs.AimCycles(c, GameVars.creatureArr[GameVars.targetList[i].idx], allies) then begin
+        Inc(tgtCount);
+        targets[tgtCount] := GameVars.targetList[i];
+      end;
+    if tgtCount = 0 then begin
+      tgtCount := GameVars.targetCount;
+      for i := 1 to tgtCount do
+        targets[i] := GameVars.targetList[i];
+    end;
+    if (curIdx < 1) or (curIdx > tgtCount) then
+      curIdx := 1;
+  end;
+
+  { The list entry the aim starts on: the creature's current target (combatAddr^.other) on the side wanted, the enemies
+    or for allies the creature's own; else the nearest enemy (the list goes nearest first), or for allies the creature
+    itself; else the first. }
+  function AimStart(c: Types.PCharRecord): Byte;
+  var
+    i: Byte;
+    other: Types.PCharRecord;
+    current: Byte;
+    nearest: Byte;
+    own: Byte;
+  begin
+    current := 0;
+    nearest := 0;
+    own := 0;
+    for i := tgtCount downto 1 do begin
+      other := GameVars.creatureArr[targets[i].idx];
+      if other = c then
+        own := i
+      else if other <> nil then
+        if (other^.hostile = c^.hostile) = allies then begin
+          nearest := i;
+          if other = c^.combatAddr^.other then
+            current := i;
+        end;
+    end;
+    if current = 0 then
+      if allies then
+        current := own
+      else
+        current := nearest;
+    if current = 0 then
+      current := 1;
+    AimStart := current;
   end;
 
   { Move the aim highlight step entries through the list (wrapping) and return that creature; animate flies the cursor
@@ -2040,8 +2216,9 @@ begin
       effRange := 1;
   if (effRange = 0) or (effRange = 255) then
     effRange := 1;
-  BuildAimTargets(creature);
   curIdx := 1;
+  BuildAimTargets(creature);
+  curIdx := AimStart(creature);
   skipStep := 0;
   p := AdvanceAimTarget(skipStep, True);
   skipStep := 1;
@@ -2050,7 +2227,7 @@ begin
   ch := ' ';
   while (done = False) and (not (ch in [C_KEYS.NONE, 'E'])) do
   begin
-    if not CbtActs.CanTarget(creature, p) then
+    if not CbtActs.CanTarget(creature, p, True) then
       p := AdvanceAimTarget(skipStep, False)
     else begin
       ch := CbtActs.AimTargetMenu(creature, p, effRange, weaponMode, keyDir);
@@ -2118,7 +2295,7 @@ begin
   { Drop the lock when forceNew is set or the locked target is no longer valid; a nil lock skips the checks }
   if (forceNew <> 0) or
       ((p <> nil) and
-       ((p^.hostile = creature^.hostile) or (p^.enabled = 0) or (not CbtActs.CanTarget(creature, p)))) then
+       ((p^.hostile = creature^.hostile) or (p^.enabled = 0) or (not CbtActs.CanTarget(creature, p, True)))) then
     creature^.combatAddr^.other := nil;
   if creature^.combatAddr^.other <> nil then
     found := True;
@@ -2134,7 +2311,7 @@ begin
       if GameVars.combatTargetSlots[pick] > 0 then begin
         p := GameVars.creatureArr[GameVars.combatTargetSlots[pick]];
         if ((relaxed <> 0) and (GameVars.arenaPtr^.distMode <> 0))
-           or CbtActs.CanTarget(creature, p) then begin
+           or CbtActs.CanTarget(creature, p, True) then begin
           found := True;
           creature^.combatAddr^.other := p;
         end else begin

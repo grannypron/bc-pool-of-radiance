@@ -180,7 +180,7 @@ begin
                  if not done then
                    CharDisp.DisplayCombatInterface;
                end;
-          'A': CbtActs.CombatAimMenu(creature, 255, 1, 0, done, aimTgt);
+          'A': CbtActs.CombatAimMenu(creature, 255, 1, 0, False, done, aimTgt);
           'U': begin
                  ViewChar.UseItemMenu(done);
                  CbtActs.RecalcAttacksLeft(creature);

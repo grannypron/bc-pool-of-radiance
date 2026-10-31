@@ -16,7 +16,8 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 implementation
 
 uses Types, Crt, C_MSG, C_SPELL, GameVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM, C_MONEY, Stats,
-  Bestiary, BeastFil, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
+  Bestiary, BeastFil, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal,
+  CbtActs;
 
 var
   { Combat outcome. }
@@ -464,6 +465,41 @@ begin
   GameVars.curChar := GameVars.creatureList;
 end;
 
+{ Retrieve Thrown (GameVars.retrieveThrownOn, #1118): each single thrown weapon a party member dropped into the loot
+  this fight goes back to its thrower when it can (CbtActs.ReturnThrown), each told in the window three rows apart,
+  with the continue prompt when the window fills and after the last. }
+procedure RetrieveThrownWeapons;
+const
+  { the window's first row for the messages, and the last one a message starts on }
+  FIRST_ROW = 3;
+  LAST_ROW = 19;
+var
+  n: Byte;
+  row: Byte;
+  thrower: Types.PCharRecord;
+  back: Types.PItemRec;
+  name: string;
+  c: Char;
+  ext: Boolean;
+begin
+  if GameVars.retrieveThrownOn = 0 then Exit;
+  row := 0;
+  for n := 1 to CbtActs.thrownCount do
+    if CbtActs.ReturnThrown(n, thrower, back, name) then begin
+      if (row = 0) or (row > LAST_ROW) then begin
+        if row > LAST_ROW then
+          c := MenuCore.MenuHorizontal('', C_MSG.CONTINUE_PROMPT, White, White, White, True, False, ext);
+        Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
+        row := FIRST_ROW;
+      end;
+      TextRend.DisplayMessageWindow(1, row, 38, 22, LightGreen, True, thrower^.name + ' retrieves ' + name + '.');
+      Inc(row, 3);
+    end;
+  if row > 0 then
+    c := MenuCore.MenuHorizontal('', C_MSG.CONTINUE_PROMPT, White, White, White, True, False, ext);
+  CbtActs.thrownCount := 0;
+end;
+
 { Each Okay NPC claims (npcTreasureShare and 7) shares, every other creature one share. Each coin type above 0 is cut
   into that many shares and the NPCs' shares are removed. If any coin type was cut, list the NPCs with a nonzero
   npcTreasureShare as taking their share. }
@@ -517,10 +553,11 @@ begin
   end;
 end;
 
-{ Resolve combat results and remove combat state. On survival or in a duel, take the NPC shares, display the summary,
-  offer loot and free the leftover treasure items; on defeat, set C_GBVM.COMBAT_RESULT to $80 and show the game-over
-  screen. Then clear the one-combat GBVM modifiers: THAC0 adjustments, party movement, no-items and mirror duel, and
-  write what the Bestiary learned in the fight, the next fight a new encounter for it (#842). }
+{ Resolve combat results and remove combat state. On survival or in a duel, hand thrown weapons back
+  (RetrieveThrownWeapons), take the NPC shares, display the summary, offer loot and free the leftover treasure items;
+  on defeat, set C_GBVM.COMBAT_RESULT to $80 and show the game-over screen. Then clear the one-combat GBVM modifiers:
+  THAC0 adjustments, party movement, no-items and mirror duel, and write what the Bestiary learned in the fight, the
+  next fight a new encounter for it (#842). }
 procedure PostCombat;
 begin
   GameVars.zone1^[C_GBVM.COMBAT_RESULT] := 0;
@@ -529,6 +566,7 @@ begin
   PostCbt.DetermineCombatResults;
   PostCbt.PostCombatCreatureCleanup;
   if not GameVars.partyDefeated or GameVars.duelFlag then begin
+    PostCbt.RetrieveThrownWeapons;
     PostCbt.NpcTreasureShare;
     PostCbt.PostCombatSummary(expShare);
     PostCbt.LootMenu;
