@@ -503,6 +503,10 @@ begin
 end;
 
 procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
+const
+  { the displacer beast's disk and MON<disk>CHA block }
+  DISPLACER_DISK = 7;
+  DISPLACER_BEAST = 68;
 var
   size: Word;
   data: Types.PByteArr;
@@ -557,6 +561,12 @@ begin
     end;
     FreeMem(data, size);
   end;
+  { SSI's data gives the displacer beast (MON7CHA block 68, the game's only one) no MON7SPC block, so it never had
+    effect 89, its displacement: the first attack on it each combat misses. DataBld patches only blocks that are there,
+    so the effect is granted here (#1136). }
+  if (GameVars.diskIndex = DISPLACER_DISK) and (id = DISPLACER_BEAST)
+     and not CharHlp.HasEffect(creature, C_EFFECT.DISPLACED, effect) then
+    FxEngine.AddEffect(creature, C_EFFECT.DISPLACED, 0, 0, False);
   DaxIo.LoadDax('MON' + numStr + 'ITM', '.dax', id, size, data);
   if size <> 0 then begin
     if size >= DiskRec.ITEM_DISK_BYTES then begin

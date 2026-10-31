@@ -6,9 +6,10 @@
 #
 # REPO_API is the event's repository URL and TOKEN is the job token, as in release.sh. Upload the replacement before
 # deleting an older asset with the same name so a failed upload leaves the release intact. The script also replaces
-# that asset's checksum block in the release notes.
+# that asset's checksum block in the release notes, in place (notes.sh).
 
 set -euo pipefail
+. "$(dirname "${BASH_SOURCE[0]}")/notes.sh"
 
 tag="$1"
 file="$2"
@@ -39,8 +40,7 @@ sum="$(cd "$(dirname "$file")" && sha256sum "$asset")"
 begin="<!-- $asset -->"
 end="<!-- /$asset -->"
 notes="$(jq -r '.body // ""' <<< "$release" \
-    | awk -v b="$begin" -v e="$end" '$0 == b { skip = 1 } !skip { print } $0 == e { skip = 0 }')"
-notes="$(printf '%s\n\n%s\n%s, SHA-256:\n\n```\n%s\n```\n%s\n' "$notes" "$begin" "$asset" "$sum" "$end")"
+    | notes_put "$begin" "$end" "$(printf '%s\n%s, SHA-256:\n\n```\n%s\n```\n%s' "$begin" "$asset" "$sum" "$end")")"
 curl -fsS -X PATCH -H "$auth" -H 'Content-Type: application/json' \
     -d "$(jq -n --arg notes "$notes" '{body: $notes}')" "$api/releases/$id" > /dev/null
 echo "release-asset.sh: added $asset's SHA-256 to the notes of the release for $tag"
