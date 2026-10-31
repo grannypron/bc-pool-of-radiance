@@ -61,6 +61,8 @@ The fixes below cover both visible bugs and rare failures that could damage a sa
 
 - The combat AI, the party's in Quick mode and the monsters' alike, casts a spell only where it obviously does something: no Hold Person or Charm Person on scorpions and skeletons, no Sleep on the undead, no Silence on creatures it hasn't seen cast, no second Bless. It favours the spell that does the most, still now and then not the best, and saves its area spells for two or more.
 - On Linux and macOS, `poolcfg` leaves without saving if its terminal goes away, instead of running on in the background at full speed; run with its input or output redirected, it says it needs a terminal instead of crashing.
+- Free the Temple of Bane before taking Dirten's mission and the bishop no longer sends him along: he thanks you and Dirten goes to restore the temple himself. A party already stuck with him says farewell to him at the temple's altar. Once destroyed, the altar also stays destroyed.
+- The priests of Tyr now offer to take the Mad Man into their care, and he leaves the party if you agree, instead of being told to drop him.
 - Genheeris no longer slips away when the party comes back to Tyranthraxus' lair after beating him. This mends a game saved after the fight too.
 - Readying the Flame Tongue sword from Valjevo Castle's well, or the Two-Handed Sword +3 vs. Undead, during a fight no longer crashes the Linux, Windows and macOS versions (it happened most often with the combat AI, which readies weapons at the start of a turn). Readying them no longer adds their bonus to an attack that isn't happening, either.
 - The treasure menu no longer stays at the bottom of the screen while the ending plays.

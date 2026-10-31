@@ -88,6 +88,10 @@ const
     party there a tenth off. One of the cells that no script and no unit used ($4A53..$4A58, $4A6E..$4A71, $4A79..$4A7B:
     every script's disassembly, its indexed tables included, and the source). }
   DIRTEN_TEMPLE_DAY = $4A79;
+  { 1 once the Temple of Bane's altar is destroyed (#1139, a DataPat fix to its script, which kept it only in the area
+    cell [$4A02], so every visit could destroy it again). The script clears it while the temple is not freed, so an
+    altar destroyed in a fight the party fled stands again. The next of the free cells DIRTEN_TEMPLE_DAY's note lists. }
+  BANE_ALTAR_DESTROYED = $4A7A;
   { The Buccaneer Base: $FF once the party took the fort, BUCCANEER_FLED once it ran and left the Bivant boy behind
     (#851) }
   BUCCANEER_BASE = $4A8B;

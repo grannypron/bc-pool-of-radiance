@@ -18,8 +18,8 @@ uses C_DATA;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 88;
-  BYTE_COUNT = 2645;
+  PART_COUNT = 99;
+  BYTE_COUNT = 3405;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -315,6 +315,32 @@ begin
     is beaten ([$4A6D] bit $10), then makes SSI's test and goes back. A save made after the defeat is mended too. }
   DataPat.Part(1092, C_DATA.FAMILY_ECL, 5, 7, 4105, 2787, 9, 9);
   DataPat.Part(1092, C_DATA.FAMILY_ECL, 5, 7, 4105, 4105, 0, 24);
+  { #1138: at the Temple of Tyr (script $A064) with the Mad Man in the party, the aged priest told the party to drop
+    him and waited for Return ($B06C), but never offered to take him. He now asks the party to leave him with the
+    temple, and new code at the end of the script asks WILL YOU LEAVE HIM IN OUR CARE?: on yes he leaves the party
+    as Skullcrusher does ($AD56, by the index the party search at $AF56 left in [$9802]), his items with him; either
+    way the offer of healing follows as before }
+  DataPat.Part(1138, C_DATA.FAMILY_ECL, 3, 0, 7710, 5861, 137, 137);
+  DataPat.Part(1138, C_DATA.FAMILY_ECL, 3, 0, 7710, 5998, 4, 4);
+  DataPat.Part(1138, C_DATA.FAMILY_ECL, 3, 0, 7710, 7710, 0, 143);
+  { #1139: the Temple of Bane freed before Dirten joined left him in the party for good: City Hall still summoned
+    the party to the bishop until the reward was paid, the bishop's study (event 5, script $9E07) never asked whether
+    the temple was freed, and only the main fight's end ($AC68) bids him farewell. City Hall's summons ($AABE) now
+    stops once the temple is freed ([$4ABD] at $FE); the study, by new code at the end of the script, has the bishop
+    thank the party and send Dirten to restore the temple, the state #682's altar takes as a freed temple with
+    Dirten; and at the altar (script $A8B0, #682's jump), new code finds a Dirten who joined after the temple was
+    freed without him and goes to #682's farewell. The altar destroyed is kept for good in
+    C_GBVM.BANE_ALTAR_DESTROYED, not the area cell [$4A02] each visit clears, so it can no longer be destroyed again;
+    the altar code clears it while the temple is not freed, so an altar destroyed in a fight the party fled stands
+    again, as before }
+  DataPat.Part(1139, C_DATA.FAMILY_ECL, 1, 24, 8090, 4018, 4, 4);
+  DataPat.Part(1139, C_DATA.FAMILY_ECL, 1, 24, 8090, 4300, 2, 2);
+  DataPat.Part(1139, C_DATA.FAMILY_ECL, 1, 24, 8090, 4359, 2, 2);
+  DataPat.Part(1139, C_DATA.FAMILY_ECL, 1, 24, 8090, 7914, 2, 2);
+  DataPat.Part(1139, C_DATA.FAMILY_ECL, 1, 24, 8090, 8090, 0, 112);
+  DataPat.Part(1139, C_DATA.FAMILY_ECL, 3, 0, 7853, 612, 2, 2);
+  DataPat.Part(1139, C_DATA.FAMILY_ECL, 3, 0, 7853, 7853, 0, 185);
+  DataPat.Part(1139, C_DATA.FAMILY_ECL, 3, 8, 7500, 4544, 7, 7);
 end;
 
 { Every part's bytes, original then fixed, in table order. }
@@ -1064,7 +1090,140 @@ begin
   DataPat.Put(#$17);                                         { $A910 IF <> }
   DataPat.Put(#$00);                                         { $A911 EXIT }
   DataPat.Put(#$2F#$01#$6D#$4A#$00#$01#$01#$82#$6E);         { $A912 AND [$4A6D], $01, [$6E82] }
-  DataPat.Put(#$01#$01#$EA#$A3);                             { $A91B GOTO LA3EA }
+  DataPat.Put(#$01#$01#$EA#$A3);                             { $A91B GOTO LA3EA }  { #1138 part 1, original }
+  { $AFE3 PRINTCLEAR "AN AGED PRIEST APPROACHES, POINTING AT THE MAD MAN, HE SPEAKS, 'THAT MAN URGENTLY NEEDS OUR
+    CARE.  DROP HIM FROM YOUR PARTY OR HE WILL BRING YOU TO GRIEF.  WE WILL CARE FOR HIM.'" }
+  DataPat.Put(#$12#$80#$86#$04#$E8#$01#$1C#$51#$20#$41#$22#$45#$4D#$48#$01#$41);
+  DataPat.Put(#$04#$8F#$04#$32#$05#$4E#$C8#$10#$3C#$93#$94#$24#$E1#$E0#$05#$48);
+  DataPat.Put(#$14#$20#$58#$0D#$04#$48#$0D#$04#$EB#$20#$20#$58#$13#$40#$50#$4B);
+  DataPat.Put(#$4E#$C8#$27#$50#$80#$54#$80#$D0#$4E#$81#$54#$87#$14#$E5#$0C#$66);
+  DataPat.Put(#$03#$85#$14#$44#$E0#$3D#$54#$A0#$0C#$14#$85#$BA#$08#$04#$48#$F4);
+  DataPat.Put(#$20#$20#$93#$60#$19#$23#$CD#$81#$93#$D5#$4A#$04#$01#$49#$46#$60);
+  DataPat.Put(#$3D#$28#$08#$16#$05#$C9#$30#$C8#$02#$48#$93#$87#$81#$93#$D5#$81);
+  DataPat.Put(#$43#$E0#$1D#$22#$45#$1A#$E8#$20#$5C#$58#$17#$24#$C3#$20#$0C#$14);
+  DataPat.Put(#$85#$80#$63#$D2#$80#$82#$4D#$BA#$70);
+  { fixed: the priest asks the party to leave him with them }
+  { $AFE3 PRINTCLEAR "AN AGED PRIEST APPROACHES, POINTING AT THE MAD MAN, HE SPEAKS, 'THAT MAN URGENTLY NEEDS OUR
+    CARE.  LEAVE HIM WITH US AND WE WILL CARE FOR HIM.'" }
+  DataPat.Put(#$12#$80#$86#$04#$E8#$01#$1C#$51#$20#$41#$22#$45#$4D#$48#$01#$41);
+  DataPat.Put(#$04#$8F#$04#$32#$05#$4E#$C8#$10#$3C#$93#$94#$24#$E1#$E0#$05#$48);
+  DataPat.Put(#$14#$20#$58#$0D#$04#$48#$0D#$04#$EB#$20#$20#$58#$13#$40#$50#$4B);
+  DataPat.Put(#$4E#$C8#$27#$50#$80#$54#$80#$D0#$4E#$81#$54#$87#$14#$E5#$0C#$66);
+  DataPat.Put(#$03#$85#$14#$44#$E0#$3D#$54#$A0#$0C#$14#$85#$BA#$08#$0C#$14#$15);
+  DataPat.Put(#$85#$80#$82#$4D#$81#$72#$54#$22#$05#$53#$80#$13#$84#$81#$71#$60);
+  DataPat.Put(#$5C#$93#$0C#$80#$30#$52#$16#$01#$8F#$4A#$02#$09#$36#$E9#$C0#$00);
+  DataPat.Put(#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00);
+  DataPat.Put(#$00#$00#$00#$00#$00#$00#$00#$00#$00);
+  { #1138 part 2, original }
+  DataPat.Put(#$02#$01#$1F#$AF);                             { $B06C GOSUB LAF1F }
+  { fixed: to the question, by new code }
+  DataPat.Put(#$01#$01#$1C#$B7);                             { $B06C GOTO LB71C }
+  { #1138 part 3, added at $B71C: will the party leave him; yes, he leaves the party as Skullcrusher does ($AD56) }
+  { $B71C PRINT " 'WILL YOU LEAVE HIM IN OUR CARE?'" }
+  DataPat.Put(#$11#$80#$1A#$82#$75#$C9#$30#$C8#$19#$3D#$58#$0C#$14#$15#$85#$80);
+  DataPat.Put(#$82#$4D#$80#$93#$A0#$3D#$54#$A0#$0C#$14#$85#$FE#$70);
+  DataPat.Put(#$02#$01#$5D#$AE);                             { $B739 GOSUB LAE5D }
+  DataPat.Put(#$25#$01#$79#$6E#$00#$02#$01#$49#$B7#$01#$85#$B7); { $B73D ON GOTO [$6E79], $02, LB749, LB785 }
+  DataPat.Put(#$09#$00#$00#$01#$00#$6C);                     { $B749 SAVE $00, [$6C00] }
+  DataPat.Put(#$09#$00#$00#$01#$00#$6B);                     { $B74F SAVE $00, [$6B00] }
+  DataPat.Put(#$04#$00#$80#$01#$02#$98#$01#$02#$98);         { $B755 ADD $80, [$9802], [$9802] }
+  DataPat.Put(#$0A#$01#$02#$98);                             { $B75E LOAD CHARACTER [$9802] }
+  { $B762 PRINTCLEAR "THE PRIESTS GENTLY LEAD THE MAD MAN AWAY." }
+  DataPat.Put(#$12#$80#$1F#$50#$81#$60#$41#$22#$45#$4D#$44#$E0#$1C#$53#$94#$31);
+  DataPat.Put(#$98#$0C#$14#$11#$20#$50#$81#$60#$34#$11#$20#$34#$13#$A0#$05#$70);
+  DataPat.Put(#$59#$B8);
+  DataPat.Put(#$13);                                         { $B784 RETURN }
+  { $B785 PRINTCLEAR "THE PRIESTS OF TYR WELCOME YOU TO THE TEMPLE." }
+  DataPat.Put(#$12#$80#$22#$50#$81#$60#$41#$22#$45#$4D#$44#$E0#$3C#$68#$14#$65);
+  DataPat.Put(#$28#$17#$14#$C0#$CF#$34#$58#$19#$3D#$58#$14#$3E#$05#$08#$16#$05);
+  DataPat.Put(#$05#$35#$03#$05#$B8);
+  DataPat.Put(#$13);                                         { $B7AA RETURN }
+  { #1139 part 1, original }
+  DataPat.Put(#$01#$01#$E6#$B6);                             { $A8B0 GOTO LB6E6 }
+  { fixed: the altar first goes by new code }
+  DataPat.Put(#$01#$01#$98#$B8);                             { $A8B0 GOTO LB898 }
+  { #1139 part 2, original }
+  DataPat.Put(#$02#$4A);                                     { $A9C6 SAVE $01, [$4A02]: the address }
+  { fixed: the altar destroyed, for good (C_GBVM.BANE_ALTAR_DESTROYED) }
+  DataPat.Put(#$7A#$4A);                                     { $A9C6 SAVE $01, [$4A7A]: the address }
+  { #1139 part 3, original }
+  DataPat.Put(#$02#$4A);                                     { $AA01 SAVE $01, [$4A02]: the address }
+  { fixed: the altar destroyed, for good (C_GBVM.BANE_ALTAR_DESTROYED) }
+  DataPat.Put(#$7A#$4A);                                     { $AA01 SAVE $01, [$4A7A]: the address }
+  { #1139 part 4, original }
+  DataPat.Put(#$02#$4A);                                     { $B7E6 COMPARE [$4A02], $01: the address (#682 part 6) }
+  { fixed: the altar destroyed, for good }
+  DataPat.Put(#$7A#$4A);                                     { $B7E6 COMPARE [$4A7A], $01: the address }
+  { #1139 part 5, added at $B898: an altar destroyed in a fight the party fled stands again; a temple freed without
+    Dirten ([$4A79] = $FFFF) that he joined after ([$4A9C] = $FF, a game from before this) finds him in the party and
+    goes to #682's farewell ($B7F5). Only then is the party searched: LOAD CHARACTER would change who the temple
+    serves }
+  DataPat.Put(#$03#$01#$BD#$4A#$00#$FE);                     { $B898 COMPARE [$4ABD], $FE }
+  DataPat.Put(#$18);                                         { $B89E IF < }
+  DataPat.Put(#$09#$00#$00#$01#$7A#$4A);                     { $B89F SAVE $00, [$4A7A] }
+  DataPat.Put(#$03#$01#$BD#$4A#$00#$FE);                     { $B8A5 COMPARE [$4ABD], $FE }
+  DataPat.Put(#$18);                                         { $B8AB IF < }
+  DataPat.Put(#$01#$01#$E6#$B6);                             { $B8AC GOTO LB6E6 }
+  DataPat.Put(#$03#$01#$79#$4A#$02#$FF#$FF);                 { $B8B0 COMPARE [$4A79], $FFFF }
+  DataPat.Put(#$17);                                         { $B8B7 IF <> }
+  DataPat.Put(#$01#$01#$E6#$B6);                             { $B8B8 GOTO LB6E6 }
+  DataPat.Put(#$03#$01#$9C#$4A#$00#$FF);                     { $B8BC COMPARE [$4A9C], $FF }
+  DataPat.Put(#$17);                                         { $B8C2 IF <> }
+  DataPat.Put(#$01#$01#$E6#$B6);                             { $B8C3 GOTO LB6E6 }
+  DataPat.Put(#$09#$00#$00#$01#$7A#$6E);                     { $B8C7 SAVE $00, [$6E7A] }
+  DataPat.Put(#$0A#$01#$7A#$6E);                             { $B8CD LOAD CHARACTER [$6E7A] }
+  { $B8D1 COMPARE str[$6B00], "DIRTEN" }
+  DataPat.Put(#$03#$81#$00#$6B#$80#$05#$10#$94#$94#$14#$E0);
+  DataPat.Put(#$16);                                         { $B8DC IF = }
+  DataPat.Put(#$01#$01#$F9#$B8);                             { $B8DD GOTO LB8F9 }
+  DataPat.Put(#$04#$00#$01#$01#$7A#$6E#$01#$7A#$6E);         { $B8E1 ADD $01, [$6E7A], [$6E7A] }
+  DataPat.Put(#$03#$01#$7A#$6E#$00#$08);                     { $B8EA COMPARE [$6E7A], $08 }
+  DataPat.Put(#$18);                                         { $B8F0 IF < }
+  DataPat.Put(#$01#$01#$CD#$B8);                             { $B8F1 GOTO LB8CD }
+  DataPat.Put(#$01#$01#$E6#$B6);                             { $B8F5 GOTO LB6E6 }
+  DataPat.Put(#$03#$01#$B8#$6B#$00#$80);                     { $B8F9 COMPARE [$6BB8], $80 }
+  DataPat.Put(#$18);                                         { $B8FF IF < }
+  DataPat.Put(#$01#$01#$E1#$B8);                             { $B900 GOTO LB8E1 }
+  DataPat.Put(#$01#$01#$F5#$B7);                             { $B904 GOTO LB7F5 }
+  { #1139 part 6, original }
+  DataPat.Put(#$07#$9E);                                     { $9B4C ON GOTO [$9800] entry 5: L9E07 }
+  { fixed: event 5, the bishop's study, goes to new code at the end of the script }
+  DataPat.Put(#$AB#$B7);                                     { $9B4C ON GOTO [$9800] entry 5: LB7AB }
+  { #1139 part 7, added at $B7AB, after #1138's: the temple already freed, the bishop thanks the party and Dirten
+    goes to restore it: [$4A9C] = $FF and no day kept, so #682's altar starts the 14 days on the first visit }
+  DataPat.Put(#$03#$01#$BD#$4A#$00#$FE);                     { $B7AB COMPARE [$4ABD], $FE }
+  DataPat.Put(#$18);                                         { $B7B1 IF < }
+  DataPat.Put(#$01#$01#$07#$9E);                             { $B7B2 GOTO L9E07 }
+  DataPat.Put(#$03#$01#$9C#$4A#$00#$FF);                     { $B7B6 COMPARE [$4A9C], $FF }
+  DataPat.Put(#$16);                                         { $B7BC IF = }
+  DataPat.Put(#$00);                                         { $B7BD EXIT }
+  DataPat.Put(#$03#$01#$9B#$4A#$00#$FE);                     { $B7BE COMPARE [$4A9B], $FE }
+  DataPat.Put(#$16);                                         { $B7C4 IF = }
+  DataPat.Put(#$01#$01#$D4#$B7);                             { $B7C5 GOTO LB7D4 }
+  DataPat.Put(#$03#$01#$9C#$4A#$00#$80);                     { $B7C9 COMPARE [$4A9C], $80 }
+  DataPat.Put(#$17);                                         { $B7CF IF <> }
+  DataPat.Put(#$01#$01#$07#$9E);                             { $B7D0 GOTO L9E07 }
+  DataPat.Put(#$09#$00#$0D#$01#$E1#$6D);                     { $B7D4 SAVE $0D, [$6DE1] }
+  DataPat.Put(#$0E#$00#$01);                                 { $B7DA PICTURE $01 }
+  { $B7DD PRINTCLEAR "YOU ARE USHERED INTO THE BISHOP'S STUDY. BISHOP BRACCIO SPEAKS, 'YOU HAVE ALREADY CLEANSED THE
+    TEMPLE OF BANE! DIRTEN WILL GO AT ONCE TO RESTORE IT.'" }
+  DataPat.Put(#$12#$80#$70#$64#$F5#$60#$05#$21#$60#$55#$32#$05#$48#$51#$20#$24);
+  DataPat.Put(#$E5#$0F#$81#$42#$05#$80#$22#$53#$20#$F4#$27#$4E#$04#$D4#$54#$46);
+  DataPat.Put(#$6E#$80#$22#$53#$20#$F4#$20#$09#$20#$43#$0C#$93#$E0#$4D#$01#$41);
+  DataPat.Put(#$2D#$3B#$20#$9D#$93#$D5#$80#$80#$56#$16#$00#$4C#$48#$50#$44#$66);
+  DataPat.Put(#$00#$CC#$14#$13#$93#$14#$48#$14#$20#$58#$14#$14#$D4#$0C#$16#$03);
+  DataPat.Put(#$C6#$80#$20#$4E#$16#$18#$04#$25#$25#$05#$3A#$05#$C9#$30#$C8#$07);
+  DataPat.Put(#$3E#$00#$54#$80#$F3#$83#$16#$05#$0F#$81#$21#$53#$50#$F4#$85#$80);
+  DataPat.Put(#$95#$2E#$9C);
+  DataPat.Put(#$02#$01#$1F#$AF);                             { $B850 GOSUB LAF1F }
+  DataPat.Put(#$09#$00#$FF#$01#$9C#$4A);                     { $B854 SAVE $FF, [$4A9C] }
+  DataPat.Put(#$09#$00#$00#$01#$79#$4A);                     { $B85A SAVE $00, [$4A79] }
+  DataPat.Put(#$0E#$00#$FF);                                 { $B860 PICTURE $FF }
+  DataPat.Put(#$00);                                         { $B863 EXIT }
+  { #1139 part 8, original }
+  DataPat.Put(#$03#$01#$BD#$4A#$00#$FF#$16);                 { $AABE COMPARE [$4ABD], $FF; IF = }
+  { fixed: no summons once the temple is freed }
+  DataPat.Put(#$03#$01#$BD#$4A#$00#$FE#$1B);                 { $AABE COMPARE [$4ABD], $FE; IF >= }
 end;
 
 function LoadTable: Boolean;

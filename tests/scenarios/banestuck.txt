@@ -1,0 +1,16 @@
+# Tests a party stuck with Dirten (#1139): a game from before this fix whose party freed the Temple of Bane without him
+# ([$4A79] = $FFFF) and took him along after ([$4A9C] = $FF). The fixture is bane's, save A beside the altar at (13,7)
+# with the sixth member made Dirten, with the temple freed. Stepping onto the altar, Dirten bids farewell and leaves,
+# the day is kept, and returning to the altar shows the rebuilding.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/banestuck
+press l a
+wait AREA 120
+press up
+wait AREA
+checkpoint farewell
+press down up down up
+wait AREA
+checkpoint rebuilding

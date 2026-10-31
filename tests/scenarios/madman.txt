@@ -1,0 +1,27 @@
+# Tests the Mad Man at the Temple of Tyr (#1138). The fixture places save A on the temple's square in New Phlan, (8,4),
+# with the sixth member made the Mad Man, an NPC. Look runs the temple's event: the priest asks the party to leave him
+# in the temple's care. No keeps him and gives the temple's greeting and its offer of healing; Yes, at a second look,
+# removes him from the party, and the offer of healing follows.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/madman
+# Load the slot directly by pressing its letter (#652).
+press l a
+wait AREA 120
+press l
+wait YES NO
+checkpoint question
+press n
+wait YES NO
+checkpoint kept
+press n
+wait AREA
+press l
+wait YES NO
+press y
+wait YES NO
+checkpoint led-away
+press n
+wait AREA
+checkpoint party
