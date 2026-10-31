@@ -95,6 +95,11 @@ const
   CURE_DISEASE = 39;
   { spellFns[43] = SpellRemoveCurse }
   REMOVE_CURSE = 43;
+  { spellFns[56] = SpellRestoration, a level-7 cleric spell: here only from a scroll }
+  RESTORATION = 56;
+  { the item spells Fix may use (#1129): Keoghtom's Ointment (spellFns[58]) and the Potion of Healing (spellFns[62]) }
+  ITEM_OINTMENT = 58;
+  ITEM_HEALING = 62;
   { spellFns[47] and spellFns[64] (the item fireball) = SpellFireball }
   FIREBALL = 47;
   ITEM_FIREBALL = 64;

@@ -52,6 +52,7 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O Journal2}
 {$O Journal1}
 {$O Camp}
+{$O FixPlan}
 {$O CharGen}
 {$O UsualSpl}
 {$O VidOps}

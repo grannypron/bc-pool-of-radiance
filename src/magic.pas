@@ -208,6 +208,16 @@ function CastSpellMenu(var idx: Integer; var notEmpty: Boolean; var scroll: Type
 
 procedure UseItemSpell(item: Types.PItemRec; spell: Byte; announce: Boolean; var done: Boolean);
 
+{ Spend what casting spell from item cost user: a scroll's copy of the spell (RemoveSpellFromScroll), or else one of
+  the item's quantity and then a charge, the item going when its charges run out. An item with no charges spends
+  nothing. Use and Fix share it. }
+procedure SpendItemSpell(user: Types.PCharRecord; item: Types.PItemRec; spell: Byte);
+
+{ Cast spell from user's item at target, with no menu or question, as Fix does (#1129): the spell's handler runs with
+  user as the caster (GameVars.curChar for the cast) and target its one target, at the item caster level
+  (GameVars.usingItem), and the item is spent (SpendItemSpell). The handler says what it did. }
+procedure CastItemSpellOn(user: Types.PCharRecord; item: Types.PItemRec; spell: Byte; target: Types.PCharRecord);
+
 procedure UseItem(item: Types.PItemRec; var done: Boolean);
 
 implementation
@@ -2224,19 +2234,42 @@ begin
   if GameVars.ifcState = C_IFC.IN_COMBAT then
     if GameDefs.spellTable[spell].whenCast <> 0 then
       done := CharHlp.EndActions(GameVars.curChar);
-  if cast then begin
-    if CharHlp.ItemReadable(item) then
-      Magic.RemoveSpellFromScroll(GameVars.curChar, item, spell)
-    else if item^.charges > 0 then begin
-      if item^.quantity > 1 then
-        Dec(item^.quantity)
-      else begin
-        Dec(item^.charges);
-        if item^.charges = 0 then
-          CharHlp.RemoveItem(GameVars.curChar, item);
-      end;
+  if cast then
+    Magic.SpendItemSpell(GameVars.curChar, item, spell);
+end;
+
+procedure SpendItemSpell(user: Types.PCharRecord; item: Types.PItemRec; spell: Byte);
+begin
+  if CharHlp.ItemReadable(item) then
+    Magic.RemoveSpellFromScroll(user, item, spell)
+  else if item^.charges > 0 then begin
+    if item^.quantity > 1 then
+      Dec(item^.quantity)
+    else begin
+      Dec(item^.charges);
+      if item^.charges = 0 then
+        CharHlp.RemoveItem(user, item);
     end;
   end;
+end;
+
+procedure CastItemSpellOn(user: Types.PCharRecord; item: Types.PItemRec; spell: Byte; target: Types.PCharRecord);
+var
+  caster: Types.PCharRecord;
+begin
+  if (spell < 1) or (spell > C_SPELL.TABLE_LAST) then Exit;
+  caster := GameVars.curChar;
+  GameVars.curChar := user;
+  GameVars.spellTargets[1] := target;
+  GameVars.spellTargetCount := 1;
+  GameVars.usingItem := True;
+  GameVars.spellId := spell;
+  GameVars.spellFns[spell];
+  GameVars.spellId := C_SPELL.NONE;
+  GameVars.usingItem := False;
+  Magic.SpendItemSpell(user, item, spell);
+  CharHlp.RecalcStats(user);
+  GameVars.curChar := caster;
 end;
 
 { Cast from a scroll (spell chosen from its list) or an effect-bearing item through UseItemSpell. }

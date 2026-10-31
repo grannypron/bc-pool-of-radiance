@@ -61,12 +61,17 @@ function KeyName(key: Byte): TName;
 { The label of setting opt on the Settings screen, a sub-setting's indented two spaces under its setting. }
 function SettingName(opt: Byte): TName;
 
-{ True for a setting of the Sound page (C_OPT.OPT_FIRST_SOUND to OPT_LAST_SOUND): the music and the sound. The rest
-  are the Game page's; the game's Settings screen and POOLCFG split them so (#1088). }
-function SoundSetting(opt: Byte): Boolean;
+{ The page setting opt is on: C_OPT.OPT_PAGE_SOUND for the music and the sound (OPT_FIRST_SOUND to OPT_LAST_SOUND,
+  #1088), OPT_PAGE_CAMP for Auto Memorize and Fix's settings (OPT_FIRST_CAMP to OPT_LAST_CAMP, #1119, #1129), and
+  OPT_PAGE_GAME for the rest; the game's Settings screen and POOLCFG split them so. }
+function SettingPage(opt: Byte): Byte;
 
-{ The line of setting opt on its page, from 0, in order: the Sound page's from their own first, the Game page's
-  without them, with the Quick Mode heading's line before OPT_QUICK. }
+{ The heading on the line above setting opt on its page, for a setting that starts a group: Quick Mode above
+  C_OPT.OPT_QUICK and Fix above OPT_FIX_SCROLLS; '' for every other setting. }
+function Heading(opt: Byte): TName;
+
+{ The line of setting opt on its page (SettingPage), from 0: the page's settings in order, with a line for each
+  heading (Heading) above the setting it comes before. }
 function SettingLine(opt: Byte): Byte;
 
 { SettingName with the number the speed and log lines lines show after it: 'Game Speed (1)', '  Log Lines (50)'. }
@@ -98,7 +103,8 @@ function KeyOf(line: string): Byte;
 
 { Every setting's default: speed 1, every portrait, Auto Join, music and sound setting on, Auto End Quick Mode on, Use
   Magic off, Allow Gear Changes on, Aim Cycles at ENEMIES, Retrieve Thrown on, the Companion Tools off with their Clue
-  Book notes on, the combat log on with 50 lines, and the later games' paths C:\CURSE\, C:\CURSE\SAVE\ and so on. }
+  Book notes on, Auto Memorize on, the four Fix settings off, the combat log on with 50 lines, and the later games'
+  paths C:\CURSE\, C:\CURSE\SAVE\ and so on. }
 procedure Defaults(var s: TSettings);
 
 { Setting opt (an ON/OFF one) as 1 for on and 0 for off; 0 for any other. }
@@ -203,6 +209,11 @@ begin
     C_OPT.OPT_RETRIEVE: KeyName := 'RETRIEVETHROWN';
     C_OPT.OPT_COMPANION: KeyName := 'COMPANION';
     C_OPT.OPT_CLUES: KeyName := 'CLUENOTES';
+    C_OPT.OPT_AUTO_MEMORIZE: KeyName := 'AUTOMEMORIZE';
+    C_OPT.OPT_FIX_SCROLLS: KeyName := 'FIXSCROLLS';
+    C_OPT.OPT_FIX_POTIONS: KeyName := 'FIXPOTIONS';
+    C_OPT.OPT_FIX_CURE: KeyName := 'FIXPALADINCURE';
+    C_OPT.OPT_FIX_HEAL: KeyName := 'FIXPALADINHEAL';
     C_OPT.OPT_COMBAT_LOG: KeyName := 'COMBATLOG';
     C_OPT.OPT_LOG_LINES: KeyName := 'LOGLINES';
     C_OPT.KEY_PATHS + 1: KeyName := 'CURSEDATA';
@@ -241,6 +252,11 @@ begin
     C_OPT.OPT_RETRIEVE: SettingName := 'Retrieve Thrown';
     C_OPT.OPT_COMPANION: SettingName := 'Companion Tools';
     C_OPT.OPT_CLUES: SettingName := '  Clue Book Notes';
+    C_OPT.OPT_AUTO_MEMORIZE: SettingName := 'Auto Memorize';
+    C_OPT.OPT_FIX_SCROLLS: SettingName := '  Use Scrolls';
+    C_OPT.OPT_FIX_POTIONS: SettingName := '  Use Potions';
+    C_OPT.OPT_FIX_CURE: SettingName := '  Use Paladin''s Cure';
+    C_OPT.OPT_FIX_HEAL: SettingName := '  Use Paladin''s Heal';
     C_OPT.OPT_COMBAT_LOG: SettingName := 'Combat Log';
     C_OPT.OPT_LOG_LINES: SettingName := '  Log Lines';
   else
@@ -342,19 +358,37 @@ begin
       KeyOf := k;
 end;
 
-function SoundSetting(opt: Byte): Boolean;
+function SettingPage(opt: Byte): Byte;
 begin
-  SoundSetting := (opt >= C_OPT.OPT_FIRST_SOUND) and (opt <= C_OPT.OPT_LAST_SOUND);
+  if (opt >= C_OPT.OPT_FIRST_SOUND) and (opt <= C_OPT.OPT_LAST_SOUND) then
+    SettingPage := C_OPT.OPT_PAGE_SOUND
+  else if (opt >= C_OPT.OPT_FIRST_CAMP) and (opt <= C_OPT.OPT_LAST_CAMP) then
+    SettingPage := C_OPT.OPT_PAGE_CAMP
+  else
+    SettingPage := C_OPT.OPT_PAGE_GAME;
+end;
+
+function Heading(opt: Byte): TName;
+begin
+  case opt of
+    C_OPT.OPT_QUICK: Heading := 'Quick Mode';
+    C_OPT.OPT_FIX_SCROLLS: Heading := 'Fix';
+  else
+    Heading := '';
+  end;
 end;
 
 function SettingLine(opt: Byte): Byte;
+var
+  o: Byte;
+  line: Byte;
 begin
-  if CfgFile.SoundSetting(opt) then
-    SettingLine := opt - C_OPT.OPT_FIRST_SOUND
-  else if opt < C_OPT.OPT_FIRST_SOUND then
-    SettingLine := opt - 1
-  else
-    SettingLine := opt - 1 - (C_OPT.OPT_LAST_SOUND - C_OPT.OPT_FIRST_SOUND + 1) + Ord(opt >= C_OPT.OPT_QUICK);
+  { the page's settings before opt, and its headings down to opt's own }
+  line := 0;
+  for o := 1 to opt do
+    if CfgFile.SettingPage(o) = CfgFile.SettingPage(opt) then
+      Inc(line, Ord(o < opt) + Ord(CfgFile.Heading(o) <> ''));
+  SettingLine := line;
 end;
 
 procedure Defaults(var s: TSettings);
@@ -364,7 +398,7 @@ begin
   s.speed := C_OPT.SPEED_DEFAULT;
   s.logLines := C_OPT.LOG_DEFAULT;
   for opt := C_OPT.OPT_FIRST_FLAG to C_OPT.OPT_LAST_FLAG do
-    s.flags[opt] := Ord(not (opt in [C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION]));
+    s.flags[opt] := Ord(not (opt in [C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION, C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL]));
   s.paths[1] := 'C:\CURSE\';
   s.paths[2] := 'C:\CURSE\SAVE\';
   s.paths[3] := 'C:\SECRET\';

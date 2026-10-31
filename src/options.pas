@@ -3,7 +3,7 @@
   KEY=VALUE format used by both the game and POOLCFG (#876), while Collect and
   Apply translate between TSettings and GameVars.
 
-  The screen has Game, Paths, and System pages (#835). Combat-log settings are
+  The screen has Game, Sound, Camp, Paths, and System pages (#835, #1088). Combat-log settings are
   editable only when CbtLog has a backing store (#841). Changes are written when
   the player leaves the screen. }
 {$O+,F+,I-}
@@ -25,13 +25,13 @@ procedure SaveOptions;
 { Applies s to GameVars and retains its later-game paths for the next save. }
 procedure Apply(var s: CfgFile.TSettings);
 
-{ Show the Settings screen until Exit or Escape. Game, Paths and System on the bottom line show its pages. On the Game
-  page Up and Down (also Home and End) move the highlight through the settings, wrapping at either end, past the Quick
-  Mode heading; Enter, Left or Right turn the highlighted one over, at once. On the Game Speed and Log Lines lines Left
-  and Right pick Slower or Faster (Less or More) instead, and Enter applies the one picked. Without a store for the
-  combat log (CbtLog.Usable) its two lines are grey, Combat Log says it needs EMS, and the highlight passes them by. The
-  Paths and System pages only show. Leaving writes POOLOPT.CFG when something changed. The caller redraws its own screen
-  afterwards. }
+{ Show the Settings screen until Exit or Escape. Game, Sound, Camp, Paths and System on the bottom line, which has no
+  prompt, show its pages. On a settings page Up and Down (also Home and End) move the highlight through its settings,
+  wrapping at either end, past its headings (Quick Mode, Fix); Enter, Left or Right turn the highlighted one over, at
+  once. On the Game Speed and Log Lines lines Left and Right pick Slower or Faster (Less or More) instead, and Enter
+  applies the one picked. Without a store for the combat log (CbtLog.Usable) its two lines are grey, Combat Log says it
+  needs EMS, and the highlight passes them by. The Paths and System pages only show. Leaving writes POOLOPT.CFG when
+  something changed. The caller redraws its own screen afterwards. }
 procedure OptionsMenu;
 
 implementation
@@ -47,16 +47,18 @@ const
     or More on the right. }
   CHOICE_LEFT = 0;
   CHOICE_RIGHT = 1;
-  { The pages, in the bottom line's order: the settings split over Game and Sound, which hold too many for one box
-    (#1088). }
-  PAGE_GAME = 1;
-  PAGE_SOUND = 2;
-  PAGE_PATHS = 3;
-  PAGE_SYSTEM = 4;
+  { The pages, in the bottom line's order: the settings split over Game, Sound (#1088) and Camp (#1119, #1129), which
+    hold too many for one box, as CfgFile.SettingPage numbers them, then Paths and System. }
+  PAGE_GAME = C_OPT.OPT_PAGE_GAME;
+  PAGE_SOUND = C_OPT.OPT_PAGE_SOUND;
+  PAGE_CAMP = C_OPT.OPT_PAGE_CAMP;
+  PAGE_PATHS = C_OPT.OPT_PAGES + 1;
+  PAGE_SYSTEM = C_OPT.OPT_PAGES + 2;
+  SETTINGS_PAGES = [PAGE_GAME, PAGE_SOUND, PAGE_CAMP];
   { One framed box from TOP_ROW to BOTTOM_ROW: the page's title on TOP_ROW, then its lines from FIRST_ROW, the row
     below (the Game page's settings fill the box to BOTTOM_ROW). The Game page's settings have their labels at
-    LABEL_COL and their values at SETTING_COL, with the Quick Mode heading on its own row; the other pages' values start
-    at VALUE_COL. }
+    LABEL_COL and their values at SETTING_COL, with each heading (CfgFile.Heading: Quick Mode, Fix) on its own row; the
+    other pages' values start at VALUE_COL. }
   LEFT_COL = 1;
   RIGHT_COL = 38;
   TOP_ROW = 1;
@@ -124,6 +126,11 @@ begin
       C_OPT.OPT_RETRIEVE: s.flags[opt] := GameVars.retrieveThrownOn;
       C_OPT.OPT_COMPANION: s.flags[opt] := GameVars.companionOn;
       C_OPT.OPT_CLUES: s.flags[opt] := GameVars.clueNotesOn;
+      C_OPT.OPT_AUTO_MEMORIZE: s.flags[opt] := GameVars.autoMemorizeOn;
+      C_OPT.OPT_FIX_SCROLLS: s.flags[opt] := GameVars.fixScrollsOn;
+      C_OPT.OPT_FIX_POTIONS: s.flags[opt] := GameVars.fixPotionsOn;
+      C_OPT.OPT_FIX_CURE: s.flags[opt] := GameVars.fixCureOn;
+      C_OPT.OPT_FIX_HEAL: s.flags[opt] := GameVars.fixHealOn;
       C_OPT.OPT_COMBAT_LOG: s.flags[opt] := GameVars.combatLogOn;
     end;
 end;
@@ -157,19 +164,14 @@ begin
       C_OPT.OPT_RETRIEVE: GameVars.retrieveThrownOn := s.flags[opt];
       C_OPT.OPT_COMPANION: GameVars.companionOn := s.flags[opt];
       C_OPT.OPT_CLUES: GameVars.clueNotesOn := s.flags[opt];
+      C_OPT.OPT_AUTO_MEMORIZE: GameVars.autoMemorizeOn := s.flags[opt];
+      C_OPT.OPT_FIX_SCROLLS: GameVars.fixScrollsOn := s.flags[opt];
+      C_OPT.OPT_FIX_POTIONS: GameVars.fixPotionsOn := s.flags[opt];
+      C_OPT.OPT_FIX_CURE: GameVars.fixCureOn := s.flags[opt];
+      C_OPT.OPT_FIX_HEAL: GameVars.fixHealOn := s.flags[opt];
       C_OPT.OPT_COMBAT_LOG: GameVars.combatLogOn := s.flags[opt];
     end;
   cur.paths := s.paths;
-end;
-
-{ The settings page of setting opt: PAGE_SOUND for the music and the sound (CfgFile.SoundSetting), PAGE_GAME for the
-  rest. }
-function SettingPage(opt: Byte): Byte;
-begin
-  if CfgFile.SoundSetting(opt) then
-    SettingPage := PAGE_SOUND
-  else
-    SettingPage := PAGE_GAME;
 end;
 
 { The row of setting opt on its page: its line (CfgFile.SettingLine) from FIRST_ROW. }
@@ -186,7 +188,7 @@ var
 begin
   skip := unchangeable;
   for opt := 1 to C_OPT.OPT_COUNT do
-    if Options.SettingPage(opt) <> page then
+    if CfgFile.SettingPage(opt) <> page then
       skip := skip + [opt];
 end;
 
@@ -294,20 +296,21 @@ begin
     end;
 end;
 
-{ Settings page page (PAGE_GAME or PAGE_SOUND): its settings, setting sel highlighted, and on the Game page the Quick
-  Mode heading. }
+{ Settings page page (PAGE_GAME or PAGE_SOUND): its settings, setting sel highlighted, each heading (CfgFile.Heading)
+  on the row above the setting it comes before. }
 procedure DrawSettingsPage(page, sel: Byte);
 var
   opt: Byte;
 begin
   for opt := 1 to C_OPT.OPT_COUNT do
-    if Options.SettingPage(opt) = page then
+    if CfgFile.SettingPage(opt) = page then begin
       if opt = sel then
         Options.DrawSetting(opt, TITLE_COLOR)
       else
         Options.DrawSetting(opt, LINE_COLOR);
-  if page = PAGE_GAME then
-    TextRend.DisplayString(LABEL_COL, Options.SettingRow(C_OPT.OPT_QUICK) - 1, LINE_COLOR, 'Quick Mode');
+      if CfgFile.Heading(opt) <> '' then
+        TextRend.DisplayString(LABEL_COL, Options.SettingRow(opt) - 1, LINE_COLOR, CfgFile.Heading(opt));
+    end;
 end;
 
 { The Paths page: each game's name, then its data and save paths. Pool of Radiance's are the ones POOL.CFG gives this
@@ -395,6 +398,10 @@ begin
                   TextRend.DisplayCentered(LEFT_COL, RIGHT_COL, TOP_ROW, TITLE_COLOR, 'Sound Settings');
                   Options.DrawSettingsPage(PAGE_SOUND, sel);
                 end;
+    PAGE_CAMP: begin
+                 TextRend.DisplayCentered(LEFT_COL, RIGHT_COL, TOP_ROW, TITLE_COLOR, 'Camp Settings');
+                 Options.DrawSettingsPage(PAGE_CAMP, sel);
+               end;
     PAGE_PATHS: begin
                   TextRend.DisplayCentered(LEFT_COL, RIGHT_COL, TOP_ROW, TITLE_COLOR, 'Game Paths');
                   Options.DrawPathsPage;
@@ -462,12 +469,14 @@ var
 
   { Show page p, a settings page with its first setting highlighted. }
   procedure ShowPage(p: Byte);
+  var
+    opt: Byte;
   begin
     page := p;
-    if page = PAGE_SOUND then
-      sel := C_OPT.OPT_FIRST_SOUND
-    else if page = PAGE_GAME then
-      sel := 1;
+    if page in SETTINGS_PAGES then
+      for opt := C_OPT.OPT_COUNT downto 1 do
+        if CfgFile.SettingPage(opt) = page then
+          sel := opt;
     stepChoice := CHOICE_LEFT;
     Options.DrawPage(page, sel);
   end;
@@ -490,10 +499,11 @@ begin
     GameVars.horizChoice := page;
     MenuCore.arrowsToCaller := True;
     MenuCore.enterToCaller := True;
-    ch := MenuCore.MenuHorizontal('Settings: ', 'Game Sound Paths sYstem Exit', LightMagenta, LightGreen, White, True,
+    { no prompt: with Camp the pages fill the bottom line }
+    ch := MenuCore.MenuHorizontal('', 'Game Sound Camp Paths sYstem Exit', LightMagenta, LightGreen, White, True,
                                   False, ext);
     if ext then begin
-      if page in [PAGE_GAME, PAGE_SOUND] then begin
+      if page in SETTINGS_PAGES then begin
         Options.Passed(page, skip);
         case ch of
           C_KEYS.UP, C_KEYS.HOME: MoveTo(CfgFile.NextSetting(sel, False, skip));
@@ -504,7 +514,7 @@ begin
       end;
     end else
       case ch of
-        C_KEYS.ENTER: if page in [PAGE_GAME, PAGE_SOUND] then begin
+        C_KEYS.ENTER: if page in SETTINGS_PAGES then begin
                         Options.ChangeSetting(sel);
                         touched := True;
                       end;
@@ -512,6 +522,8 @@ begin
                ShowPage(PAGE_GAME);
         'S': if page <> PAGE_SOUND then
                ShowPage(PAGE_SOUND);
+        'C': if page <> PAGE_CAMP then
+               ShowPage(PAGE_CAMP);
         'P': if page <> PAGE_PATHS then
                ShowPage(PAGE_PATHS);
         'Y': if page <> PAGE_SYSTEM then
@@ -519,7 +531,7 @@ begin
       end;
     if touched then
       changed := True;
-    if (page in [PAGE_GAME, PAGE_SOUND]) and (touched or (GameVars.soundMode <> soundState)) then begin
+    if (page in SETTINGS_PAGES) and (touched or (GameVars.soundMode <> soundState)) then begin
       { Ctrl-S turns the sound over on any page, and the Sound page shows it }
       if (page = PAGE_SOUND) and (sel <> C_OPT.OPT_SOUND) then
         Options.DrawSetting(C_OPT.OPT_SOUND, LINE_COLOR);
