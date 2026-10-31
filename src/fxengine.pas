@@ -14,6 +14,10 @@ var
   saveRoll: Integer;
   { saving throw type, 0..4 }
   saveType: Byte;
+  { the damage each creature (CbtMap.CombatSlot) has been seen doing to the other side this fight, as
+    GameVars.elementMask bits: NonWeaponDamage marks the acting creature and CombatSt.CombatStart clears it. Resist Fire
+    and Resist Cold are what an enemy seen doing fire or cold damage makes worth casting (#1087). }
+  seenElements: array[1..Types.ARENA_SLOTS] of Byte;
 
 { Call the effect handler for effId (1..141) through GameVars.effectFns; an id outside the table calls nothing. p is the
   item or effect node the handler concerns; removed is True when the item is being unreadied or the effect removed. }
@@ -151,7 +155,8 @@ function AdjustForNewStrength(creature: Types.PCharRecord; baseStr, excStr: Byte
   CharHlp.InflictDamage and, in combat, clear castAllowed and lose any spell being cast. A creature it disables "Goes
   Down" (", and is Dying") or "is killed" (status 6..8); in combat the hpZeroEffects are removed, the C_COND.HP_ZERO
   (13) effects run and CbtMap.CreatureDowned is called if the creature is still disabled. A dead, stoned or gone
-  creature (a corpse a single-target spell was aimed at) is left alone. }
+  creature (a corpse a single-target spell was aimed at) is left alone. In combat, when the acting creature
+  (GameVars.curChar) is on the other side from the creature, the element joins the actor's seenElements. }
 procedure InflictNonWeaponDamage(creature: Types.PCharRecord; damage, saveReduction: Byte; saved: Boolean);
 
 { InflictNonWeaponDamage, with no save, for an aligned item (eff 132) that shocks the creature readying it: in place of
@@ -827,8 +832,16 @@ procedure NonWeaponDamage(creature: Types.PCharRecord; damage, saveReduction: By
 var
   { the longest is 'takes 255 points of damage from Electricity' }
   s: String[43];
+  slot: Byte;
 begin
   if creature^.status in [C_STATUS.DEAD_STATUS, C_STATUS.STONED, C_STATUS.GONE] then Exit;
+  { everyone sees what the attack was made of, saved or not (#1087) }
+  if (GameVars.ifcState = C_IFC.IN_COMBAT) and (GameVars.curChar <> nil) then
+    if CharHlp.Team(GameVars.curChar) <> CharHlp.Team(creature) then begin
+      slot := CbtMap.CombatSlot(GameVars.curChar);
+      if slot > 0 then
+        FxEngine.seenElements[slot] := FxEngine.seenElements[slot] or GameVars.elementMask;
+    end;
   GameVars.pendingDamage := damage;
   FxEngine.TriggerEffectsWithCondition(C_COND.NONWEAPON_DAMAGE, creature);
   if saved then

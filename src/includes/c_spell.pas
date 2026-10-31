@@ -65,6 +65,12 @@ const
   HOLD_PERSON_MU = 49;
   { Silence, 15' Radius: the combat AI casts it only where it has seen a creature cast (#1087) }
   SILENCE = 25;
+  { the buffs the combat AI casts only against a threat it has seen this fight (#1087): Resist Cold and Resist Fire once
+    an enemy has done that element's damage, Protection From Normal Missiles while an enemy has a missile weapon
+    readied }
+  RESIST_COLD = 8;
+  RESIST_FIRE = 24;
+  PROT_NORMAL_MISSILES = 54;
   { Snake Charm, and the game's one snake, the creature it affects (#802): its charType, 14, the scorpions share }
   SNAKE_CHARM = 27;
   SNAKE_NAME = 'GIANT SNAKE';
