@@ -2106,7 +2106,7 @@ end;
 
 { C_EFFECT.REAR_CLAW_RAKE (73) handler (TEffectHandler shape; p and removed unused): when both primary attacks hit
   (hitsMade[1] = 2) and the locked target is still up, rake it with two 2d4 secondary attacks, then end the creature's
-  actions. }
+  actions. The target sees the rake, in the Bestiary (#1142). }
 procedure AttackClawRake(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   done: Boolean;
@@ -2119,6 +2119,7 @@ begin
       creature^.curDiceA[2] := 4;
       creature^.curAttacks := 0;
       CharDisp.PrintNameString(creature, 'Rakes...', 10, True);
+      Bestiary.Learn(creature, creature^.combatAddr^.other, C_BEAST.ATK_RAKE);
       CbtActs.MakeAttack(creature, creature^.combatAddr^.other, False, nil, done);
       done := CharHlp.EndActions(creature);
     end;

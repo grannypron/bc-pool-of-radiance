@@ -214,7 +214,7 @@ implementation
 
 uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, TextRend, Border,
   CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_KEYS, C_LEVEL, C_STATUS, C_IFC, C_DIR,
-  C_SPELL, AbilAdj, StrUtil, ChgClass, SpellInf, CbtLog, C_SPRITE;
+  C_SPELL, AbilAdj, StrUtil, ChgClass, SpellInf, CbtLog, C_SPRITE, Bestiary, C_BEAST;
 
 var
   { the menu string list }
@@ -2080,6 +2080,8 @@ begin
   x := CbtMap.CombatCellX(creature);
   y := CbtMap.CombatCellY(creature);
   CharDisp.PrintNameString(creature, 'Breathes!', 10, True);
+  { the party sees it breathe, in the Bestiary (#1142) }
+  Bestiary.Learn(creature, nil, C_BEAST.ATK_BREATH);
   GameVars.castTargetMenu(C_SPELL.LIGHTNING_BOLT, True, junk);
   gTargetX := x + Pathing.SignOf(gTargetX - x);
   gTargetY := y + Pathing.SignOf(gTargetY - y);
