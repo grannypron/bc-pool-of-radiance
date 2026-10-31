@@ -1,0 +1,31 @@
+# Tests the Journal listing what the party has found (#1090). The fixture places save A in New Phlan's tavern at (10,8)
+# with a savgamA.jnl that marks nothing found. The Journal says it is empty; in the tavern (Look) the party declines to
+# gamble and overhears a tavern tale, and the Journal then lists that tale alone. The golden build lists every item: its
+# journal checkpoints differ by design.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/journal
+press l a
+wait AREA 120
+press j
+wait JOURNAL
+checkpoint empty
+press esc
+wait AREA
+press l
+wait CONTINUE
+checkpoint tavern
+press ret
+wait YES NO
+press n
+wait CONTINUE
+checkpoint tale
+press ret
+wait AREA
+press j
+wait JOURNAL
+sleep 1
+checkpoint found
+press esc
+wait AREA

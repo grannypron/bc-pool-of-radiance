@@ -68,8 +68,8 @@ procedure RemoveCharFiles(var s: FileUtil.TFileSet; base: FileUtil.TSetName; ext
 function RecoverSlot(letter: Char): Boolean;
 
 { Move a quick save made before #1080, in slot Q, to slot Z, the quick save's slot now: every file of the save (its
-  savgam .dat, .inf, .sts, .map and .nts, its vault copy and its members' files), savgamQ.dat last, so a move the game
-  was ended in is done again at the next start. Nothing moves while slot Z holds a save. }
+  savgam .dat, .inf, .sts, .map, .nts and .jnl, its vault copy and its members' files), savgamQ.dat last, so a move
+  the game was ended in is done again at the next start. Nothing moves while slot Z holds a save. }
 procedure MoveOldQuickSave;
 
 { Write slot letter's savgam<x>.inf as a file of save s (FileUtil.WriteToSet): True when it was written. }
@@ -188,6 +188,7 @@ begin
   FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.sts'), False);
   FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.map'), False);
   FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.nts'), False);
+  FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.jnl'), False);
   FileUtil.AddToSet(s, SaveMenu.VaultName(letter), False);
   for n := 1 to Types.MAX_PARTY do
     SaveMenu.RemoveCharFiles(s, SaveMenu.MemberName(letter, n), '.sav');

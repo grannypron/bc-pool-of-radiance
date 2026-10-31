@@ -21,7 +21,7 @@ implementation
 
 uses Types, Crt, C_AREA, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Options, Blit, DaxIo, GameIo,
   SoundDrv, TextRend, C_GBVM, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D,
-  HeapErr, VidOps, Stats, CfgFile, Explored, MapNotes, Explore, GameTime, MapView, EclVm,
+  HeapErr, VidOps, Stats, CfgFile, Explored, MapNotes, JrnlSeen, Explore, GameTime, MapView, EclVm,
   Portrait, BeastFil{$IFDEF FPC}, TpRand{$ENDIF};
 
 { Install every spell handler in GameVars.spellFns and the noncombat cast-target menu; clear effectLock,
@@ -253,6 +253,7 @@ procedure ResetGameState;
 begin
   Explored.Clear;
   MapNotes.Clear;
+  JrnlSeen.Clear;
   FillChar(GameVars.zone0^, SizeOf(GameVars.zone0^), 0);
   FillChar(GameVars.zone1^, SizeOf(GameVars.zone1^), 0);
   FillChar(GameVars.zone2^, SizeOf(GameVars.zone2^), 0);

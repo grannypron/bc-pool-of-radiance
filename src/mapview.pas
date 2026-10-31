@@ -16,7 +16,7 @@ procedure ResetGame;
 
 implementation
 
-uses Crt, C_AREA, GameDefs, GameVars, Wilds, View3D, Blit, MapTiles;
+uses Crt, C_AREA, GameDefs, GameVars, Wilds, View3D, Blit, MapTiles, JrnlSeen;
 
 var
   { Party icon frame, 0..5: parity selects the icon frame, div 2 the icon animation. }
@@ -124,7 +124,7 @@ begin
       end;
       View3D.SetView3DColors(View3D.skyCeilingColor, View3D.ceilingBandColor, View3D.midBandColor,
                              View3D.floorBandColor);
-      if GameVars.zone0^.noAutomap <> 0 then GameVars.automapOn := False;
+      if not JrnlSeen.AreaMapAllowed then GameVars.automapOn := False;
       View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
     end;
     C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST: begin

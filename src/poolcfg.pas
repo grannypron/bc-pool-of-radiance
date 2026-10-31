@@ -673,6 +673,9 @@ begin
     C_OPT.OPT_AUTO_JOIN: AboutText := 'Arrows, darts and the like|join the stack you carry as|' +
                                       'you buy, take or trade them,|so a new bundle takes no|' +
                                       'item slot of its own. Up to|255 to a stack; a readied|stack stays readied.';
+    C_OPT.OPT_JOURNAL: AboutText := 'FOUND: the Journal lists the|entries, tavern tales and|' +
+                                    'proclamations the party has|come across. ALL: the whole|' +
+                                    'printed Journal.||A game saved before this|version counts them all|found.';
     C_OPT.OPT_MUSIC: AboutText := 'Every tune at once.';
     C_OPT.OPT_TITLE_MUSIC: AboutText := 'The title theme.';
     C_OPT.OPT_BATTLE_MUSIC: AboutText := 'The music as a fight starts.';

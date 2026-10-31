@@ -91,9 +91,9 @@ function PutInPlace(name: TPathName): Boolean;
 function RecoverFile(name: TPathName): Boolean;
 
 const
-  { the most files a set holds: a saved game's savgam .dat, .inf, .sts, .map and .nts, its vault copy, and six files
-    for each of the 8 members }
-  SET_FILES = 54;
+  { the most files a set holds: a saved game's savgam .dat, .inf, .sts, .map, .nts and .jnl, its vault copy, and six
+    files for each of the 8 members }
+  SET_FILES = 55;
 
 type
   { a file of a set, without the set's folder: a DOS name, 8.3 }

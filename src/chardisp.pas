@@ -99,7 +99,7 @@ procedure ShowFault(msg: Types.TStr40);
 implementation
 
 uses CharHlp, Crt, C_AREA, C_MSG, GameDefs, GameVars, MenuCore, MapView, Pathing, CbtMap, C_EQUIP, C_KEYS, C_IFC, Blit,
-  Border, Portrait, SoundDrv, C_SOUND, C_SPELL, TextRend, Wilds, StrUtil, C_GBVM, Party, C_DIR, CbtLog;
+  Border, Portrait, SoundDrv, C_SOUND, C_SPELL, TextRend, Wilds, StrUtil, C_GBVM, Party, C_DIR, CbtLog, JrnlSeen;
 
 var
   { the bottom message window's top row, from MessageText's first part for the parts after it }
@@ -705,9 +705,9 @@ begin
   end;
 end;
 
-{ Print the party-window status line on row 15 of the upper-right window: coordinates (omitted when the zone's noAutomap
-  is set; above location type 1 they come from the zone-0 party position, +13 for type 3 and +26 for type 4), compass
-  facing, the zero-padded HH:MM clock, and the camping or search tag. }
+{ Print the party-window status line on row 15 of the upper-right window: coordinates (omitted where the Area view is
+  not allowed, JrnlSeen.AreaMapAllowed; above location type 1 they come from the zone-0 party position, +13 for type 3
+  and +26 for type 4), compass facing, the zero-padded HH:MM clock, and the camping or search tag. }
 procedure PrintMiscInfo;
 const
   { clockwise facing codes 0..7, starting at north }
@@ -735,7 +735,7 @@ begin
   { A turn is ten minutes and the minute counter rolls over at ten, so turn * 10 + minute is the minute of the hour (see
     GameDefs.unitScale). }
   mins := StrUtil.ZeroPad2(10 * GameVars.zone0^.clock.turn + GameVars.zone0^.clock.minute);
-  if GameVars.zone0^.noAutomap = 0 then
+  if JrnlSeen.AreaMapAllowed then
     info := StrUtil.NumStr(x) + ',' + StrUtil.NumStr(y) + ' ';
   info := info + dirNames[GameVars.gFacing] + ' ';
   info := info + hrs + ':' + mins;
