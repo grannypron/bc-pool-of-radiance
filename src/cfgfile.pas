@@ -89,7 +89,8 @@ function NextSetting(opt: Byte; down: Boolean; skip: TOptSet): Byte;
 function OnOff(flag: Byte): TName;
 
 { The value an ON/OFF setting opt shows and POOLOPT.CFG keeps for flag: OnOff, but for Aim Cycles ENEMIES for a nonzero
-  flag and ALL for zero (#1137). }
+  flag and ALL for zero (#1137), and for the Journal FOUND for a nonzero flag, the Journal listing only what the party
+  has found, and ALL for zero (#1090). }
 function FlagValue(opt, flag: Byte): TName;
 
 { s without the spaces and tabs at either end. }
@@ -101,10 +102,10 @@ function Tidy(s: string): string;
 { The setting or path key whose key line names before its '=' (in any case, spaces around it), or 0 for none. }
 function KeyOf(line: string): Byte;
 
-{ Every setting's default: speed 1, every portrait, Auto Join, music and sound setting on, Auto End Quick Mode on, Use
-  Magic off, Allow Gear Changes on, Aim Cycles at ENEMIES, Retrieve Thrown on, the Companion Tools off with their Clue
-  Book notes on, Auto Memorize on, the four Fix settings off, the combat log on with 50 lines, and the later games'
-  paths C:\CURSE\, C:\CURSE\SAVE\ and so on. }
+{ Every setting's default: speed 1, every portrait, Auto Join, music and sound setting on, the Journal FOUND, Auto End
+  Quick Mode on, Use Magic off, Allow Gear Changes on, Aim Cycles at ENEMIES, Retrieve Thrown on, the Companion Tools
+  off with their Clue Book notes on, Auto Memorize on, the four Fix settings off, the combat log on with 50 lines, and
+  the later games' paths C:\CURSE\, C:\CURSE\SAVE\ and so on. }
 procedure Defaults(var s: TSettings);
 
 { Setting opt (an ON/OFF one) as 1 for on and 0 for off; 0 for any other. }
@@ -119,11 +120,11 @@ procedure SetFlag(var s: TSettings; opt, value: Byte);
 procedure ChangeSetting(var s: TSettings; opt: Byte; right: Boolean);
 
 { The value of setting or path key as POOLOPT.CFG keeps it: the speed's digit, the log lines' number, a path, ON or
-  OFF (FlagValue: ENEMIES or ALL for Aim Cycles). }
+  OFF (FlagValue: ENEMIES or ALL for Aim Cycles, FOUND or ALL for the Journal). }
 function StoredValue(var s: TSettings; key: Byte): FileUtil.TPathName;
 
 { Set setting or path key from value (tidied): a digit 0..9 for the speed, a number from C_OPT.LOG_MIN to LOG_MAX for
-  the log lines, a path as it is, ON or OFF (or 1 or 0) for the others, and for Aim Cycles ENEMIES or ALL too. False
+  the log lines, a path as it is, ON or OFF (or 1 or 0) for the others, and the names FlagValue gives them too. False
   when the value was refused, which leaves the setting as it is; a blank path is passed over, not refused. }
 function ReadValue(var s: TSettings; key: Byte; value: string): Boolean;
 
@@ -192,6 +193,7 @@ begin
     C_OPT.OPT_MONSTERS: KeyName := 'MONSTERS';
     C_OPT.OPT_PORTRAITS: KeyName := 'PORTRAITS';
     C_OPT.OPT_AUTO_JOIN: KeyName := 'AUTOJOIN';
+    C_OPT.OPT_JOURNAL: KeyName := 'JOURNAL';
     C_OPT.OPT_MUSIC: KeyName := 'MUSIC';
     C_OPT.OPT_TITLE_MUSIC: KeyName := 'TITLEMUSIC';
     C_OPT.OPT_BATTLE_MUSIC: KeyName := 'BATTLEMUSIC';
@@ -235,6 +237,7 @@ begin
     C_OPT.OPT_MONSTERS: SettingName := '  Monster Portraits';
     C_OPT.OPT_PORTRAITS: SettingName := '  Character Portraits';
     C_OPT.OPT_AUTO_JOIN: SettingName := 'Auto Join';
+    C_OPT.OPT_JOURNAL: SettingName := 'Journal';
     C_OPT.OPT_MUSIC: SettingName := 'Music';
     C_OPT.OPT_TITLE_MUSIC: SettingName := '  Title Music';
     C_OPT.OPT_BATTLE_MUSIC: SettingName := '  Battle Music';
@@ -316,12 +319,18 @@ end;
 
 function FlagValue(opt, flag: Byte): TName;
 begin
-  if opt <> C_OPT.OPT_AIM then
-    FlagValue := CfgFile.OnOff(flag)
-  else if flag <> 0 then
-    FlagValue := 'ENEMIES'
-  else
-    FlagValue := 'ALL';
+  if opt = C_OPT.OPT_AIM then begin
+    if flag <> 0 then
+      FlagValue := 'ENEMIES'
+    else
+      FlagValue := 'ALL';
+  end else if opt = C_OPT.OPT_JOURNAL then begin
+    if flag <> 0 then
+      FlagValue := 'FOUND'
+    else
+      FlagValue := 'ALL';
+  end else
+    FlagValue := CfgFile.OnOff(flag);
 end;
 
 function Trim(s: string): string;
@@ -478,9 +487,9 @@ begin
   end else if key > C_OPT.KEY_PATHS then begin
     if value <> '' then
       s.paths[key - C_OPT.KEY_PATHS] := value;
-  end else if (value = 'ON') or (value = '1') or ((key = C_OPT.OPT_AIM) and (value = 'ENEMIES')) then
+  end else if (value = 'ON') or (value = '1') or (value = CfgFile.FlagValue(key, 1)) then
     CfgFile.SetFlag(s, key, 1)
-  else if (value = 'OFF') or (value = '0') or ((key = C_OPT.OPT_AIM) and (value = 'ALL')) then
+  else if (value = 'OFF') or (value = '0') or (value = CfgFile.FlagValue(key, 0)) then
     CfgFile.SetFlag(s, key, 0)
   else
     ReadValue := False;

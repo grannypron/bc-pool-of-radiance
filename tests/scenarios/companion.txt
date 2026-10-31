@@ -3,9 +3,11 @@
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
-# Companion Tools is the 17th setting. Move down 16 times from Game Speed. Counting from the top works with every
-# memory size because unavailable combat-log settings are skipped.
-press g down down down down down down down down down down down down down down down down ret esc
+# Companion Tools is the Game page's twelfth setting, after Auto Join, the Journal (#1090), Quick Mode's five: move down
+# 11 times from Game Speed. The golden build, without the Journal and the three Quick Mode settings since, has it
+# eighth. Counting from the top works with every memory size, the combat log's lines coming after it.
+golden: press g down down down down down down down ret esc
+candidate: press g down down down down down down down down down down down ret esc
 wait RADIANCE
 # Load the slot directly by pressing its letter (#652).
 press l a

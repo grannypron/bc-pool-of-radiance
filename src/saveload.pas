@@ -98,7 +98,8 @@ implementation
 
 uses Dos, DiskRec, Crt, C_AREA, GameDefs, GameVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D,
   MapTiles, C_KEYS, C_GBVM, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
-  UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_LEVEL, CharDisp, CharExt, BeastFil{$IFDEF FPC}, NatFile{$ENDIF};
+  UsualSpl, VidOps, Explored, MapNotes, JrnlSeen, C_EFFECT, C_LEVEL, CharDisp, CharExt,
+  BeastFil{$IFDEF FPC}, NatFile{$ENDIF};
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -621,6 +622,8 @@ begin
   Stats.ReadGame(SaveMenu.SlotFile(letter, '.sts'));
   Explored.ReadSlot(SaveMenu.SlotFile(letter, '.map'));
   MapNotes.ReadSlot(SaveMenu.SlotFile(letter, '.nts'));
+  { what the party has found of the Journal (#1090); a save made before it keeps the whole Journal }
+  JrnlSeen.ReadSlot(SaveMenu.SlotFile(letter, '.jnl'));
   { names holds MAX_PARTY, the most a party has }
   if nChars > Types.MAX_PARTY then
     nChars := Types.MAX_PARTY;
@@ -817,7 +820,8 @@ begin
   ok := ok and SaveMenu.WriteSlotInfo(s, letter, desc, area) and
         Stats.WriteGame(s, SaveMenu.SlotName(letter, '.sts')) and
         Explored.WriteSlot(s, SaveMenu.SlotName(letter, '.map')) and
-        MapNotes.WriteSlot(s, SaveMenu.SlotName(letter, '.nts')) and Vault.AddToSave(s, letter);
+        MapNotes.WriteSlot(s, SaveMenu.SlotName(letter, '.nts')) and
+        JrnlSeen.WriteSlot(s, SaveMenu.SlotName(letter, '.jnl')) and Vault.AddToSave(s, letter);
   ok := SaveLoad.CommitWhole(s, ok);
   BeastFil.Flush;
   TextRend.ClearBottomLine;

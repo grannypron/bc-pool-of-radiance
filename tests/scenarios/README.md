@@ -57,6 +57,7 @@ the text matches (an animated picture) is only a warning.
 | `combat` | resting in Podal Plaza until orcs come, a Quick fight, the loot, Take, the statistics |
 | `vault` | walking New Phlan to the vault, a deposit, leaving and returning |
 | `journal` | the journal list with its first item previewed, and the second selected |
+| `journalfound` | the Journal listing what the party has found (#1090), from save A in New Phlan's tavern at (10,8) with an empty `savgamA.jnl` (`saves/journal`): the empty Journal, a tavern tale overheard after declining to gamble, and the Journal listing that tale alone; the golden build lists every item, so its two journal checkpoints differ by design |
 | `camp` | Fix and Rest in Valhingen Graveyard, Scribe's message for a character without magic-user levels, and Escape leaving Alter's portrait picker with the portrait unchanged |
 | `companion` | the Companion Tools (phase 8) turned on in Settings: the map, the character editor (levels, Modify, gear with a plus and bracers' AC, money, spells, health) and a note written on the map |
 | `shop` | walking to the arms shop, Pool, buying a hand axe, the pack, selling it back |

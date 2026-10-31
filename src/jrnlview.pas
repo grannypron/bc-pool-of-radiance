@@ -7,14 +7,18 @@
 
   The bottom line is the Journal's menu, after a JOURNAL: prompt; its Quests option turns the screen to the Quests page
   (#852), which lists the quests the party has been given, done or not (JrnlQst, #851), and whose Entries turns it back
-  (#874). }
+  (#874).
+
+  The list holds the items the party has found, or with the Journal setting All every item (JrnlSeen.Listed, #1090);
+  the highlight and the list's first row are places in that list, not Journal items. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit JrnlView;
 
 interface
 
-{ Show the Journal until Exit or Escape, then redraw the exploration screen. Up and Down (also Home and End) move the
+{ Show the Journal until Exit or Escape, then redraw the exploration screen. An empty list says so, and the bottom line
+  offers only Quests and Exit. Up and Down (also Home and End) move the
   highlight through the list, scrolling it at either end of the column and wrapping at either end of the list; Page Up
   and Page Down scroll it a column at a time. The highlighted item's title and first page show in the pane once the
   highlight rests. Select shows the highlighted item at once and turns to its text: Next and Prev, offered while the
@@ -26,7 +30,7 @@ procedure JournalMenu;
 implementation
 
 uses Crt, Types, C_JRNL, C_KEYS, GameVars, TextRend, Border, MenuCore, CharHlp, JrnlList, JrnlQst, CharDisp,
-  C_MSG;
+  C_MSG, JrnlSeen;
 
 const
   { The pane holds the item: its title on TITLE_ROW and its text from TEXT_TOP down, each as wide as the text is
@@ -53,10 +57,13 @@ const
   QUESTS_TOP = TEXT_TOP;
 
 var
-  { the highlighted item, and the item on the list's first row }
+  { the Journal items the list holds, in the Journal's order, and how many }
+  items: array[1..C_JRNL.JOURNAL_COUNT] of Byte;
+  count: Integer;
+  { the highlighted place in the list, and the place on the list's first row }
   sel: Integer;
   top: Integer;
-  { the item in the pane (0 while the pane is empty), its line count, and its page out of pages }
+  { the place whose item is in the pane (0 while the pane is empty), its line count, and its page out of pages }
   shown: Integer;
   lines: Integer;
   page: Integer;
@@ -65,21 +72,34 @@ var
   previewDue: Boolean;
   movedAt: LongInt;
 
-{ Draws a visible item's label on its list row in the requested color. }
+{ Fill the list with the Journal items it holds (JrnlSeen.Listed). }
+procedure CollectItems;
+var
+  i: Integer;
+begin
+  count := 0;
+  for i := 1 to C_JRNL.JOURNAL_COUNT do
+    if JrnlSeen.Listed(i) then begin
+      Inc(count);
+      items[count] := i;
+    end;
+end;
+
+{ Draws the label of a visible place n on its list row in the requested color. }
 procedure DrawLabel(n: Integer; color: Byte);
 begin
   TextRend.DisplayString(LIST_LEFT, TOP_ROW + n - top, color,
-                         Copy(JrnlList.EntryLabel(n), 1, LIST_RIGHT - LIST_LEFT + 1));
+                         Copy(JrnlList.EntryLabel(items[n]), 1, LIST_RIGHT - LIST_LEFT + 1));
 end;
 
-{ Clear the list column and draw the labels from item top, the highlighted one in White. }
+{ Clear the list column and draw the labels from place top, the highlighted one in White. }
 procedure DrawList;
 var
   n: Integer;
 begin
   Border.ClearBox(LIST_LEFT, TOP_ROW, LIST_RIGHT, BOTTOM_ROW);
   n := top;
-  while (n <= C_JRNL.JOURNAL_COUNT) and (n - top <= BOTTOM_ROW - TOP_ROW) do begin
+  while (n <= count) and (n - top <= BOTTOM_ROW - TOP_ROW) do begin
     if n = sel then
       JrnlView.DrawLabel(n, White)
     else
@@ -109,7 +129,7 @@ var
 begin
   Border.ClearBox(PANE_LEFT, TITLE_ROW, PANE_RIGHT, TITLE_ROW);
   Border.ClearBox(PANE_LEFT, TEXT_TOP, PANE_RIGHT, BOTTOM_ROW);
-  title := Copy(JrnlList.EntryTitle(shown), 1, PANE_RIGHT - PANE_LEFT + 1);
+  title := Copy(JrnlList.EntryTitle(items[shown]), 1, PANE_RIGHT - PANE_LEFT + 1);
   TextRend.DisplayCentered(PANE_LEFT, PANE_RIGHT, TITLE_ROW, White, title);
   row := TEXT_TOP;
   lastRow := BOTTOM_ROW;
@@ -124,19 +144,21 @@ begin
   line := JrnlView.PageStart(page);
   while (row <= lastRow) and (line <= lines) do begin
     TextRend.DisplayString(PANE_LEFT, row, LightGreen,
-                           Copy(JrnlList.TextLine(shown, line), 1, PANE_RIGHT - PANE_LEFT + 1));
+                           Copy(JrnlList.TextLine(items[shown], line), 1, PANE_RIGHT - PANE_LEFT + 1));
     Inc(line);
     Inc(row);
   end;
 end;
 
-{ Show the highlighted item's first page in the pane, unless the pane shows it already. }
+{ Show the highlighted item's first page in the pane, unless the pane shows it already or the list is empty. }
 procedure ShowSelected;
 begin
   previewDue := False;
+  if count = 0 then
+    Exit;
   if shown <> sel then begin
     shown := sel;
-    lines := JrnlList.LineCount(shown);
+    lines := JrnlList.LineCount(items[shown]);
     { a page holds TEXT_ROWS lines alone, TEXT_ROWS - 1 first or last, and TEXT_ROWS - 2 between }
     if lines <= TEXT_ROWS then
       pages := 1
@@ -177,7 +199,7 @@ begin
 end;
 
 { Draw the Journal: the list's box, then the text box and the title box, so the gold corners stay where the borders
-  meet, the list from item top and the pane's page when it shows an item. }
+  meet, the list from place top and the pane's page when it shows an item, or in the pane that the list is empty. }
 procedure DrawJournal;
 begin
   Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
@@ -185,7 +207,9 @@ begin
   Border.DrawBorder(PANE_LEFT, TEXT_TOP, PANE_RIGHT, BOTTOM_ROW, 0);
   Border.DrawBorder(PANE_LEFT, TITLE_ROW, PANE_RIGHT, TITLE_ROW, 0);
   JrnlView.DrawList;
-  if shown <> 0 then
+  if count = 0 then
+    TextRend.DisplayString(PANE_LEFT, TEXT_TOP, LightGreen, 'Your journal is empty.')
+  else if shown <> 0 then
     JrnlView.DrawPage;
 end;
 
@@ -307,15 +331,15 @@ begin
   ShowQuests := ch <> 'E';
 end;
 
-{ Moves the highlight to a valid item, scrolls it into view, and starts the
+{ Moves the highlight to a place in the list, scrolls it into view, and starts the
   preview delay. }
 procedure MoveTo(n: Integer);
 var
   old: Integer;
 begin
   old := sel;
-  if n > C_JRNL.JOURNAL_COUNT then
-    n := C_JRNL.JOURNAL_COUNT;
+  if n > count then
+    n := count;
   if n < 1 then
     n := 1;
   if (n < top) or (n > top + BOTTOM_ROW - TOP_ROW) then begin
@@ -345,13 +369,13 @@ begin
     top := top + BOTTOM_ROW - TOP_ROW + 1
   else
     top := top - (BOTTOM_ROW - TOP_ROW + 1);
-  if top > C_JRNL.JOURNAL_COUNT - (BOTTOM_ROW - TOP_ROW) then
-    top := C_JRNL.JOURNAL_COUNT - (BOTTOM_ROW - TOP_ROW);
+  if top > count - (BOTTOM_ROW - TOP_ROW) then
+    top := count - (BOTTOM_ROW - TOP_ROW);
   if top < 1 then
     top := 1;
   sel := top + row;
-  if sel > C_JRNL.JOURNAL_COUNT then
-    sel := C_JRNL.JOURNAL_COUNT;
+  if sel > count then
+    sel := count;
   JrnlView.DrawList;
   JrnlView.Moved(old);
 end;
@@ -385,6 +409,7 @@ var
 
 begin
   savedChoice := GameVars.horizChoice;
+  JrnlView.CollectItems;
   sel := 1;
   top := 1;
   shown := 0;
@@ -394,31 +419,37 @@ begin
   reading := False;
   lastKey := 'S';
   JrnlView.DrawJournal;
-  previewDue := True;
+  previewDue := count > 0;
   movedAt := TextRend.GetTicks;
   MenuCore.idleHook := JrnlView.TickPreview;
   repeat
-    menu := 'Select';
-    if reading and (page < pages) then
-      menu := menu + ' Next';
-    if reading and (page > 1) then
-      menu := menu + ' Prev';
-    menu := menu + ' Quests Exit';
+    if count = 0 then
+      menu := 'Quests Exit'
+    else begin
+      menu := 'Select';
+      if reading and (page < pages) then
+        menu := menu + ' Next';
+      if reading and (page > 1) then
+        menu := menu + ' Prev';
+      menu := menu + ' Quests Exit';
+    end;
     GameVars.horizChoice := OptionOf(lastKey);
     ch := MenuCore.MenuHorizontal(PROMPT, menu, LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
-      case ch of
-        C_KEYS.UP, C_KEYS.HOME: if sel > 1 then
-                                  JrnlView.MoveTo(sel - 1)
-                                else
-                                  JrnlView.MoveTo(C_JRNL.JOURNAL_COUNT);
-        C_KEYS.DOWN, C_KEYS.END_KEY: if sel < C_JRNL.JOURNAL_COUNT then
-                                       JrnlView.MoveTo(sel + 1)
-                                     else
-                                       JrnlView.MoveTo(1);
-        C_KEYS.PAGE_UP: JrnlView.ScrollColumn(False);
-        C_KEYS.PAGE_DOWN: JrnlView.ScrollColumn(True);
-      end;
+      { an empty list has nothing to move through }
+      if count > 0 then
+        case ch of
+          C_KEYS.UP, C_KEYS.HOME: if sel > 1 then
+                                    JrnlView.MoveTo(sel - 1)
+                                  else
+                                    JrnlView.MoveTo(count);
+          C_KEYS.DOWN, C_KEYS.END_KEY: if sel < count then
+                                         JrnlView.MoveTo(sel + 1)
+                                       else
+                                         JrnlView.MoveTo(1);
+          C_KEYS.PAGE_UP: JrnlView.ScrollColumn(False);
+          C_KEYS.PAGE_DOWN: JrnlView.ScrollColumn(True);
+        end;
       if previewDue then begin
         reading := False;
         { after a move, Enter takes the highlighted item }

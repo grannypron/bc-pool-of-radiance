@@ -38,7 +38,7 @@ implementation
 
 uses Crt, C_AREA, C_TIME, C_MSG, GameDefs, GameVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
   C_KEYS, C_LEVEL, C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
-  MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool, KeyHelp, BeastMnu, Magic;
+  MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool, KeyHelp, BeastMnu, Magic, JrnlSeen;
 
 var
   { Door-opening flags: bash, pick and knock. }
@@ -426,8 +426,8 @@ begin
         c := MenuCore.MenuHorizontal('', menu3D, LightMagenta, LightGreen, White, True, False, ext);
       if not ext then begin
         case c of
-          { STING maps anywhere, as Curse's debug mode does }
-          'A': if (GameVars.zone0^.noAutomap = 0) or GameVars.stingArg then begin
+          { STING maps anywhere, as Curse's debug mode does; elsewhere the Journal's map of the area allows it (#1090) }
+          'A': if JrnlSeen.AreaMapAllowed or GameVars.stingArg then begin
                  GameVars.automapOn := not GameVars.automapOn;
                  View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
                end else

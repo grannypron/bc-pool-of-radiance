@@ -51,6 +51,8 @@ var
   { the Auto Join setting: nonzero has a stackable item join its like as it comes into an inventory
     (CharHlp.AddToInventory, #1088) }
   autoJoinOn: Byte;
+  { the Journal setting: nonzero lists only the items the party has found (JrnlSeen), zero every item (#1090) }
+  journalFoundOn: Byte;
   { nonzero: PostCbt and SaveLoad.LoadChar take the party's characters off Quick after each fight and on loading }
   quickEnds: Byte;
   { the Quick Mode Magic setting: CombatSt starts every fight with quickMagic set from it; Alt-M then turns quickMagic

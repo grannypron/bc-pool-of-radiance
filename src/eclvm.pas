@@ -20,7 +20,7 @@ implementation
 uses Types, C_AREA, C_NPC, C_MSG, GameDefs, GameVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_ECL, C_LEVEL, C_IFC, C_GBVM, C_SOUND, C_MONEY, C_STATUS, C_TIME, VaultMnu, EclTrace, Border,
   Camp, EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
-  StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal, Bestiary, Sage{$IFDEF FPC}, TpRand{$ENDIF};
+  StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal, Bestiary, Sage, JrnlSeen{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { stop the VM and return control to the player }
@@ -438,7 +438,7 @@ begin
 end;
 
 { PRINT / PRINTCLEAR: show var 1 (a number is converted to text) in the message window. PRINTCLEAR clears the window and
-  starts at its top. }
+  starts at its top. The Journal notes the entries, tales and proclamations the text names (JrnlSeen.Scan, #1090). }
 procedure EclPrint;
 begin
   EclVars.LoadEclVars(1);
@@ -446,6 +446,7 @@ begin
   GameVars.msgDelayFlag := 1;
   if GameVars.varTypes[1] < $80 then
     GameVars.gbStrings^[1] := StrUtil.NumStr(EclVars.GetEclVar(1));
+  JrnlSeen.Scan(GameVars.gbStrings^[1]);
   if GameVars.curOpcode = C_ECL.PRINT then
     TextRend.ShowMessage(LightGreen, False, GameVars.gbStrings^[1])
   else begin

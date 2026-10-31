@@ -114,6 +114,7 @@ begin
       C_OPT.OPT_MONSTERS: s.flags[opt] := GameVars.monsterPics;
       C_OPT.OPT_PORTRAITS: s.flags[opt] := GameVars.portraitsOn;
       C_OPT.OPT_AUTO_JOIN: s.flags[opt] := GameVars.autoJoinOn;
+      C_OPT.OPT_JOURNAL: s.flags[opt] := GameVars.journalFoundOn;
       C_OPT.OPT_MUSIC: s.flags[opt] := GameVars.musicOn;
       C_OPT.OPT_TITLE_MUSIC, C_OPT.OPT_BATTLE_MUSIC:
         s.flags[opt] := Ord(GameVars.musicGroups and Options.GroupBit(opt) <> 0);
@@ -149,6 +150,7 @@ begin
       C_OPT.OPT_MONSTERS: GameVars.monsterPics := s.flags[opt];
       C_OPT.OPT_PORTRAITS: GameVars.portraitsOn := s.flags[opt];
       C_OPT.OPT_AUTO_JOIN: GameVars.autoJoinOn := s.flags[opt];
+      C_OPT.OPT_JOURNAL: GameVars.journalFoundOn := s.flags[opt];
       C_OPT.OPT_MUSIC: GameVars.musicOn := s.flags[opt];
       C_OPT.OPT_TITLE_MUSIC, C_OPT.OPT_BATTLE_MUSIC:
         if s.flags[opt] <> 0 then
