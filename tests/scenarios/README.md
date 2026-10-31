@@ -51,7 +51,7 @@ the text matches (an animated picture) is only a warning.
 
 | scenario | covers |
 | --- | --- |
-| `boot` | the main menu, the settings screen and its Camp page |
+| `boot` | the main menu, the settings screen and its Camp and Sound pages; with `SOUND=none` (no sound device, #1156) the Sound page reads Music and Sound OFF, every line grey |
 | `chargen` | creating a paladin with fixed dice, the portrait picker (Escape doing nothing there) and the icon picker, the `.CHA` file written, adding him |
 | `loadsave` | the Load/Save menu, loading A, View and More Info (its saves, statistics and a thief's skills), the save popup, the files a save writes (the `.MAP` with them) |
 | `combat` | resting in Podal Plaza until orcs come, a Quick fight, the loot, Take, the statistics |

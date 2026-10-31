@@ -123,6 +123,20 @@ procedure ChangeSetting(var s: TSettings; opt: Byte; right: Boolean);
   OFF (FlagValue: ENEMIES or ALL for Aim Cycles, FOUND or ALL for the Journal). }
 function StoredValue(var s: TSettings; key: Byte): FileUtil.TPathName;
 
+{ True when POOL.CFG's sound letter sound gives the DOS game no sound device: START installs a driver only for the
+  speaker, the Tandy, the AdLib and the Sound Blaster, and none for S, N or any other letter. The native game plays
+  Digital Audio whatever the letter (#1097), so its callers do not ask. }
+function NoSoundDevice(sound: Char): Boolean;
+
+{ Add to skip the settings a game with no sound device (silent) cannot change, which the Settings screen and POOLCFG
+  grey and pass by: every one on the Sound page (#1156). Nothing when not silent. }
+procedure Silenced(silent: Boolean; var skip: TOptSet);
+
+{ The value setting opt shows on a settings page: StoredValue, but with no sound device (silent) OFF for Music and
+  Sound, which play nothing (#1156). What POOLOPT.CFG keeps for them is left as it is, so a device chosen later brings
+  it back. }
+function ShownValue(var s: TSettings; opt: Byte; silent: Boolean): FileUtil.TPathName;
+
 { Set setting or path key from value (tidied): a digit 0..9 for the speed, a number from C_OPT.LOG_MIN to LOG_MAX for
   the log lines, a path as it is, ON or OFF (or 1 or 0) for the others, and the names FlagValue gives them too. False
   when the value was refused, which leaves the setting as it is; a blank path is passed over, not refused. }
@@ -609,6 +623,26 @@ begin
   else
     FileUtil.DeleteFile(FileUtil.TempName(name));
   WriteOptions := ok;
+end;
+
+function NoSoundDevice(sound: Char): Boolean;
+begin
+  NoSoundDevice := not (UpCase(sound) in [C_OPT.SOUND_SPEAKER, C_OPT.SOUND_TANDY, C_OPT.SOUND_ADLIB,
+                                          C_OPT.SOUND_BLASTER]);
+end;
+
+procedure Silenced(silent: Boolean; var skip: TOptSet);
+begin
+  if silent then
+    skip := skip + [C_OPT.OPT_FIRST_SOUND..C_OPT.OPT_LAST_SOUND];
+end;
+
+function ShownValue(var s: TSettings; opt: Byte; silent: Boolean): FileUtil.TPathName;
+begin
+  if silent and (opt in [C_OPT.OPT_MUSIC, C_OPT.OPT_SOUND]) then
+    ShownValue := CfgFile.OnOff(0)
+  else
+    ShownValue := CfgFile.StoredValue(s, opt);
 end;
 
 function ReadPoolCfg(name: FileUtil.TPathName; var c: TPoolCfg; var notes: TCfgNotes): TReadResult;

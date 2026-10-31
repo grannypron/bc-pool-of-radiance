@@ -14,3 +14,6 @@ checkpoint settings
 # The Camp page (#1119, #1129): Auto Memorize and the Fix settings.
 press c
 checkpoint camp-settings
+# The Sound page; with SOUND=none (no sound device, #1156) Music and Sound read OFF and every line is grey.
+press s
+checkpoint sound-settings
