@@ -1,0 +1,16 @@
+# Tests leaving the Zhentil Keep Outpost before the mission (#1116). The fixture places save A in the western
+# wilderness at (3,33), south of the outpost, with the riders around it already seen. A step north meets the riders,
+# who warn the party off; LEAVE takes their picture down at once, the wilderness map back.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/outpost
+press l a
+wait ^CAST VIEW ENCAMP 120
+checkpoint wilderness
+press up
+wait LEAVE
+checkpoint warned
+press l
+wait ^CAST VIEW ENCAMP
+checkpoint left

@@ -70,4 +70,8 @@ the text matches (an animated picture) is only a warning.
 | `banealtar` | the Temple of Bane's altar destroyed on an earlier visit (#1139, `saves/banealtar`): its remains, not the offer to destroy it again |
 | `bishop` | the bishop's study once the temple is freed without Dirten (#1139), save A on its square, (10,5) (`saves/bishop`): the bishop's thanks, Dirten not joining, `[$4A9C]` and `[$4A79]` in the save |
 | `madman` | the Temple of Tyr with the Mad Man in the party (#1138), save A on its square, (8,4) (`saves/madman`): the priest's question, No (the greeting and the offer of healing), then Yes (he leaves the party) |
+| `odran` | the Valhingen mage who joins (#1113, #1117), save A on his square, (8,9) (`saves/odran`): his offer, then Let Him Join: he joins as ODRAN and the view comes back at once |
+| `coffin` | the vampire's coffin sanctified (#1096), save A on its square, (12,4), Anna carrying two vials of holy water and a holy symbol (`saves/coffin`): one vial used up, the symbol kept, then the crypt's remains |
+| `coffinbare` | the vampire's coffin with nothing holy (#1096, `saves/coffinbare`): SANCTIFY refused, and the coffin as it was |
+| `outpost` | the Zhentil Keep Outpost before the mission (#1116), save A in the western wilderness at (3,33) (`saves/outpost`): a step north, the riders' warning, LEAVE, the map back |
 | `ssiformat` | against SSI's own v1.3 (`tests/regress.sh drive_c/POOLRAD/SSI obj tests/scenarios/ssiformat.txt`): the `.CHA` file Remove writes and the files saving A into D writes are SSI's (`CHARLIST.TXT` is left out: a party member stays on the roster, #754), with SSI's heap pointers, the unused name bytes and the saved script masked |

@@ -1,0 +1,20 @@
+# Tests the mage who joins in Valhingen Graveyard (#1113, #1117). The fixture places save A on his square, (8,9), with
+# [$4A42] = 3, which brings him, and the vampire not yet beaten. Look runs his event; he joins as ODRAN, the name the
+# party knows him by, and his picture is taken down at once, the map view back.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/odran
+press l a
+wait AREA 120
+press l
+wait CONTINUE
+checkpoint approached
+press ret
+wait CONTINUE
+press ret
+wait JOIN
+checkpoint offer
+press l
+wait AREA
+checkpoint joined

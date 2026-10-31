@@ -68,6 +68,10 @@ const
   SPELL = $3B;
   PROTECTION = $3C;
   CLEAR_BOX = $3D;
+  { Not SSI's: a data fix's command (#1096). It uses up one item a FIND ITEM selector names (EclVm.EclUseUpItem), and
+    takes one operand. Curse's and Pools of Darkness's $40 takes away every item of a type, and Pools has a $41, so it
+    is given a number no SSI game uses. }
+  USE_UP_ITEM = $80;
 
   { The script header's entry slots (GameVars.scriptEntryAddrs), the addresses EclMenu.EclInit reads from the script's
     first ENTRY_COUNT variables. }

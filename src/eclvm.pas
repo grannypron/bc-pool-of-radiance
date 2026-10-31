@@ -215,7 +215,8 @@ begin
   EclVars.WriteGbvm(address, roll);
 end;
 
-{ SAVE: store var 1, a number or a string (type bit 7 set), at var 2's address }
+{ SAVE: store var 1, a number or a string (type bit 7 set), at var 2's address. A name given the current character
+  (C_GBVM.CHAR_NAME, as #1113's data fix names the Valhingen mage) shows in the party list at once. }
 procedure EclSave;
 var
   v: Word;
@@ -226,8 +227,11 @@ begin
   if GameVars.varTypes[1] < $80 then begin
     v := EclVars.GetEclVar(1);
     EclVars.WriteGbvm(address, v);
-  end else
+  end else begin
     EclVars.WriteGbvmString(address, GameVars.gbStrings^[1]);
+    if address = C_GBVM.CHAR_NAME then
+      CharDisp.DisplayParty(GameVars.curChar);
+  end;
 end;
 
 { LOAD CHARACTER: make creature number var 1 (low seven bits, 0 = the first) current; EXIT and PROGRAM restore the
@@ -1293,31 +1297,42 @@ begin
   EclVars.WriteGbvm(address, v5);
 end;
 
-{ FIND ITEM: set the eq comparison flag (else ne) if any party member carries an item of type var 1 }
+{ Set the eq comparison flag when found, else ne, and clear the others, as FIND ITEM and USE UP ITEM leave them. }
+procedure SetFoundFlags(found: Boolean);
+begin
+  FillChar(EclMenu.cmpFlags, SizeOf(EclMenu.cmpFlags), 0);
+  EclMenu.cmpFlags[0] := found;
+  EclMenu.cmpFlags[1] := not found;
+end;
+
+{ FIND ITEM: set the eq comparison flag (else ne) if any party member carries an item var 1 selects
+  (CharHlp.ItemSelected: a base item type, or C_ITEM.FIND_HOLY_SYMBOL) }
 procedure EclFindItem;
 var
-  itemType: Byte;
-  p: Types.PCharRecord;
-  item: Types.PItemRec;
-  found: Boolean;
+  owner: Types.PCharRecord;
 begin
   EclVars.LoadEclVars(1);
-  found := False;
-  itemType := EclVars.GetEclVar(1);
-  FillChar(EclMenu.cmpFlags, SizeOf(EclMenu.cmpFlags), 0);
-  EclMenu.cmpFlags[1] := True;
-  p := GameVars.creatureList;
-  while (p <> nil) and (not found) do begin
-    item := p^.itemsAddr;
-    while (item <> nil) and (not found) do begin
-      if itemType = item^.itemType then begin
-        EclMenu.cmpFlags[0] := True;
-        EclMenu.cmpFlags[1] := False;
-        found := True;
-      end;
-      item := item^.next;
-    end;
-    p := p^.nextCharAddr;
+  EclVm.SetFoundFlags(CharHlp.FindPartyItem(EclVars.GetEclVar(1), owner) <> nil);
+end;
+
+{ USE UP ITEM (C_ECL.USE_UP_ITEM, not SSI's): use up one of the first item in party order that var 1 selects, as FIND
+  ITEM selects it (CharHlp.UseUpItem: a stack loses one, anything else is gone, put away first when readied), and set
+  the eq comparison flag; with none, the ne flag. The owner's stats and the party list follow at once. }
+procedure EclUseUpItem;
+var
+  owner: Types.PCharRecord;
+  item: Types.PItemRec;
+begin
+  EclVars.LoadEclVars(1);
+  item := CharHlp.FindPartyItem(EclVars.GetEclVar(1), owner);
+  EclVm.SetFoundFlags(item <> nil);
+  if item <> nil then begin
+    if (item^.quantity <= 1) and (item^.equipped <> 0) then
+      FxEngine.UnreadyItem(owner, item);
+    { a stack's weight is per piece, so it weighs less too }
+    CharHlp.UseUpItem(owner, item);
+    CharHlp.RecalcStats(owner);
+    CharDisp.DisplayParty(GameVars.curChar);
   end;
 end;
 
@@ -1740,6 +1755,7 @@ begin
     C_ECL.SPELL: EclVm.EclSpell;
     C_ECL.PROTECTION: EclVm.EclProtection;
     C_ECL.CLEAR_BOX: EclVm.EclClearBox;
+    C_ECL.USE_UP_ITEM: EclVm.EclUseUpItem;
   else
     EclVars.SkipEclCmd;
   end;

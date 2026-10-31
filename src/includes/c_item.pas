@@ -80,6 +80,10 @@ const
     RANDOM_ARMS_LAST }
   RANDOM_ARMS_LAST = 93;
   RANDOM_ARMS_KINDS = [1..59, ARROW, BRACERS, RANDOM_ARMS_LAST];
+  { A script's item selector (FIND ITEM, USE UP ITEM) above the base item types: any item with the holy-symbol name
+    part, NAME_HOLY_SYMBOL, whose types (70, 71, 74) other jewellery shares (#1096). No shipped script names a type
+    above 96. }
+  FIND_HOLY_SYMBOL = 255;
   { Item name parts the code tests or builds (TItemRec.nameIds, CharHlp.ItemLabel's nameParts) }
   NAME_HAMMER = 20;
   { the bows' names, the same numbers as their item types }

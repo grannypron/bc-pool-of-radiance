@@ -1,6 +1,6 @@
 { Tests for CharHlp's rules: item labels, weights, item lists, warrior level, persons, the NPC tests, effects and
   spells, the racial level caps and the Strength they follow, Haste and Slow, theft chances, team counts, the weapon
-  fixes, rear AC and weapon pluses. }
+  fixes, rear AC and weapon pluses, and the scripts' item selectors and the items they use up. }
 {$I COMPILER.INC}
 program TCharHlp;
 
@@ -133,6 +133,53 @@ begin
   TestKit.CheckEqualsL(0, bad, 'the racial caps match SSI''s, from the cap up');
 end;
 
+{ The scripts' item selectors and USE UP ITEM's use (#1096): FIND ITEM's base types, C_ITEM.FIND_HOLY_SYMBOL, the
+  first item in party order, a stack losing one and a single item gone. }
+procedure CheckScriptItems;
+var
+  second: Types.TCharRecord;
+  owner: Types.PCharRecord;
+  found: Types.PItemRec;
+begin
+  ClearCreature;
+  FillChar(second, SizeOf(second), 0);
+  c^.nextCharAddr := @second;
+  GameVars.creatureList := c;
+  { the first member has a ring, the second the Wooden Holy Symbol of Tyr (type 71, name parts 249 152 252) and then
+    two vials of holy water }
+  NewItem(70, 185, 167, 64, 0, 25);
+  CharHlp.AppendItemCopy(c^.itemsAddr, @it);
+  NewItem(71, 249, C_ITEM.NAME_HOLY_SYMBOL, C_ITEM.NAME_WOODEN, 0, 30);
+  CharHlp.AppendItemCopy(second.itemsAddr, @it);
+  NewItem(C_ITEM.HOLY_WATER_VIAL, 0, 0, 153, 2, 10);
+  CharHlp.AppendItemCopy(second.itemsAddr, @it);
+  TestKit.Check(CharHlp.ItemSelected(c^.itemsAddr, 70), 'a selector below 255 is a base item type');
+  TestKit.Check(not CharHlp.ItemSelected(c^.itemsAddr, C_ITEM.FIND_HOLY_SYMBOL), 'a plain ring is no holy symbol');
+  TestKit.Check(CharHlp.ItemSelected(second.itemsAddr, C_ITEM.FIND_HOLY_SYMBOL),
+                'the holy-symbol name part is a holy symbol, whatever its type');
+  found := CharHlp.FindPartyItem(C_ITEM.HOLY_WATER_VIAL, owner);
+  TestKit.Check((found = second.itemsAddr^.next) and (owner = @second),
+                'FindPartyItem finds the holy water and its owner');
+  found := CharHlp.FindPartyItem(C_ITEM.FIND_HOLY_SYMBOL, owner);
+  TestKit.Check((found = second.itemsAddr) and (owner = @second), 'and the holy symbol');
+  found := CharHlp.FindPartyItem(C_ITEM.FLASK_OF_OIL, owner);
+  TestKit.Check((found = nil) and (owner = nil), 'and nothing, with no owner, for an item nobody has');
+  found := CharHlp.FindPartyItem(70, owner);
+  TestKit.Check(owner = c, 'the first member in party order is searched first');
+  found := CharHlp.FindPartyItem(C_ITEM.HOLY_WATER_VIAL, owner);
+  CharHlp.UseUpItem(owner, found);
+  TestKit.CheckEqualsL(1, found^.quantity, 'using up holy water from a stack of two leaves one');
+  CharHlp.UseUpItem(owner, found);
+  TestKit.Check(CharHlp.FindPartyItem(C_ITEM.HOLY_WATER_VIAL, owner) = nil, 'using up the last vial removes it');
+  TestKit.Check(second.itemsAddr^.next = nil, 'and the holy symbol is left');
+  found := CharHlp.FindPartyItem(C_ITEM.FIND_HOLY_SYMBOL, owner);
+  CharHlp.UseUpItem(owner, found);
+  TestKit.Check(second.itemsAddr = nil, 'using up a single item, the holy symbol, removes it');
+  CharHlp.FreeItemList(c^.itemsAddr);
+  c^.nextCharAddr := nil;
+  GameVars.creatureList := nil;
+end;
+
 begin
   TestKit.Start('TCHARHLP');
   GetMem(c, SizeOf(Types.TCharRecord));
@@ -200,6 +247,7 @@ begin
                 'RemoveItem of an item not in the list leaves it (no fault hook in a test)');
   CharHlp.FreeItemList(c^.itemsAddr);
   TestKit.Check(c^.itemsAddr = nil, 'FreeItemList leaves the list nil');
+  CheckScriptItems;
 
   { warrior level }
   ClearCreature;

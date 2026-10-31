@@ -37,6 +37,18 @@ procedure RemoveSpell(creature: Types.PCharRecord; spell: Byte);
 
 procedure RemoveItem(creature: Types.PCharRecord; item: Types.PItemRec);
 
+{ True when item answers a script's item selector (FIND ITEM, USE UP ITEM): C_ITEM.FIND_HOLY_SYMBOL any item with the
+  holy-symbol name part, any other selector an item of that base type. }
+function ItemSelected(item: Types.PItemRec; selector: Byte): Boolean;
+
+{ The first item in party order (creatureList), and in its owner's list, that answers selector (ItemSelected), with
+  its owner; nil, and owner nil, when no member has one. }
+function FindPartyItem(selector: Byte; var owner: Types.PCharRecord): Types.PItemRec;
+
+{ Use up one of creature's item: a stack (quantity 2 or more) loses one, any other item leaves the list (RemoveItem).
+  The caller puts a readied item away first (FxEngine.UnreadyItem) when it is to go. }
+procedure UseUpItem(creature: Types.PCharRecord; item: Types.PItemRec);
+
 { Free every item in list and leave it nil. }
 procedure FreeItemList(var list: Types.PItemRec);
 
@@ -1066,6 +1078,51 @@ begin
       FreeMem(item, SizeOf(Types.TItemRec));
     end;
   end;
+end;
+
+function ItemSelected(item: Types.PItemRec; selector: Byte): Boolean;
+var
+  j: Byte;
+  found: Boolean;
+begin
+  if selector = C_ITEM.FIND_HOLY_SYMBOL then begin
+    found := False;
+    { 3 = High(TItemRec.nameIds) }
+    for j := 1 to 3 do
+      if item^.nameIds[j] = C_ITEM.NAME_HOLY_SYMBOL then
+        found := True;
+    ItemSelected := found;
+  end else
+    ItemSelected := item^.itemType = selector;
+end;
+
+function FindPartyItem(selector: Byte; var owner: Types.PCharRecord): Types.PItemRec;
+var
+  p: Types.PCharRecord;
+  item: Types.PItemRec;
+begin
+  FindPartyItem := nil;
+  owner := nil;
+  p := GameVars.creatureList;
+  while (p <> nil) and (owner = nil) do begin
+    item := p^.itemsAddr;
+    while (item <> nil) and (owner = nil) do begin
+      if CharHlp.ItemSelected(item, selector) then begin
+        FindPartyItem := item;
+        owner := p;
+      end;
+      item := item^.next;
+    end;
+    p := p^.nextCharAddr;
+  end;
+end;
+
+procedure UseUpItem(creature: Types.PCharRecord; item: Types.PItemRec);
+begin
+  if item^.quantity > 1 then
+    Dec(item^.quantity)
+  else
+    CharHlp.RemoveItem(creature, item);
 end;
 
 procedure AppendItemCopy(var list: Types.PItemRec; item: Types.PItemRec);
