@@ -61,8 +61,7 @@ on:
         type: string
 
 jobs:
-  # What this run does: run (the build and test jobs), publish (the release jobs), tag (what they release) and base
-  # (for a nightly, the production release its notes count from).
+  # What this run does: run (the build and test jobs), publish (the release jobs) and tag (what they release).
   plan:
     runs-on: docker
     timeout-minutes: 5
@@ -75,7 +74,6 @@ jobs:
       run: ${{ steps.plan.outputs.run }}
       publish: ${{ steps.plan.outputs.publish }}
       tag: ${{ steps.plan.outputs.tag }}
-      base: ${{ steps.plan.outputs.base }}
     steps:
       - name: Plan
         id: plan
@@ -122,7 +120,7 @@ jobs:
                   esac ;;
               schedule) nightly 0 ;;
           esac
-          printf 'run=%s\npublish=%s\ntag=%s\nbase=%s\n' "$run" "$publish" "$tag" "$base" | tee -a "$GITHUB_OUTPUT"
+          printf 'run=%s\npublish=%s\ntag=%s\n' "$run" "$publish" "$tag" | tee -a "$GITHUB_OUTPUT"
 
   build:
     needs: [plan]
@@ -253,7 +251,6 @@ jobs:
         env:
           REPO_API: ${{ github.event.repository.url }}
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NIGHTLY_BASE: ${{ needs.plan.outputs.base }}
         run: .forgejo/scripts/release.sh "$TAG"
 
   native:
