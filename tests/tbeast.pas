@@ -1,10 +1,13 @@
 { Tests Bestiary discovery, learned combat facts, capacity limits, and
   BESTIARY.DAT persistence (#842). Also covers damaged and newer-format files,
-  plus the sage filling an entry from a creature record (#868). }
+  plus the sage filling an entry from a creature record (#868), the entry page's
+  lists and their layout (#1114), and the facts #1110, #1122 and #1142 added,
+  from the sage and from what the party sees in a fight. }
 {$I COMPILER.INC}
 program TBeast;
 
-uses Types, GameVars, C_GBVM, C_STATUS, C_IFC, C_BEAST, C_EFFECT, FileUtil, Bestiary, BeastFil, TestKit;
+uses Types, GameVars, C_GBVM, C_STATUS, C_IFC, C_BEAST, C_EFFECT, C_EQUIP, C_ITEM, FileUtil, Bestiary, BeastFil,
+  EffHndlr, CharHlp, TestKit;
 
 type
   THeader = record
@@ -29,6 +32,12 @@ var
   s: String;
   e: Types.PEffectRec;
   ok: Boolean;
+  { a fact's place in the entry page's lists, 0 for none }
+  listed: array[0..C_BEAST.LAST_FACT] of Byte;
+  fact: Byte;
+  defenses: Boolean;
+  sword: Types.TItemRec;
+  node: Types.TEffectRec;
 
 { Put an effect id on the creature's effects list. }
 procedure AddEffect(p: Types.PCharRecord; id: Byte);
@@ -57,6 +66,45 @@ end;
 function Troll_: Bestiary.PBeast;
 begin
   Troll_ := Bestiary.Entry(Bestiary.Find('TROLL'));
+end;
+
+{ Free the creature's effects list. }
+procedure FreeEffects(p: Types.PCharRecord);
+var
+  n: Types.PEffectRec;
+begin
+  while p^.effectsAddr <> nil do begin
+    n := p^.effectsAddr;
+    p^.effectsAddr := n^.next;
+    FreeMem(n, SizeOf(Types.TEffectRec));
+  end;
+end;
+
+{ What the sage tells of a creature whose record carries the effects e1..e4 (0 for none): the entry she fills, from
+  nothing. }
+procedure TellOf(var t: Bestiary.TBeast; e1, e2, e3, e4: Byte);
+begin
+  FreeEffects(troll);
+  if e1 <> 0 then AddEffect(troll, e1);
+  if e2 <> 0 then AddEffect(troll, e2);
+  if e3 <> 0 then AddEffect(troll, e3);
+  if e4 <> 0 then AddEffect(troll, e4);
+  FillChar(t, SizeOf(t), 0);
+  t.acLo := C_BEAST.AC_NO_LOW;
+  t.acHi := C_BEAST.AC_NO_HIGH;
+  if BeastFil.Tell(t, troll) then ;
+end;
+
+{ The entry the party has for name, nil for none. }
+function EntryOf(name: String): Bestiary.PBeast;
+begin
+  EntryOf := Bestiary.Entry(Bestiary.Find(name));
+end;
+
+{ Whether the party has learned fact of the kind named name. }
+function Learned(name: String; fact: Byte): Boolean;
+begin
+  Learned := (EntryOf(name) <> nil) and Bestiary.Knows(EntryOf(name)^, fact);
 end;
 
 { Write a file of n bytes of junk as fn. }
@@ -116,7 +164,7 @@ begin
   TestKit.Check(Bestiary.Knows(Troll_^, C_BEAST.MET_HERE), 'but that it was met in this game');
   TestKit.CheckEqualsL(28, C_BEAST.MET_HERE, 'Pool''s mark is bit 28, the first game''s');
   TestKit.Check((C_BEAST.MET_HERE >= C_BEAST.FIRST_GAME_MARK) and (C_BEAST.MET_HERE <= C_BEAST.LAST_GAME_MARK) and
-                (C_BEAST.TOLD < C_BEAST.FIRST_GAME_MARK) and (C_BEAST.LAST_GAME_MARK < C_BEAST.FIRST_ATTACK),
+                (C_BEAST.TOLD < C_BEAST.FIRST_GAME_MARK) and (C_BEAST.LAST_GAME_MARK < C_BEAST.ATK_POISON),
                 'the game marks are bits of their own');
   TestKit.CheckEqualsL(C_BEAST.AC_NO_LOW, Troll_^.acLo, 'nor its armor class, low');
   TestKit.CheckEqualsL(C_BEAST.AC_NO_HIGH, Troll_^.acHi, 'nor high');
@@ -343,19 +391,173 @@ begin
   TestKit.Check(BeastFil.Tell(t, troll), 'a different record tells something');
   TestKit.Check(Bestiary.Knows(t, C_BEAST.SIZE_KNOWN) and not Bestiary.Knows(t, C_BEAST.LARGE), 'man-sized now');
   TestKit.CheckEqualsL(0, t.hd, 'less than a hit die');
-  { every row of the table stands for a fact the entry page lists }
+  { the entry page's two lists: each fact in one place of one list, with a name that fits a column }
+  FillChar(listed, SizeOf(listed), 0);
+  ok := True;
+  for defenses := False to True do begin
+    i := 1;
+    fact := BeastFil.FactAt(defenses, i);
+    while fact <> 0 do begin
+      if (fact > C_BEAST.LAST_FACT) or (listed[fact] <> 0) or (BeastFil.FactName(fact) = '') or
+         (Length(BeastFil.FactName(fact)) > 16) then
+        ok := False
+      else
+        listed[fact] := i;
+      Inc(i);
+      fact := BeastFil.FactAt(defenses, i);
+    end;
+  end;
+  TestKit.Check(ok, 'each listed fact is listed once, by a name of 16 characters at most');
+  TestKit.CheckEqualsL(28, i - 1, 'the defenses, listed last, are 28');
+  TestKit.CheckEqualsL(13, listed[C_BEAST.ATK_HOLD], 'and the attacks 13, the hold last');
+  TestKit.Check((listed[C_BEAST.SIZE_KNOWN] = 0) and (listed[C_BEAST.LARGE] = 0) and (listed[C_BEAST.HD_KNOWN] = 0) and
+                (listed[C_BEAST.TOLD] = 0) and (listed[C_BEAST.MET_HERE] = 0) and
+                (listed[C_BEAST.POOLS_NEEDS_PLUS_2] = 0) and (listed[C_BEAST.POOLS_ATK_CONFUSE] = 0),
+                'what it is, the sage''s mark, the game marks and Pools'' own facts are in neither list');
+  TestKit.CheckEqualsL(1, listed[C_BEAST.HALF_BLUNT], 'the defenses start with the halved damage');
+  TestKit.CheckEqualsL(8, listed[C_BEAST.HALF_SILVER], 'silver''s half among them');
+  TestKit.CheckEqualsL(18, listed[C_BEAST.SILVER_OR_MAGIC], 'silver or magic after magic weapons only');
+  TestKit.CheckEqualsL(7, listed[C_BEAST.ATK_FIRE], 'the attacks: the burning touch after the first six');
   ok := True;
   for i := 1 to C_BEAST.EFFECT_FACTS_COUNT do
-    with C_BEAST.EFFECT_FACTS[i] do
-      if not ((fact in [C_BEAST.FIRST_DEFENSE..C_BEAST.LAST_DEFENSE]) or
-              (fact in [C_BEAST.FIRST_ATTACK..C_BEAST.LAST_ATTACK])) then
-        ok := False;
+    if listed[C_BEAST.EFFECT_FACTS[i].fact] = 0 then
+      ok := False;
   TestKit.Check(ok, 'every effect''s fact is a defense or an attack');
-  while troll^.effectsAddr <> nil do begin
-    e := troll^.effectsAddr;
-    troll^.effectsAddr := e^.next;
-    FreeMem(e, SizeOf(Types.TEffectRec));
-  end;
+
+  { the facts #1110, #1122 and #1142 added, as the sage tells them from the creatures' records }
+  TellOf(t, C_EFFECT.NEED_SILVER, 0, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.SILVER_OR_MAGIC) and not Bestiary.Knows(t, C_BEAST.HALF_SILVER),
+                'the wight: silver or magic');
+  TellOf(t, C_EFFECT.SILVER_MAGIC, 0, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.SILVER_OR_MAGIC) and Bestiary.Knows(t, C_BEAST.HALF_SILVER),
+                'the wraith: silver or magic, and half from silver');
+  TellOf(t, C_EFFECT.BLINKING, C_EFFECT.POISON_HIT_M2, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.BLINKS) and Bestiary.Knows(t, C_BEAST.ATK_POISON), 'the phase spider blinks');
+  TellOf(t, C_EFFECT.DISPLACED, 0, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.DISPLACED), 'the displacer beast is displaced');
+  TellOf(t, C_EFFECT.CAN_FIGHT_ON, 0, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.FIGHTS_ON), 'the wild boar fights on');
+  TellOf(t, C_EFFECT.GASEOUS, 0, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.GAS_ESCAPE), 'the vampire escapes as gas');
+  TellOf(t, C_EFFECT.MUMMY_FEAR, 0, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.ATK_FEAR), 'the mummy''s fear');
+  TellOf(t, C_EFFECT.BLOOD_ATTACH, 0, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.ATK_BLOOD), 'the stirge drains blood');
+  TellOf(t, C_EFFECT.ACID_SQUIRT, C_EFFECT.ANHKHEG_ACID, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.ATK_ACID), 'the anhkheg''s acid');
+  TellOf(t, C_EFFECT.KREEN_PARA, C_EFFECT.KREEN_DODGE, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.DODGES_MISSILES), 'the thri-kreen dodges missiles');
+  TellOf(t, C_EFFECT.BOULDER_DODGE, 0, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.DODGES_BOULDERS), 'a giant dodges boulders');
+  TellOf(t, C_EFFECT.EFREETI_FIRE, 0, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.RESISTS_FIRE), 'the efreeti resists fire');
+  TellOf(t, C_EFFECT.RING_FIRE_RES, 0, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.RESISTS_FIRE), 'so does one wearing a Ring of Fire Resistance');
+  TellOf(t, C_EFFECT.SEE_INVISIBLE, C_EFFECT.FIRE_TOUCH, C_EFFECT.DRAGON_FEAR, C_EFFECT.DRAGON_BREATH);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.SEES_INVISIBLE) and Bestiary.Knows(t, C_BEAST.ATK_FIRE) and
+                Bestiary.Knows(t, C_BEAST.ATK_FEAR) and Bestiary.Knows(t, C_BEAST.ATK_BREATH),
+                'Tyranthraxus sees the invisible, burns, frightens and breathes');
+  TellOf(t, C_EFFECT.CAMOUFLAGE, 0, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.TURNS_INVISIBLE), 'the thief in an elven cloak turns invisible');
+  TellOf(t, C_EFFECT.REAR_CLAW_RAKE, 0, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.ATK_RAKE), 'the tiger rakes');
+  TellOf(t, C_EFFECT.BITE_ATTACH, 0, 0, 0);
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.ATK_HOLD), 'the giant mantis holds fast');
+  FreeEffects(troll);
+
+  { the entry page's layout: a told entry with an empty list has None under it, a row the layout counts (#1114) }
+  FillChar(t, SizeOf(t), 0);
+  for i := 1 to 10 do
+    ok := Bestiary.Mark(t, BeastFil.FactAt(True, i), True);
+  TestKit.CheckEqualsL(10, BeastFil.KnownCount(t, True), 'ten defenses known');
+  TestKit.CheckEqualsL(0, BeastFil.KnownCount(t, False), 'and no attack');
+  TestKit.CheckEqualsL(15, BeastFil.ListRows(t), 'untold: two headings, ten, a blank line and two ??');
+  ok := Bestiary.Mark(t, C_BEAST.TOLD, True);
+  TestKit.CheckEqualsL(14, BeastFil.ListRows(t), 'told, the juju zombie''s: None under the attacks');
+  TestKit.Check(BeastFil.ListRows(t) > 13, 'more than the 13 rows one a line: two columns');
+  ok := Bestiary.Mark(t, BeastFil.FactAt(False, 1), True);
+  TestKit.CheckEqualsL(14, BeastFil.ListRows(t), 'an attack in place of None');
+  for i := 1 to 10 do
+    ok := Bestiary.Mark(t, BeastFil.FactAt(True, i), False);
+  TestKit.CheckEqualsL(5, BeastFil.ListRows(t), 'no defense: None under the defenses');
+
+  { what the party sees in a fight, a long sword's blows (no base item has properties) }
+  Bestiary.Clear;
+  GameVars.ifcState := C_IFC.IN_COMBAT;
+  GetMem(CharHlp.baseItems, SizeOf(CharHlp.baseItems^));
+  FillChar(CharHlp.baseItems^, SizeOf(CharHlp.baseItems^), 0);
+  FillChar(sword, SizeOf(sword), 0);
+  sword.itemType := C_ITEM.LONG_SWORD;
+  a^.equipped[C_EQUIP.WEAPON] := @sword;
+  kobold^.equipped[C_EQUIP.WEAPON] := @sword;
+  GetMem(troll^.combatAddr, SizeOf(Types.TCombatRec));
+  FillChar(troll^.combatAddr^, SizeOf(Types.TCombatRec), 0);
+  troll^.name := 'WIGHT';
+  GameVars.curChar := kobold;
+  GameVars.pendingDamage := 6;
+  EffHndlr.EffNeedSilver(troll, nil, False);
+  TestKit.CheckEqualsL(0, GameVars.pendingDamage, 'a plain blow does nothing to the wight');
+  TestKit.Check(not Learned('WIGHT', C_BEAST.SILVER_OR_MAGIC), 'a monster''s blow shows the party nothing');
+  GameVars.curChar := a;
+  GameVars.pendingDamage := 0;
+  EffHndlr.EffNeedSilver(troll, nil, False);
+  TestKit.Check(not Learned('WIGHT', C_BEAST.SILVER_OR_MAGIC), 'nor a blow that would have done no harm');
+  GameVars.pendingDamage := 6;
+  EffHndlr.EffNeedSilver(troll, nil, False);
+  TestKit.Check(Learned('WIGHT', C_BEAST.SILVER_OR_MAGIC), 'a party member''s plain blow shows it (#1110)');
+  troll^.name := 'WRAITH';
+  sword.nameIds[3] := C_ITEM.NAME_SILVER;
+  GameVars.pendingDamage := 6;
+  EffHndlr.EffSilverMagic(troll, nil, False);
+  TestKit.CheckEqualsL(3, GameVars.pendingDamage, 'silver does half to the wraith');
+  TestKit.Check(Learned('WRAITH', C_BEAST.HALF_SILVER) and not Learned('WRAITH', C_BEAST.SILVER_OR_MAGIC),
+                'and shows it');
+  sword.nameIds[3] := 0;
+  GameVars.pendingDamage := 6;
+  EffHndlr.EffSilverMagic(troll, nil, False);
+  TestKit.Check((GameVars.pendingDamage = 0) and Learned('WRAITH', C_BEAST.SILVER_OR_MAGIC),
+                'a plain blow nothing, which shows it needs silver or magic');
+  troll^.name := 'PHASE SPIDER';
+  troll^.combatAddr^.initiative := 0;
+  EffHndlr.EffBlinking(troll, nil, False);
+  TestKit.Check(not Learned('PHASE SPIDER', C_BEAST.BLINKS), 'a spider that has acted does not blink');
+  troll^.combatAddr^.initiative := 3;
+  GameVars.forcedMiss := False;
+  EffHndlr.EffBlinking(troll, nil, False);
+  TestKit.Check(GameVars.forcedMiss and Learned('PHASE SPIDER', C_BEAST.BLINKS), 'one yet to act blinks (#1122)');
+  troll^.name := 'DISPLACER BEAST';
+  FillChar(node, SizeOf(node), 0);
+  GameVars.curChar := kobold;
+  EffHndlr.EffDisplaced(troll, @node, False);
+  TestKit.Check(not Learned('DISPLACER BEAST', C_BEAST.DISPLACED), 'a monster''s miss on it shows nothing');
+  node.strength := 0;
+  GameVars.curChar := a;
+  GameVars.forcedMiss := False;
+  EffHndlr.EffDisplaced(troll, @node, False);
+  TestKit.Check(GameVars.forcedMiss and Learned('DISPLACER BEAST', C_BEAST.DISPLACED),
+                'a party member''s first attack misses, and shows it (#1122)');
+  troll^.name := 'EFREETI';
+  GameVars.elementMask := C_EFFECT.ELEM_COLD;
+  GameVars.pendingDamage := 9;
+  EffHndlr.EffEfreetiFire(troll, nil, False);
+  TestKit.Check(not Learned('EFREETI', C_BEAST.RESISTS_FIRE), 'cold shows no fire resistance');
+  GameVars.elementMask := C_EFFECT.ELEM_FIRE;
+  EffHndlr.EffEfreetiFire(troll, nil, False);
+  TestKit.Check(Learned('EFREETI', C_BEAST.RESISTS_FIRE), 'fire does (#1142)');
+  troll^.name := 'WIGHT';
+  GameVars.ifcState := C_IFC.INDOORS;
+  Bestiary.Clear;
+  GameVars.pendingDamage := 6;
+  EffHndlr.EffNeedSilver(troll, nil, False);
+  TestKit.CheckEqualsL(0, Bestiary.Count, 'outside a fight nothing is learned');
+  GameVars.elementMask := 0;
+  a^.equipped[C_EQUIP.WEAPON] := nil;
+  kobold^.equipped[C_EQUIP.WEAPON] := nil;
+  FreeMem(troll^.combatAddr, SizeOf(Types.TCombatRec));
+  troll^.combatAddr := nil;
+  troll^.name := 'TROLL';
+  FreeMem(CharHlp.baseItems, SizeOf(CharHlp.baseItems^));
+  Bestiary.Clear;
 
   { another game's entry, read from a shared file: its mark stays, and this game's is added once it is met here }
   FillChar(t, SizeOf(t), 0);

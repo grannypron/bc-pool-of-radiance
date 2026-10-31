@@ -23,7 +23,7 @@ procedure ShowEntry(var b: Bestiary.TBeast);
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, C_KEYS, C_MSG, C_BEAST, GameVars, TextRend, Border, MenuCore, StrUtil;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, C_KEYS, C_MSG, C_BEAST, GameVars, BeastFil, TextRend, Border, MenuCore, StrUtil;
 
 const
   { the list page: two columns of up to LIST_ROWS names from LIST_TOP, the count on COUNT_ROW }
@@ -43,6 +43,7 @@ const
   ITEM_COL2 = 21;
   LAST_ROW = 22;
   UNKNOWN = '??';
+  NONE = 'None';
 
 type
   TOrder = array[1..Bestiary.MAX_ENTRIES] of Word;
@@ -149,80 +150,46 @@ begin
     ArmorText := StrUtil.NumStr(b.acLo) + ' to ' + StrUtil.NumStr(b.acHi);
 end;
 
-{ The entry page's line for defense or attack fact; literals, in the overlay, rather than a table in the data segment. }
-function FactName(fact: Byte): Types.TStr40;
-begin
-  case fact of
-    C_BEAST.HALF_BLUNT: FactName := 'Half: blunt';
-    C_BEAST.HALF_PIERCE: FactName := 'Half: piercing';
-    C_BEAST.HALF_SLASH: FactName := 'Half: slashing';
-    C_BEAST.HALF_MAGICAL: FactName := 'Half: magic wpns';
-    C_BEAST.HALF_FIRE: FactName := 'Half: fire';
-    C_BEAST.HALF_COLD: FactName := 'Half: cold';
-    C_BEAST.HALF_ELEC: FactName := 'Half: lightning';
-    C_BEAST.IMMUNE_POISON: FactName := 'No poison';
-    C_BEAST.IMMUNE_PARALYSIS: FactName := 'No paralysis';
-    C_BEAST.IMMUNE_SLEEP_CHARM: FactName := 'No sleep, charm';
-    C_BEAST.IMMUNE_MM: FactName := 'No magic missile';
-    C_BEAST.IMMUNE_COLD: FactName := 'No cold';
-    C_BEAST.IMMUNE_FIRE: FactName := 'No fire';
-    C_BEAST.IMMUNE_ELEC: FactName := 'No lightning';
-    C_BEAST.NEEDS_MAGIC: FactName := 'Magic wpns only';
-    C_BEAST.MAGIC_RES: FactName := 'Resists magic';
-    C_BEAST.REGENERATES: FactName := 'Regenerates';
-    C_BEAST.ATK_POISON: FactName := 'Poison';
-    C_BEAST.ATK_PARALYZE: FactName := 'Paralysis';
-    C_BEAST.ATK_DRAIN: FactName := 'Level drain';
-    C_BEAST.ATK_ROT: FactName := 'Rotting disease';
-    C_BEAST.ATK_PETRIFY: FactName := 'Petrifying gaze';
-    C_BEAST.ATK_CHARM: FactName := 'Charming gaze';
-  else
-    FactName := '';
-  end;
-end;
-
-{ How many of b's facts first..last it knows. }
-function KnownCount(var b: Bestiary.TBeast; first, last: Byte): Byte;
+{ heading in cyan on row, then b's known defenses or attacks under it (BeastFil.FactAt's order): ?? after them for what
+  may be still to learn, or, once the sage has told all (C_BEAST.TOLD, #868), None when it knows none (#1114). One a
+  line, or two a line when twoCols. Row comes back as the row after them. }
+procedure DrawGroup(var b: Bestiary.TBeast; heading: Types.TStr40; defenses, twoCols: Boolean; var row: Byte);
 var
-  f: Byte;
-  n: Byte;
-begin
-  n := 0;
-  for f := first to last do
-    if Bestiary.Knows(b, f) then
-      Inc(n);
-  KnownCount := n;
-end;
-
-{ heading in cyan on row, then b's known facts first..last under it, ?? after them for what may be still to learn
-  unless the sage has told all (C_BEAST.TOLD, #868): one a line, or two a line when twoCols. Row comes back as the row
-  after them. }
-procedure DrawGroup(var b: Bestiary.TBeast; heading: Types.TStr40; first, last: Byte; twoCols: Boolean;
-                    var row: Byte);
-var
+  i: Byte;
   f: Byte;
   k: Byte;
 begin
   TextRend.DisplayString(FACT_COL, row, LightCyan, heading);
   Inc(row);
   k := 0;
-  for f := first to last do
+  i := 1;
+  f := BeastFil.FactAt(defenses, i);
+  while f <> 0 do begin
     if Bestiary.Knows(b, f) and (row <= LAST_ROW) then begin
       if twoCols and (k mod 2 = 1) then
-        TextRend.DisplayString(ITEM_COL2, row, LightGreen, FactName(f))
+        TextRend.DisplayString(ITEM_COL2, row, LightGreen, BeastFil.FactName(f))
       else
-        TextRend.DisplayString(ITEM_COL, row, LightGreen, FactName(f));
+        TextRend.DisplayString(ITEM_COL, row, LightGreen, BeastFil.FactName(f));
       Inc(k);
       if not twoCols or (k mod 2 = 0) then
         Inc(row);
     end;
-  if (row <= LAST_ROW) and not Bestiary.Knows(b, C_BEAST.TOLD) then begin
+    Inc(i);
+    f := BeastFil.FactAt(defenses, i);
+  end;
+  if row > LAST_ROW then Exit;
+  if not Bestiary.Knows(b, C_BEAST.TOLD) then begin
     if twoCols and (k mod 2 = 1) then
       TextRend.DisplayString(ITEM_COL2, row, Yellow, UNKNOWN)
     else
       TextRend.DisplayString(ITEM_COL, row, Yellow, UNKNOWN);
     Inc(row);
-  end;
+  end else if k = 0 then begin
+    TextRend.DisplayString(ITEM_COL, row, LightGreen, NONE);
+    Inc(row);
+  end else if twoCols and (k mod 2 = 1) then
+    { past the row of the last fact, alone on the left }
+    Inc(row);
 end;
 
 { One of the entry page's facts: name in green, value in white, or ?? in yellow when not known. }
@@ -241,8 +208,6 @@ procedure DrawEntry(var b: Bestiary.TBeast);
 var
   row: Byte;
   s: Types.TStr40;
-  { the rows the two lists take one a line }
-  needed: Byte;
   twoCols: Boolean;
 begin
   DrawFrame(b.name);
@@ -262,18 +227,13 @@ begin
     s := StrUtil.NumStr(b.hd);
   DrawFact(FACTS_TOP + 4, 'Hit Dice', Bestiary.Knows(b, C_BEAST.HD_KNOWN), s);
   DrawFact(FACTS_TOP + 5, 'Most Damage Done', b.maxHit > 0, StrUtil.NumStr(b.maxHit) + ' in one blow');
-  { each list a heading, its facts, ?? (none once the sage has told all) and a blank line, in the rows from the facts'
-    blank line down }
+  { the two lists in the rows from the facts' blank line down }
   row := FACTS_TOP + 7;
-  needed := KnownCount(b, C_BEAST.FIRST_DEFENSE, C_BEAST.LAST_DEFENSE) +
-            KnownCount(b, C_BEAST.FIRST_ATTACK, C_BEAST.LAST_ATTACK) + 3;
-  if not Bestiary.Knows(b, C_BEAST.TOLD) then
-    Inc(needed, 2);
-  twoCols := needed > LAST_ROW - row + 1;
-  DrawGroup(b, 'Defenses', C_BEAST.FIRST_DEFENSE, C_BEAST.LAST_DEFENSE, twoCols, row);
+  twoCols := BeastFil.ListRows(b) > LAST_ROW - row + 1;
+  DrawGroup(b, 'Defenses', True, twoCols, row);
   Inc(row);
   if row <= LAST_ROW then
-    DrawGroup(b, 'Attacks', C_BEAST.FIRST_ATTACK, C_BEAST.LAST_ATTACK, twoCols, row);
+    DrawGroup(b, 'Attacks', False, twoCols, row);
 end;
 
 { The entry pages from place sel of the list (n entries): Next and Prev turn to the next and previous creature on it,
