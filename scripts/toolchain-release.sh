@@ -12,7 +12,8 @@
 # SHA256SUMS and unpack it into DIR. Returns 1, having changed nothing, when TOOLCHAIN_RELEASES is unset, SHA256SUMS
 # lists no FILE, or a download fails; a file that does not match its checksum stops the script.
 release_fetch() {
-    local tag="$1" file="$2" dir="$3" dl tool part parts=()
+    local tag="$1" file="$2" dir="$3" dl tool part parts=() re
+    re="  ${file//./\\.}(\\.part[0-9]+)?\$"
     [ -n "${TOOLCHAIN_RELEASES:-}" ] || return 1
     for tool in curl zstd sha256sum; do
         command -v "$tool" > /dev/null 2>&1 \
@@ -25,7 +26,7 @@ release_fetch() {
     fi
     while read -r _ part; do
         parts+=("$part")
-    done < <(grep -E "  $file(\.part[0-9]+)?\$" "$dl/SHA256SUMS" | sort -k 2)
+    done < <(grep -E "$re" "$dl/SHA256SUMS" | sort -k 2)
     for part in "${parts[@]}"; do
         if ! curl -fsSL -o "$dl/$part" "$TOOLCHAIN_RELEASES/$tag/$part"; then
             rm -rf "$dl"
@@ -36,7 +37,7 @@ release_fetch() {
         rm -rf "$dl"
         return 1
     fi
-    if ! (cd "$dl" && grep -E "  $file(\.part[0-9]+)?\$" SHA256SUMS | sha256sum --check --strict --quiet); then
+    if ! (cd "$dl" && grep -E "$re" SHA256SUMS | sha256sum --check --strict --quiet); then
         echo "$file does not match its SHA-256 in release $tag." >&2
         rm -rf "$dl"
         exit 1
