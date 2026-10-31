@@ -65,6 +65,12 @@ const
   HOLD_PERSON_MU = 49;
   { Silence, 15' Radius: the combat AI casts it only where it has seen a creature cast (#1087) }
   SILENCE = 25;
+  { the buffs the combat AI casts only against a threat it has seen this fight (#1087): Resist Cold and Resist Fire once
+    an enemy has done that element's damage, Protection From Normal Missiles while an enemy has a missile weapon
+    readied }
+  RESIST_COLD = 8;
+  RESIST_FIRE = 24;
+  PROT_NORMAL_MISSILES = 54;
   { Snake Charm, and the game's one snake, the creature it affects (#802): its charType, 14, the scorpions share }
   SNAKE_CHARM = 27;
   SNAKE_NAME = 'GIANT SNAKE';
@@ -89,6 +95,11 @@ const
   CURE_DISEASE = 39;
   { spellFns[43] = SpellRemoveCurse }
   REMOVE_CURSE = 43;
+  { spellFns[56] = SpellRestoration, a level-7 cleric spell: here only from a scroll }
+  RESTORATION = 56;
+  { the item spells Fix may use (#1129): Keoghtom's Ointment (spellFns[58]) and the Potion of Healing (spellFns[62]) }
+  ITEM_OINTMENT = 58;
+  ITEM_HEALING = 62;
   { spellFns[47] and spellFns[64] (the item fireball) = SpellFireball }
   FIREBALL = 47;
   ITEM_FIREBALL = 64;

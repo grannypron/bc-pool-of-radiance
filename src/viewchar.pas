@@ -19,6 +19,14 @@ procedure ViewCharMenu(var done: Boolean);
 
 procedure UseItemMenu(var done: Boolean);
 
+{ Paladin p lays on hands on tgt: two hit points per paladin level, counted as healing given, and RECENT_HEAL on p so
+  it waits a day for the next (CharHlp.PaladinCanHeal). True when tgt was healed. View's Heal and Fix use it. }
+function PaladinHeal(p, tgt: Types.PCharRecord): Boolean;
+
+{ Paladin p uses one of its weekly cures on tgt: tgt's diseases go (FxEngine.RemoveDiseases), and p's RECENT_CURE,
+  lasting a week, counts the cure (CharHlp.PaladinCanCure). View's Cure and Fix use it. }
+procedure PaladinCure(p, tgt: Types.PCharRecord);
+
 { True when creature cannot take item: it carries C_ITEM.CARRY_MAX items already, unless Auto Join is on and item
   joins one of its stacks whole (CharHlp.JoinsWhole, #1088), or item's weight would overload it. }
 function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
@@ -183,65 +191,52 @@ begin
     end;
 end;
 
-{ True when p is a paladin who can use a paladin's powers now: okay, and out of combat. }
-function PaladinReady(p: Types.PCharRecord): Boolean;
+function PaladinHeal(p, tgt: Types.PCharRecord): Boolean;
+var
+  hpBefore: Byte;
+  healed: Boolean;
 begin
-  PaladinReady := (CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) > 0) and (p^.status = C_STATUS.OKAY) and
-    (GameVars.ifcState <> C_IFC.IN_COMBAT);
+  hpBefore := tgt^.hpCur;
+  healed := FxEngine.RestoreHitPoints(tgt, CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) * 2, False);
+  if healed then
+    Stats.Count(p, Stats.HEALED_GIVEN, tgt^.hpCur - hpBefore);
+  FxEngine.AddEffect(p, C_EFFECT.RECENT_HEAL, 1440, 255, False);
+  PaladinHeal := healed;
 end;
 
-{ True when paladin p has not laid on hands in the last day. }
-function CanHeal(p: Types.PCharRecord): Boolean;
+procedure PaladinCure(p, tgt: Types.PCharRecord);
 var
   effect: Types.PEffectRec;
 begin
-  CanHeal := ViewChar.PaladinReady(p) and not CharHlp.HasEffect(p, C_EFFECT.RECENT_HEAL, effect);
-end;
-
-{ Returns True when the paladin has a weekly cure remaining. The first cure
-  starts RECENT_CURE; its strength counts cures used during that week. }
-function CanCure(p: Types.PCharRecord): Boolean;
-var
-  effect: Types.PEffectRec;
-  used: Byte;
-  allowed: ShortInt;
-begin
-  used := 0;
+  if FxEngine.RemoveDiseases(tgt) then ;
   if CharHlp.HasEffect(p, C_EFFECT.RECENT_CURE, effect) then
-    used := effect^.strength;
-  allowed := (CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) - 1) div 5 + 1;
-  CanCure := ViewChar.PaladinReady(p) and (allowed > 0) and (used < allowed);
+    Inc(effect^.strength)
+  else
+    FxEngine.AddEffect(p, C_EFFECT.RECENT_CURE, 10080, 1, False);
 end;
 
-{ Lets the paladin heal a selected party member for two hit points per level.
-  RECENT_HEAL prevents another use for one day. Cancelling spends nothing. }
+{ Lets the paladin heal a selected party member for two hit points per level (PaladinHeal). Cancelling spends
+  nothing. }
 procedure LayOnHands(p: Types.PCharRecord);
 var
   tgt: Types.PCharRecord;
-  hpBefore: Byte;
 begin
   CharDisp.DisplayNoncombatInterface;
   tgt := GameVars.creatureList;
   CharDisp.SelectChar('Heal whom? ', True, tgt);
   if tgt = nil then
     Exit;
-  hpBefore := tgt^.hpCur;
-  if FxEngine.RestoreHitPoints(tgt, CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) * 2, False) then begin
-    Stats.Count(p, Stats.HEALED_GIVEN, tgt^.hpCur - hpBefore);
+  if ViewChar.PaladinHeal(p, tgt) then
     CharDisp.PrintBottomLine(tgt^.name + ' feels better')
-  end
   else
     CharDisp.PrintBottomLine(tgt^.name + ' is unaffected');
-  FxEngine.AddEffect(p, C_EFFECT.RECENT_HEAL, 1440, 255, False);
 end;
 
-{ Uses one of the paladin's weekly cures on a selected party member. Confirm
-  before spending a use on someone without a disease. RECENT_CURE lasts one
-  week and its strength tracks the number of uses. Cancelling spends nothing. }
+{ Uses one of the paladin's weekly cures on a selected party member (PaladinCure). Confirm before spending a use on
+  someone without a disease. Cancelling spends nothing. }
 procedure CureDisease(p: Types.PCharRecord);
 var
   tgt: Types.PCharRecord;
-  effect: Types.PEffectRec;
   ch: Char;
 begin
   CharDisp.DisplayNoncombatInterface;
@@ -257,11 +252,7 @@ begin
   end;
   if ch <> 'Y' then
     Exit;
-  if FxEngine.RemoveDiseases(tgt) then ;
-  if CharHlp.HasEffect(p, C_EFFECT.RECENT_CURE, effect) then
-    Inc(effect^.strength)
-  else
-    FxEngine.AddEffect(p, C_EFFECT.RECENT_CURE, 10080, 1, False);
+  ViewChar.PaladinCure(p, tgt);
   CharDisp.PrintBottomLine(tgt^.name + ' is cured');
 end;
 
@@ -703,9 +694,9 @@ begin
       s := s + 'Deposit '
     else if hasMoney then
       s := s + 'Drop ';
-    if ViewChar.CanHeal(shown) then
+    if CharHlp.PaladinCanHeal(shown) then
       s := s + 'Heal ';
-    if ViewChar.CanCure(shown) then
+    if CharHlp.PaladinCanCure(shown) then
       s := s + 'Cure ';
     s := s + 'Exit';
     MenuCore.extraKeys := 'M';
@@ -721,9 +712,9 @@ begin
              { the lighter load shows in Encumbrance and Movement (#700) }
              ViewChar.PrintCombatStats;
            end;
-      'H': if ViewChar.CanHeal(shown) then
+      'H': if CharHlp.PaladinCanHeal(shown) then
              ViewChar.LayOnHands(shown);
-      'C': if ViewChar.CanCure(shown) then
+      'C': if CharHlp.PaladinCanCure(shown) then
              ViewChar.CureDisease(shown);
       'M': ViewChar.MorePage;
     end;

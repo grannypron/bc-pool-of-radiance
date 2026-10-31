@@ -330,6 +330,23 @@ begin
   GameVars.pendingDamage := GameVars.pendingDamage div 2;
 end;
 
+{ Fire damage on creature is lessened (effs 61 and 113): the party member whose fire it was (GameVars.curChar) sees it,
+  in the Bestiary (#1142). }
+procedure NoteFireResisted(creature: Types.PCharRecord);
+begin
+  if GameVars.pendingDamage > 0 then
+    Bestiary.Learn(creature, GameVars.curChar, C_BEAST.RESISTS_FIRE);
+end;
+
+{ A blow on creature with neither a silver nor a magical weapon does nothing (effs 96 and 123): one that would have hurt
+  it shows the party member who struck it (GameVars.curChar) that it needs one, in the Bestiary (#1110). }
+procedure NoHarmWithoutSilver(creature: Types.PCharRecord);
+begin
+  if GameVars.pendingDamage > 0 then
+    Bestiary.Learn(creature, GameVars.curChar, C_BEAST.SILVER_OR_MAGIC);
+  GameVars.pendingDamage := 0;
+end;
+
 { FxEngine.AddEffect unless the effect lock is on; returns True when the effect was added. The parameter order differs
   from FxEngine.AddEffect (strength before minutes), and onRemove is always True. }
 function AddEffectIfNoLock(creature: Types.PCharRecord; effId, strength: Byte; minutes: Word): Boolean;
@@ -763,13 +780,16 @@ begin
   CharHlp.RecalcStats(creature);
 end;
 
-{ Invisibility (eff 25) }
+{ Invisibility (eff 25). An attacker (GameVars.curChar) that sees invisible creatures shows it to the invisible party
+  member it goes for, in the Bestiary (#1142). }
 procedure EffInvisible(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effect: Types.PEffectRec;
 begin
   if not CharHlp.HasEffect(GameVars.curChar, C_EFFECT.SEE_INVISIBLE, effect) then
-    CbtActs.suppressTargeting := 1;
+    CbtActs.suppressTargeting := 1
+  else
+    Bestiary.Learn(GameVars.curChar, creature, C_BEAST.SEES_INVISIBLE);
   Dec(GameVars.gAttackRoll, 4);
 end;
 
@@ -871,12 +891,13 @@ begin
   Dec(FxEngine.saveRoll, 4);
 end;
 
-{ Blinking (eff 37) }
+{ Blinking (eff 37): the party member acting (GameVars.curChar) sees it blink out of reach, in the Bestiary (#1122) }
 procedure EffBlinking(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if creature^.combatAddr^.initiative > 0 then begin
     CbtActs.suppressTargeting := 1;
     GameVars.forcedMiss := True;
+    Bestiary.Learn(creature, GameVars.curChar, C_BEAST.BLINKS);
   end;
 end;
 
@@ -948,8 +969,8 @@ end;
 
 { Avoid the attack with pct% chance, only when the attacker (GameVars.curChar) has a weapon equipped and is more than
   one cell away: print "Avoids it", zero the damage, force a miss and take the hit back off hitsMade for the attacker's
-  current attack phase. }
-procedure AvoidRanged(creature: Types.PCharRecord; pct: Byte);
+  current attack phase. The attacker sees creature's fact, in the Bestiary (255 for none). }
+procedure AvoidRanged(creature: Types.PCharRecord; pct, fact: Byte);
 var
   phase: Byte;
 begin
@@ -957,6 +978,7 @@ begin
     if CbtMap.CalcDistance(GameVars.curChar, creature) > 1 then
       if Dice.RollDice(1, 100) <= pct then begin
         CharDisp.PrintNameString(creature, 'Avoids it', 10, True);
+        Bestiary.Learn(creature, GameVars.curChar, fact);
         GameVars.pendingDamage := 0;
         GameVars.forcedMiss := True;
         phase := GameVars.curChar^.combatAddr^.attackPhase;
@@ -992,7 +1014,7 @@ begin
   missile := EffHndlr.FindDamagingWeapon(GameVars.curChar);
   if missile <> nil then
     if missile^.plus = 0 then
-      EffHndlr.AvoidRanged(creature, 100)
+      EffHndlr.AvoidRanged(creature, 100, 255)
     else if CbtMap.CalcDistance(GameVars.curChar, creature) > 1 then
       Dice.ReduceDamagePerDie(1);
 end;
@@ -1141,6 +1163,7 @@ end;
 procedure EffRingFireRes(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GameVars.elementMask and C_EFFECT.ELEM_FIRE <> 0 then begin
+    EffHndlr.NoteFireResisted(creature);
     Dice.ReduceDamagePerDie(2);
     Inc(FxEngine.saveRoll, 4);
     if GameVars.elementMask and C_EFFECT.ELEM_MAGIC = 0 then
@@ -1270,8 +1293,11 @@ end;
 { Camouflaged / Cloak of Elvenkind (eff 72): 95% chance of invisibility (eff 25) for 1 minute }
 procedure EffCamouflage(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if Dice.RollDice(1, 100) <= 95 then
+  if Dice.RollDice(1, 100) <= 95 then begin
     FxEngine.AddEffect(creature, C_EFFECT.INVISIBLE, 1, 12, False);
+    { a monster that fades from sight shows it in the Bestiary (#1142) }
+    Bestiary.Learn(creature, nil, C_BEAST.TURNS_INVISIBLE);
+  end;
 end;
 
 { Blood drain (eff 75). strength = victim's creature index; duration's upper bits = the x16 damage budget. An index
@@ -1310,6 +1336,7 @@ begin
   { a 12 hp budget in the upper bits of the duration }
   FxEngine.AddEffect(creature, C_EFFECT.BLOOD_DRAIN, 12 * 16 + 15, slot, True);
   EffHndlr.Immobilize(GameVars.combatTarget);
+  Bestiary.Learn(creature, GameVars.combatTarget, C_BEAST.ATK_BLOOD);
 end;
 
 { Bite attach (eff 77): add eff 74 (bite and hold, handled by CbtActs.BiteAndHold) on the biter and immobilize the
@@ -1324,6 +1351,7 @@ begin
     FxEngine.AddEffect(creature, C_EFFECT.BITE_HOLD, 0, slot, True);
     EffHndlr.Immobilize(GameVars.combatTarget);
     CharDisp.PrintNameString(GameVars.combatTarget, 'is held fast', 10, True);
+    Bestiary.Learn(creature, GameVars.combatTarget, C_BEAST.ATK_HOLD);
   end;
 end;
 
@@ -1346,25 +1374,30 @@ end;
 procedure EffFireTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   GameVars.elementMask := C_EFFECT.ELEM_FIRE or C_EFFECT.ELEM_MAGIC;
-  if EffHndlr.AttackTarget(creature) <> nil then
+  if EffHndlr.AttackTarget(creature) <> nil then begin
+    Bestiary.Learn(creature, EffHndlr.AttackTarget(creature), C_BEAST.ATK_FIRE);
     FxEngine.InflictNonWeaponDamage(EffHndlr.AttackTarget(creature), Dice.RollDamageDice(2, 10), 0, False);
+  end;
 end;
 
 { Melee acid squirt (eff 80): +1d4 acid }
 procedure EffAcidSquirt(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   GameVars.elementMask := C_EFFECT.ELEM_ACID;
-  if EffHndlr.AttackTarget(creature) <> nil then
+  if EffHndlr.AttackTarget(creature) <> nil then begin
+    Bestiary.Learn(creature, EffHndlr.AttackTarget(creature), C_BEAST.ATK_ACID);
     FxEngine.InflictNonWeaponDamage(EffHndlr.AttackTarget(creature), Dice.RollDamageDice(1, 4), 0, False);
+  end;
 end;
 
 { Dragon fear aura (eff 81). Walks the whole creature list: each enabled enemy saves vs. spell or, by highest level, is
-  permanently paralyzed (0..3) or cursed (4, 5); level 6+ is unaffected }
+  permanently paralyzed (0..3) or cursed (4, 5); level 6+ is unaffected. The party feels it, in the Bestiary (#1142). }
 procedure EffDragonFear(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   q: Types.PCharRecord;
   saved: Boolean;
 begin
+  Bestiary.Learn(creature, nil, C_BEAST.ATK_FEAR);
   q := GameVars.creatureList;
   while q <> nil do begin
     if q^.enabled <> 0 then
@@ -1381,13 +1414,15 @@ begin
 end;
 
 { Mummy fear aura (eff 82). Removes an eff-82 node from EVERY creature (the mummy's own included); each enabled enemy
-  then saves vs. paralyzation (+1 if its team has 6+ members, +2 if human) or is paralyzed with fear for 1d4 minutes }
+  then saves vs. paralyzation (+1 if its team has 6+ members, +2 if human) or is paralyzed with fear for 1d4 minutes.
+  The party feels it, in the Bestiary (#1122). }
 procedure EffMummyFear(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   q: Types.PCharRecord;
   bonus: Byte;
   saved: Boolean;
 begin
+  Bestiary.Learn(creature, nil, C_BEAST.ATK_FEAR);
   q := GameVars.creatureList;
   while q <> nil do begin
     FxEngine.RemoveEffect(q, C_EFFECT.MUMMY_FEAR, nil);
@@ -1482,7 +1517,7 @@ begin
   GameVars.combatTarget := target;
   if target = nil then
     Exit;
-  if not CbtActs.CanTarget(creature, target) then Exit;
+  if not CbtActs.CanTarget(creature, target, True) then Exit;
   { the range of the Charm Person the gaze applies }
   if not EffHndlr.InSight(creature, target, GameDefs.spellTable[C_SPELL.CHARM_PERSON].rangeFixed) then Exit;
   CharDisp.PrintNameString(creature, 'Gazes...', 10, False);
@@ -1676,6 +1711,8 @@ begin
   if Types.PEffectRec(p)^.strength and $10 = 0 then begin
     GameVars.forcedMiss := True;
     Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength or $10;
+    { the party member whose attack it was (GameVars.curChar) sees it strike where the creature is not (#1122) }
+    Bestiary.Learn(creature, GameVars.curChar, C_BEAST.DISPLACED);
   end;
 end;
 
@@ -1742,7 +1779,7 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GameVars.curChar);
   if (w = nil) or ((w^.plus = 0) and (w^.nameIds[3] <> C_ITEM.NAME_SILVER)) then
-    GameVars.pendingDamage := 0;
+    EffHndlr.NoHarmWithoutSilver(creature);
 end;
 
 { Con spell/wand save bonus (eff 97), on EffConPsnSave's scale }
@@ -1779,6 +1816,8 @@ begin
     hp := 6;
   if hp > 0 then
     if FxEngine.ReviveDeadCreature(creature, hp) then begin
+      { it gets up and fights on, before the party's eyes (#1122) }
+      Bestiary.Learn(creature, nil, C_BEAST.FIGHTS_ON);
       FxEngine.AddEffect(creature, C_EFFECT.FIGHT_ON, Dice.RollDice(1, 4) + 1, 255, True);
       Types.PEffectRec(p)^.onRemove := False;
       FxEngine.RemoveEffect(creature, C_EFFECT.CAN_FIGHT_ON, p);
@@ -1816,6 +1855,8 @@ end;
 procedure EffGaseous(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   Types.PEffectRec(p)^.onRemove := False;
+  { before it is out of play: the party sees it go, in the Bestiary (#1122) }
+  Bestiary.Learn(creature, nil, C_BEAST.GAS_ESCAPE);
   CbtMap.DisplayMapViewCentered(creature, 3, False);
   FxEngine.PutOutOfPlayWithStatus(creature, C_STATUS.RUNNING, 'Turns gaseous and escapes');
 end;
@@ -1823,7 +1864,7 @@ end;
 { Thri-kreen missile evasion (eff 104) }
 procedure EffKreenDodge(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  EffHndlr.AvoidRanged(creature, 60);
+  EffHndlr.AvoidRanged(creature, 60, C_BEAST.DODGES_MISSILES);
 end;
 
 { pct is the creature's magic resistance against an 11th-level caster. As in the DMG, it rises 5% for each caster level
@@ -1934,8 +1975,10 @@ end;
 { Efreeti fire resistance (eff 113): -1 per die, minimum = dice count (damage already below it is left alone) }
 procedure EffEfreetiFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GameVars.elementMask and C_EFFECT.ELEM_FIRE <> 0 then
+  if GameVars.elementMask and C_EFFECT.ELEM_FIRE <> 0 then begin
+    EffHndlr.NoteFireResisted(creature);
     Dice.ReduceDamagePerDie(1);
+  end;
 end;
 
 { Half damage from electricity (eff 114) }
@@ -2010,7 +2053,7 @@ begin
   item := GameVars.curChar^.equipped[C_EQUIP.WEAPON];
   if item <> nil then
     if (item^.itemType = C_ITEM.BOULDER) or (item^.itemType = C_ITEM.LARGE_BOULDER) then
-      EffHndlr.AvoidRanged(creature, 50);
+      EffHndlr.AvoidRanged(creature, 50, C_BEAST.DODGES_BOULDERS);
 end;
 
 { Anhkheg acid squirt (eff 121): 25% chance, range < 4, 8d4 acid, save vs. breath for half; the effect removes itself
@@ -2024,6 +2067,7 @@ begin
   if CbtMap.CalcDistance(creature, GameVars.combatTarget) >= 4 then Exit;
   if CharHlp.EndActions(creature) then ;
   CharDisp.PrintNameString(creature, 'Spits Acid', 10, True);
+  Bestiary.Learn(creature, GameVars.combatTarget, C_BEAST.ATK_ACID);
   CharDisp.AnimateBetween(creature, GameVars.combatTarget, C_SPRITE.BURST, 1, 30);
   { acid, set before the save, whose effects read it too: SSI left the type of the last damage dealt (#721) }
   GameVars.elementMask := C_EFFECT.ELEM_ACID;
@@ -2054,11 +2098,11 @@ begin
   w := EffHndlr.FindDamagingWeapon(GameVars.curChar);
   if w <> nil then begin
     if (w^.plus = 0) and (w^.nameIds[3] = C_ITEM.NAME_SILVER) then
-      GameVars.pendingDamage := GameVars.pendingDamage div 2
+      EffHndlr.HalveDamage(creature, C_BEAST.HALF_SILVER)
     else if w^.plus = 0 then
-      GameVars.pendingDamage := 0;
+      EffHndlr.NoHarmWithoutSilver(creature);
   end else
-    GameVars.pendingDamage := 0;
+    EffHndlr.NoHarmWithoutSilver(creature);
 end;
 
 { Half-elf 30% resistance (eff 124) }

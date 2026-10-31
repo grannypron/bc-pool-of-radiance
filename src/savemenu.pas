@@ -214,13 +214,13 @@ begin
     Exit;
   SaveMenu.SlotSet(oldSet, OLD_QUICK_SLOT);
   SaveMenu.SlotSet(newSet, QUICK_SLOT);
-  { slot Z holds no save, so a file of its left by a move the game was ended in goes, and no file of another save
-    stays with this one }
+  { each file Q has replaces Z's; a file Z has with none in Q stays, since a move the game was ended in may already
+    have put it there, and a rerun that erased it would lose it (#1085) }
   ok := True;
   for i := oldSet.count downto 1 do
-    if ok then begin
+    if ok and FileUtil.Exists(oldSet.dir + oldSet.names[i]) then begin
       ok := FileUtil.DeleteChecked(newSet.dir + newSet.names[i]);
-      if ok and FileUtil.Exists(oldSet.dir + oldSet.names[i]) then
+      if ok then
         ok := FileUtil.RenameChecked(oldSet.dir + oldSet.names[i], newSet.dir + newSet.names[i]);
     end;
 end;

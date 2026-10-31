@@ -96,6 +96,16 @@ function CanUseItems(creature: Types.PCharRecord): Boolean;
   No spell is cast there, in camp or in combat, no item is used and Fix heals no one (#877). }
 function AntiMagicArea: Boolean;
 
+{ True when p is a paladin who can use a paladin's powers now: okay, and out of combat. }
+function PaladinReady(p: Types.PCharRecord): Boolean;
+
+{ True when paladin p can lay on hands now (PaladinReady): it has not in the last day. }
+function PaladinCanHeal(p: Types.PCharRecord): Boolean;
+
+{ True when paladin p can cure a disease now (PaladinReady): it has a weekly cure left, one a week for each five levels
+  or part of five. The first cure starts RECENT_CURE, whose strength counts the cures used that week. }
+function PaladinCanCure(p: Types.PCharRecord): Boolean;
+
 function Guard(creature: Types.PCharRecord): Boolean;
 
 function GetCasterLevel(spell: Byte): Byte;
@@ -1292,6 +1302,32 @@ begin
                  ((GameVars.ifcState = C_IFC.CAMPING) or (GameVars.ifcState = C_IFC.OVERLAND) or
                   (GameVars.ifcState = C_IFC.INDOORS) or
                   ((GameVars.ifcState = C_IFC.IN_COMBAT) and (creature^.combatAddr^.itemUseAllowed <> 0)));
+end;
+
+function PaladinReady(p: Types.PCharRecord): Boolean;
+begin
+  PaladinReady := (CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) > 0) and (p^.status = C_STATUS.OKAY) and
+    (GameVars.ifcState <> C_IFC.IN_COMBAT);
+end;
+
+function PaladinCanHeal(p: Types.PCharRecord): Boolean;
+var
+  effect: Types.PEffectRec;
+begin
+  PaladinCanHeal := CharHlp.PaladinReady(p) and not CharHlp.HasEffect(p, C_EFFECT.RECENT_HEAL, effect);
+end;
+
+function PaladinCanCure(p: Types.PCharRecord): Boolean;
+var
+  effect: Types.PEffectRec;
+  used: Byte;
+  allowed: ShortInt;
+begin
+  used := 0;
+  if CharHlp.HasEffect(p, C_EFFECT.RECENT_CURE, effect) then
+    used := effect^.strength;
+  allowed := (CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) - 1) div 5 + 1;
+  PaladinCanCure := CharHlp.PaladinReady(p) and (allowed > 0) and (used < allowed);
 end;
 
 { End the creature's round and raise its guarding flag; the caller announces it ('Guarding'). Always returns True. }

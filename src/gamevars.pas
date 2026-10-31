@@ -56,10 +56,27 @@ var
   { the Quick Mode Magic setting: CombatSt starts every fight with quickMagic set from it; Alt-M then turns quickMagic
     over for that fight only }
   quickMagicOn: Byte;
+  { the Allow Gear Changes setting, under Quick Mode: zero keeps CombatAi.EquipWeaponAndShield from changing the
+    weapon or shield of a creature that comes under the player (#1127) }
+  gearChangesOn: Byte;
+  { the Aim Cycles setting: nonzero (ENEMIES) has the aim menu's Next and Prev reach the other side only, or the
+    creature's own side for a spell that is not offensive; zero (ALL) every creature, as SSI's did (#1137) }
+  aimEnemiesOn: Byte;
+  { the Retrieve Thrown setting: nonzero gives each single thrown weapon back to its thrower after the fight
+    (PostCbt, CbtActs.ReturnThrown, #1118) }
+  retrieveThrownOn: Byte;
   { the Companion Tools setting: nonzero lets F6 open the Tools screen outside combat (phase 8) }
   companionOn: Byte;
   { the Clue Book Notes setting, under the Companion Tools: nonzero shows the Clue Book's map keys on their map (#856) }
   clueNotesOn: Byte;
+  { the Auto Memorize setting: nonzero has Rest queue each caster's usual spells when it has none pending (#1119) }
+  autoMemorizeOn: Byte;
+  { the Fix settings (#1129): nonzero lets Fix use scrolls, potions, a paladin's cure and a paladin's laying on of
+    hands for what the clerics' spells leave }
+  fixScrollsOn: Byte;
+  fixPotionsOn: Byte;
+  fixCureOn: Byte;
+  fixHealOn: Byte;
   { the Combat Log setting: nonzero keeps the fight's messages for F7 in combat, when CbtLog.Usable (#841) }
   combatLogOn: Byte;
   { the Log Lines setting: how many messages the combat log keeps, CbtLog.MIN_ENTRIES..MAX_ENTRIES }

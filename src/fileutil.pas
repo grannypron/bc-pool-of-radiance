@@ -1,8 +1,8 @@
 { Provides whole-file operations for saves, characters, descriptions, and the
-  vault. Writes go to a temporary file and replace the original only after they
-  finish successfully. TFileSet extends the same guarantee to a related group
-  of files, replacing all of them or none. I/O errors are returned to callers
-  rather than raised. }
+  vault. Writes go to a temporary file, in the TMP folder beside the original,
+  and replace the original only after they finish successfully. TFileSet
+  extends the same guarantee to a related group of files, replacing all of them
+  or none. I/O errors are returned to callers rather than raised. }
 {$F+,I-}
 {$I COMPILER.INC}
 unit FileUtil;
@@ -42,18 +42,31 @@ function MakeFolder(dir: TPathName): Boolean;
 
 { Open name for reading only, whatever FileMode is (a read-only file opens too), with record size 1. True when it
   opened; the caller closes it. A folder does not open: DOS refuses it, and natively, where Linux would open it, it is
-  refused first (#1057). }
+  refused first, by its native name, so that a backslash divides it there too (#1057). }
 function OpenReadOnly(var f: file; name: TPathName): Boolean;
 
 { Read file name into rec: True only when it is exactly size bytes and they read. The caller checks what they hold. }
 function ReadRecord(name: TPathName; var rec; size: Word): Boolean;
 
-{ name's temporary copy, written in its place until it is whole: name with its last character '$' (savgamA.dat's is
-  savgamA.da$). Each of the game's files has a three-letter extension, so the copies of one character's files keep
-  apart. }
+const
+  { The folder, in a file's own folder, that its temporary copy is written in (TempName), and the one in that which
+    holds its backup while a set is committed (BackupName). Each keeps the file's own name, so no two files' copies or
+    backups share one (a dual-classed character's .cha and .chx did as .ch$, #1084), and a copy is renamed into place
+    on its own drive. C_OPT.MAX_PATH_TEXT leaves room for the longer. }
+  TEMP_FOLDER = 'TMP\';
+  BACKUP_FOLDER = 'TMP\BAK\';
+
+{ name's temporary copy, written in its place until it is whole: name in the TEMP_FOLDER of its own folder
+  (SAVE\savgamA.dat's is SAVE\TMP\savgamA.dat). }
 function TempName(name: TPathName): TPathName;
 
-{ Create name's temporary copy (TempName) for writing, record size 1: True when it opened. }
+{ Make the folder name's temporary copy goes in (TEMP_FOLDER) when it is not there: True when it is there afterwards
+  and name's backup (the longer name) fits a path. name's own folder must be there. RewriteTemp does this itself; a
+  copy opened another way (a text file) comes after it. }
+function MakeTempFolder(name: TPathName): Boolean;
+
+{ Create name's temporary copy (TempName) for writing, record size 1, making its folder first (MakeTempFolder): True
+  when it opened. }
 function RewriteTemp(var f: file; name: TPathName): Boolean;
 
 { Write size bytes of buf to f while ok holds; ok turns False when they are not all written (a full disk). }
@@ -130,7 +143,8 @@ function CommitSet(var s: TFileSet): Boolean;
   undo. }
 function RecoverSet(var s: TFileSet): Boolean;
 
-{ name's backup while a set is committed: name with its last character '%' (savgamA.dat's is savgamA.da%). }
+{ name's backup while a set is committed: name in the BACKUP_FOLDER of its own folder (SAVE\savgamA.dat's is
+  SAVE\TMP\BAK\savgamA.dat). }
 function BackupName(name: TPathName): TPathName;
 
 implementation
@@ -224,7 +238,7 @@ begin
   { an error still pending would make the Reset do nothing, and a file that is there read as missing }
   ioRes := IOResult;
 {$IFDEF FPC}
-  if SysUtils.DirectoryExists(name) then begin
+  if SysUtils.DirectoryExists(NatFile.NativeName(name)) then begin
     OpenReadOnly := False;
     Exit;
   end;
@@ -257,23 +271,79 @@ begin
   ReadRecord := ok;
 end;
 
-{ name with its last character c: a temporary copy's or a backup's name. }
-function WithLast(name: TPathName; c: Char): TPathName;
+{ The length of name's folder part, up to and with its last separator (0 for a name in the current folder). }
+function FolderLength(name: TPathName): Byte;
+var
+  i: Byte;
+begin
+  i := Length(name);
+  while (i > 0) and not (name[i] in ['\', '/', ':']) do
+    Dec(i);
+  FolderLength := i;
+end;
+
+{ name in folder sub of its own folder. }
+function InFolder(name: TPathName; sub: TPathName): TPathName;
+var
+  i: Byte;
+begin
+  i := FileUtil.FolderLength(name);
+  InFolder := Copy(name, 1, i) + sub + Copy(name, i + 1, Length(name) - i);
+end;
+
+{ True when name in BACKUP_FOLDER, the longer of its copy's and its backup's names, fits a path: a longer one would be
+  cut short, and two files' names could meet (C_OPT.MAX_PATH_TEXT keeps POOL.CFG's paths within it). }
+function Fits(name: TPathName): Boolean;
+begin
+  Fits := Length(name) + Length(BACKUP_FOLDER) < SizeOf(TPathName);
+end;
+
+{ Make folder dir (with its trailing backslash), whose parent is there, when it is not: True when it is there
+  afterwards (IOResult 5, a folder already there, counts, as in MakeFolder). }
+function MakeOne(dir: TPathName): Boolean;
+var
+  ioRes: Integer;
+begin
+  ioRes := IOResult;
+  Dec(dir[0]);
+  MkDir(dir);
+  ioRes := IOResult;
+  MakeOne := (ioRes = 0) or (ioRes = 5);
+end;
+
+{ The names a copy and a backup had until #1084: name with its last character '$', and '%'. A copy or backup an
+  earlier version left there is still erased or put back (Settle, Unfinished); these can go a release or two on. }
+function OldTempName(name: TPathName): TPathName;
 begin
   if Length(name) > 0 then
-    name[Length(name)] := c;
-  WithLast := name;
+    name[Length(name)] := '$';
+  OldTempName := name;
+end;
+
+function OldBackupName(name: TPathName): TPathName;
+begin
+  if Length(name) > 0 then
+    name[Length(name)] := '%';
+  OldBackupName := name;
 end;
 
 function TempName(name: TPathName): TPathName;
 begin
-  TempName := FileUtil.WithLast(name, '$');
+  TempName := FileUtil.InFolder(name, TEMP_FOLDER);
+end;
+
+function MakeTempFolder(name: TPathName): Boolean;
+begin
+  MakeTempFolder := FileUtil.Fits(name) and
+                    FileUtil.MakeOne(Copy(name, 1, FileUtil.FolderLength(name)) + TEMP_FOLDER);
 end;
 
 function RewriteTemp(var f: file; name: TPathName): Boolean;
 var
   ioRes: Integer;
 begin
+  RewriteTemp := False;
+  if not FileUtil.MakeTempFolder(name) then Exit;
   { an error still pending would make the Rewrite do nothing }
   ioRes := IOResult;
   Assign(f, FileUtil.TempName(name));
@@ -307,9 +377,7 @@ var
   fits: Boolean;
 begin
   { the folder is name up to its last separator }
-  i := Length(name);
-  while (i > 0) and not (name[i] in ['\', '/', ':']) do
-    Dec(i);
+  i := FileUtil.FolderLength(name);
   FileUtil.NewSet(s, Copy(name, 1, i));
   fits := Length(name) - i < SizeOf(TSetName);
   if fits then
@@ -357,7 +425,7 @@ end;
 
 function BackupName(name: TPathName): TPathName;
 begin
-  BackupName := FileUtil.WithLast(name, '%');
+  BackupName := FileUtil.InFolder(name, BACKUP_FOLDER);
 end;
 
 procedure NewSet(var s: TFileSet; dir: TPathName);
@@ -417,13 +485,12 @@ begin
   RenameChecked := IOResult = 0;
 end;
 
-{ Erase name's backup, read-only or not (it is the game's own file): True when there is none afterwards. }
+{ Erase backup name, read-only or not (it is the game's own file): True when there is none afterwards. }
 function EraseBackup(name: TPathName): Boolean;
 var
   f: file;
   ioRes: Integer;
 begin
-  name := FileUtil.BackupName(name);
   if FileUtil.Exists(name) then begin
     Assign(f, name);
     SetFAttr(f, 0);
@@ -463,8 +530,24 @@ begin
   MakeMark := ioRes = 0;
 end;
 
+{ Settle backup, file name's backup, if it is there: back, put back in place of name (a mark erases name), else
+  erased. True when it is gone. }
+function SettleOne(name, backup: TPathName; back: Boolean): Boolean;
+begin
+  if not FileUtil.Exists(backup) then
+    SettleOne := True
+  else if not back then
+    SettleOne := FileUtil.EraseBackup(backup)
+  else if FileUtil.IsMark(backup) then
+    SettleOne := FileUtil.DeleteChecked(name) and FileUtil.EraseBackup(backup)
+  else
+    SettleOne := FileUtil.DeleteChecked(name) and FileUtil.RenameChecked(backup, name);
+end;
+
 { Settle the backups of s's files: back, each put back in place of its file (a mark erases the file), else each
-  erased; with copies, every temporary copy of s's files is erased too. True when no backup is left. }
+  erased; with copies, every temporary copy of s's files is erased too. A backup at the old name (OldBackupName) is
+  settled the same way, and a copy at the old name, never this version's, is always erased. True when no backup is
+  left. }
 function Settle(var s: TFileSet; back, copies: Boolean): Boolean;
 var
   i: Byte;
@@ -474,23 +557,21 @@ begin
   ok := True;
   for i := 1 to s.count do begin
     name := s.dir + s.names[i];
-    if FileUtil.Exists(FileUtil.BackupName(name)) then
-      if not back then
-        ok := FileUtil.EraseBackup(name) and ok
-      else if FileUtil.IsMark(FileUtil.BackupName(name)) then
-        ok := FileUtil.DeleteChecked(name) and FileUtil.EraseBackup(name) and ok
-      else
-        ok := FileUtil.DeleteChecked(name) and FileUtil.RenameChecked(FileUtil.BackupName(name), name) and ok;
+    ok := FileUtil.SettleOne(name, FileUtil.OldBackupName(name), back) and ok;
+    ok := FileUtil.SettleOne(name, FileUtil.BackupName(name), back) and ok;
+    FileUtil.DeleteFile(FileUtil.OldTempName(name));
     if copies then
       FileUtil.DeleteFile(FileUtil.TempName(name));
   end;
   Settle := ok;
 end;
 
-{ True when the backup of s's first file is there: a commit of s was ended before it was done. }
+{ True when the backup of s's first file is there, at its name or the old one: a commit of s was ended before it was
+  done. }
 function Unfinished(var s: TFileSet): Boolean;
 begin
-  Unfinished := (s.count > 0) and FileUtil.Exists(FileUtil.BackupName(s.dir + s.names[1]));
+  Unfinished := (s.count > 0) and (FileUtil.Exists(FileUtil.BackupName(s.dir + s.names[1])) or
+                                   FileUtil.Exists(FileUtil.OldBackupName(s.dir + s.names[1])));
 end;
 
 function RecoverSet(var s: TFileSet): Boolean;
@@ -510,6 +591,9 @@ var
 begin
   { a commit ended before: its temporary copies are this one's now }
   ok := not s.overflow and FileUtil.Settle(s, FileUtil.Unfinished(s), False);
+  { the backups' folder, in the copies' }
+  if ok and (s.count > 0) then
+    ok := FileUtil.MakeOne(s.dir + TEMP_FOLDER) and FileUtil.MakeOne(s.dir + BACKUP_FOLDER);
   { the old files aside, the first first }
   i := 0;
   while ok and (i < s.count) do begin

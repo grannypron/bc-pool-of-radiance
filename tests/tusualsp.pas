@@ -1,13 +1,19 @@
 { Tests for UsualSpl: usual spells remembered, found by record and name, forgotten, saved to a .mem file and read back
-  only for the character it was made for, and a full table giving up the entry of a character outside the party. }
+  only for the character it was made for, a full table giving up the entry of a character outside the party, and the
+  usual spells queued into the slots a caster has free (#1119). }
 {$I COMPILER.INC}
 program TUsualSp;
 
-uses Types, C_GBVM, GameVars, FileUtil, UsualSpl, TestKit;
+uses Types, C_GBVM, C_SPELL, GameVars, FileUtil, UsualSpl, TestKit;
 
 const
   FN = 'TUS';
   COUNT = 9;
+
+const
+  { two first-level magic-user spells }
+  MISSILE = C_SPELL.MAGIC_MISSILE;
+  SLEEP = C_SPELL.SLEEP;
 
 var
   c: array[1..COUNT] of Types.PCharRecord;
@@ -114,6 +120,52 @@ begin
   TestKit.Check(not UsualSpl.GetUsualSpells(c[Types.MAX_PARTY], back), 'by giving up a non-member''s entry');
   TestKit.Check(HasMarked(c[1], 1) and HasMarked(c[Types.MAX_PARTY - 1], Types.MAX_PARTY - 1),
                 'and keeping the party''s');
+
+  { the usual spells queued: c[1], a magic-user with two first-level slots, knows Magic Missile and Sleep }
+  FillChar(spells, SizeOf(spells), 0);
+  spells[0] := MISSILE;
+  spells[1] := SLEEP;
+  spells[2] := MISSILE;
+  UsualSpl.SetUsualSpells(c[1], spells);
+  c[1]^.spellsKnown[MISSILE] := 1;
+  c[1]^.spellsKnown[SLEEP] := 1;
+  c[1]^.slots[C_SPELL.CLASS_MAGE, 1] := 2;
+  FillChar(c[1]^.memorizedSpells, SizeOf(c[1]^.memorizedSpells), 0);
+  TestKit.Check(not UsualSpl.HasPending(c[1]), 'nothing pending at first');
+  UsualSpl.QueueUsualSpells(c[1]);
+  TestKit.Check(UsualSpl.HasPending(c[1]), 'queued spells are pending');
+  TestKit.CheckEqualsL(0, UsualSpl.SpellSlotsRemaining(c[1], 1, C_SPELL.CLASS_MAGE), 'they fill both slots');
+  TestKit.CheckEqualsL(MISSILE + C_SPELL.PENDING_FLAG, c[1]^.memorizedSpells[Types.SPELL_SLOT_LAST - 1],
+                       'Magic Missile, sorted to the end');
+  TestKit.CheckEqualsL(SLEEP + C_SPELL.PENDING_FLAG, c[1]^.memorizedSpells[Types.SPELL_SLOT_LAST], 'then Sleep');
+  TestKit.CheckEqualsL(0, c[1]^.memorizedSpells[Types.SPELL_SLOT_LAST - 2], 'the second Magic Missile has no slot');
+  { a cast spell is memorized again; the one still held stays }
+  FillChar(c[1]^.memorizedSpells, SizeOf(c[1]^.memorizedSpells), 0);
+  c[1]^.memorizedSpells[0] := SLEEP;
+  UsualSpl.QueueUsualSpells(c[1]);
+  TestKit.CheckEqualsL(MISSILE + C_SPELL.PENDING_FLAG, c[1]^.memorizedSpells[Types.SPELL_SLOT_LAST - 1],
+                       'the Magic Missile cast comes back');
+  TestKit.CheckEqualsL(SLEEP, c[1]^.memorizedSpells[Types.SPELL_SLOT_LAST], 'beside the Sleep still memorized');
+  { a drained caster gets only what its slots allow }
+  FillChar(c[1]^.memorizedSpells, SizeOf(c[1]^.memorizedSpells), 0);
+  c[1]^.slots[C_SPELL.CLASS_MAGE, 1] := 1;
+  UsualSpl.QueueUsualSpells(c[1]);
+  TestKit.CheckEqualsL(MISSILE + C_SPELL.PENDING_FLAG, c[1]^.memorizedSpells[Types.SPELL_SLOT_LAST],
+                       'a drained caster queues the first');
+  TestKit.CheckEqualsL(0, c[1]^.memorizedSpells[Types.SPELL_SLOT_LAST - 1], 'and no more');
+  { a spell no longer known is not queued }
+  FillChar(c[1]^.memorizedSpells, SizeOf(c[1]^.memorizedSpells), 0);
+  c[1]^.slots[C_SPELL.CLASS_MAGE, 1] := 2;
+  c[1]^.spellsKnown[MISSILE] := 0;
+  UsualSpl.QueueUsualSpells(c[1]);
+  TestKit.CheckEqualsL(SLEEP + C_SPELL.PENDING_FLAG, c[1]^.memorizedSpells[Types.SPELL_SLOT_LAST],
+                       'only the spell still known');
+  TestKit.CheckEqualsL(0, c[1]^.memorizedSpells[Types.SPELL_SLOT_LAST - 1], 'is queued');
+  { a character with no usual spells is left alone }
+  FillChar(c[2]^.memorizedSpells, SizeOf(c[2]^.memorizedSpells), 0);
+  UsualSpl.ForgetUsualSpells(c[2]);
+  UsualSpl.QueueUsualSpells(c[2]);
+  TestKit.Check(not UsualSpl.HasPending(c[2]), 'none remembered, none queued');
 
   for i := 1 to COUNT do
     FreeMem(c[i], SizeOf(Types.TCharRecord));

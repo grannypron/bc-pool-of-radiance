@@ -11,3 +11,6 @@ wait RADIANCE
 checkpoint main-menu
 press g
 checkpoint settings
+# The Camp page (#1119, #1129): Auto Memorize and the Fix settings.
+press c
+checkpoint camp-settings

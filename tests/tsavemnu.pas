@@ -1,6 +1,7 @@
 { Tests for SaveMenu.MoveOldQuickSave (#1080): a quick save from before #1080, in slot Q, moves whole to slot Z, the
-  quick save's slot now, its savgam files, vault copy and members' files with it, and a file slot Z kept from a move
-  ended part way goes; nothing moves while slot Z holds a save, or when slot Q holds none. }
+  quick save's slot now, its savgam files, vault copy and members' files with it, and a move ended part way, run
+  again, keeps the files it had already moved (#1085); nothing moves while slot Z holds a save, or when slot Q holds
+  none. }
 {$I COMPILER.INC}
 program TSaveMnu;
 
@@ -60,18 +61,28 @@ begin
   GameVars.saveDirectory := '';
   Clear;
 
-  { a quick save in slot Q moves whole to slot Z, and Z's left-over .sts goes with no .sts in Q }
+  { a quick save in slot Q moves whole to slot Z }
   for i := 1 to FILE_COUNT do
-    if i <> 3 then
-      Make(Named(i, 'Q'), Named(i, 'Q'));
-  Make(Named(3, 'Z'), 'STALE');
+    Make(Named(i, 'Q'), Named(i, 'Q'));
   SaveMenu.MoveOldQuickSave;
   for i := 1 to FILE_COUNT do begin
     TestKit.Check(not FileUtil.Exists(Named(i, 'Q')), Named(i, 'Q') + ' is gone');
-    if i <> 3 then
-      TestKit.CheckEqualsS(Named(i, 'Q'), Held(Named(i, 'Z')), Named(i, 'Z') + ' holds what Q''s held');
+    TestKit.CheckEqualsS(Named(i, 'Q'), Held(Named(i, 'Z')), Named(i, 'Z') + ' holds what Q''s held');
   end;
-  TestKit.Check(not FileUtil.Exists(Named(3, 'Z')), 'slot Z''s left-over .sts is gone');
+
+  { a move ended part way, with the .sts and the member's file already in Z and the rest, the .dat with them, still in
+    Q, is run again: every file is in Z, the two moved before as they were (#1085) }
+  Clear;
+  for i := 1 to FILE_COUNT do
+    if (i = 3) or (i = 5) then
+      Make(Named(i, 'Z'), Named(i, 'Q'))
+    else
+      Make(Named(i, 'Q'), Named(i, 'Q'));
+  SaveMenu.MoveOldQuickSave;
+  for i := 1 to FILE_COUNT do begin
+    TestKit.Check(not FileUtil.Exists(Named(i, 'Q')), 'after a rerun ' + Named(i, 'Q') + ' is gone');
+    TestKit.CheckEqualsS(Named(i, 'Q'), Held(Named(i, 'Z')), 'and ' + Named(i, 'Z') + ' holds what Q''s held');
+  end;
 
   { nothing moves while slot Z holds a save }
   Clear;

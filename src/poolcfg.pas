@@ -27,10 +27,11 @@ const
   ITEM_HARDWARE = 1;
   ITEM_SETTINGS = 2;
   ITEM_SOUND = 3;
-  ITEM_PATHS = 4;
-  ITEM_SAVE = 5;
-  ITEM_QUIT = 6;
-  ITEMS = 6;
+  ITEM_CAMP = 4;
+  ITEM_PATHS = 5;
+  ITEM_SAVE = 6;
+  ITEM_QUIT = 7;
+  ITEMS = 7;
   { the Hardware page's lines }
   HW_VIDEO = 1;
   HW_SOUND = 2;
@@ -44,7 +45,7 @@ const
   PATH_COL = 20;
   FIELD_WIDTH = 56;
   { the longest path that can be typed: a DOS path's 79 characters, natively 255 }
-  PATH_TYPED = C_OPT.MAX_PATH_TEXT + C_OPT.LONGEST_NAME;
+  PATH_TYPED = C_OPT.MAX_PATH_TEXT + C_OPT.LONGEST_NAME + C_OPT.WORK_FOLDERS;
   { the program that reads POOL.CFG: START under DOS, the game itself natively }
 {$IFDEF FPC}
   GAME_PROG = 'POOLRAD';
@@ -254,16 +255,28 @@ begin
   SettingChanged := CfgFile.StoredValue(opts, opt) <> CfgFile.StoredValue(optsRead, opt);
 end;
 
-function SettingsChanged(sound: Boolean): Boolean;
+function SettingsChanged(page: Byte): Boolean;
 var
   opt: Byte;
   changed: Boolean;
 begin
   changed := False;
   for opt := 1 to C_OPT.OPT_COUNT do
-    if CfgFile.SoundSetting(opt) = sound then
+    if CfgFile.SettingPage(opt) = page then
       changed := changed or SettingChanged(opt);
   SettingsChanged := changed;
+end;
+
+{ True when a setting of any settings page differs from POOLOPT.CFG as read. }
+function AnySettingChanged: Boolean;
+var
+  page: Byte;
+  changed: Boolean;
+begin
+  changed := False;
+  for page := 1 to C_OPT.OPT_PAGES do
+    changed := changed or SettingsChanged(page);
+  AnySettingChanged := changed;
 end;
 
 function PathChanged(line: Byte): Boolean;
@@ -296,7 +309,7 @@ var
   line: Byte;
   due: Boolean;
 begin
-  due := SettingsChanged(False) or SettingsChanged(True) or PathChanged(PATH_SAVE);
+  due := AnySettingChanged or PathChanged(PATH_SAVE);
   for line := PATH_SAVE + 1 to PATH_LINES do
     due := due or PathChanged(line);
   if (optState in [CfgFile.CFG_MISSING, CfgFile.CFG_FIXED]) and CfgFile.DirExists(cfg.saveDir) then
@@ -307,7 +320,7 @@ end;
 { True when leaving now would lose something: a change, or a POOL.CFG still to be written. }
 function Unsaved: Boolean;
 begin
-  Unsaved := SettingsChanged(False) or SettingsChanged(True) or PathsChanged or PoolCfgDue;
+  Unsaved := AnySettingChanged or PathsChanged or PoolCfgDue;
 end;
 
 { --- the Main Menu --------------------------------------------------------------------------------------------- }
@@ -359,10 +372,12 @@ begin
   changes := '';
   if HardwareChanged then
     Changed('Hardware');
-  if SettingsChanged(False) then
+  if SettingsChanged(C_OPT.OPT_PAGE_GAME) then
     Changed('Game Settings');
-  if SettingsChanged(True) then
+  if SettingsChanged(C_OPT.OPT_PAGE_SOUND) then
     Changed('Sound Settings');
+  if SettingsChanged(C_OPT.OPT_PAGE_CAMP) then
+    Changed('Camp Settings');
   if PathsChanged then
     Changed('Paths');
   if (changes = '') and PoolCfgDue then
@@ -382,17 +397,17 @@ end;
 { The Main Menu, item sel highlighted. }
 procedure DrawMain(sel: Byte);
 const
-  NAMES: array[1..ITEMS] of string[19] = ('Hardware', 'Game Settings', 'Sound Settings', 'Paths', 'Save and Exit',
-    'Exit Without Saving');
+  NAMES: array[1..ITEMS] of string[19] = ('Hardware', 'Game Settings', 'Sound Settings', 'Camp Settings', 'Paths',
+    'Save and Exit', 'Exit Without Saving');
   { each item's hot letter's place in its name: Sound Settings' O, as Save and Exit has S }
-  HOT: array[1..ITEMS] of Byte = (1, 1, 2, 1, 1, 2);
+  HOT: array[1..ITEMS] of Byte = (1, 1, 2, 1, 1, 1, 2);
   ABOUT: array[1..ITEM_PATHS] of string[28] = ('Video, sound, introduction', 'Speed, portraits, Quick Mode',
-    'Music and sound effects', 'Data and save folders');
+    'Music and sound effects', 'Auto Memorize, Fix', 'Data and save folders');
 var
   i: Byte;
 begin
   ClearPage;
-  TuiKit.Box(16, 3, 65, 12, TuiKit.A_FRAME, 'Main Menu');
+  TuiKit.Box(16, 3, 65, 13, TuiKit.A_FRAME, 'Main Menu');
   for i := 1 to ITEMS do begin
     TuiKit.PutText(20, ItemRow(i), TuiKit.A_TEXT, NAMES[i]);
     TuiKit.PutRun(19 + HOT[i], ItemRow(i), TuiKit.A_HOT, NAMES[i][HOT[i]], 1);
@@ -675,8 +690,29 @@ begin
     C_OPT.OPT_SPELLS: AboutText := 'Spells being cast, and their|effects.';
     C_OPT.OPT_QUICK: AboutText := 'Quick mode ends with the|fight it was turned on in.';
     C_OPT.OPT_MAGIC: AboutText := 'Characters in quick mode|cast their spells.';
+    C_OPT.OPT_GEAR: AboutText := 'Characters in quick mode|change weapons and shields.||' +
+                                 'Off: they keep what you|readied. One holding a bow|' +
+                                 'with an enemy beside it|ends its turn instead.';
+    C_OPT.OPT_AIM: AboutText := 'What Next and Prev step|through when you aim.||' +
+                                'ENEMIES: the other side, or|your own side for a spell|' +
+                                'that is not an attack.|ALL: every creature.||Manual reaches anyone.';
+    C_OPT.OPT_RETRIEVE: AboutText := 'A thrown hammer, axe, spear|or the like goes back to|' +
+                                     'whoever threw it after the|fight, readied if the hand|' +
+                                     'is free. One who cannot|carry it leaves it in the|loot.';
     C_OPT.OPT_COMPANION: AboutText := 'The Companion Tools: F6 on|the map and camp menus.';
     C_OPT.OPT_CLUES: AboutText := 'The Companion Tools'' notes|from the Clue Book.';
+    C_OPT.OPT_AUTO_MEMORIZE: AboutText := 'Rest memorizes each caster''s|usual spells again (those it|' +
+                                          'last confirmed memorizing)|when it has none picked.|' +
+                                          'Spells picked in Memorize|come first.';
+    C_OPT.OPT_FIX_SCROLLS: AboutText := 'Fix reads the party''s|scrolls: Restoration for a|' +
+                                        'drained level, before the|clerics plan their spells,|' +
+                                        'then cures and Cure Light|Wounds for what is left.';
+    C_OPT.OPT_FIX_POTIONS: AboutText := 'Fix uses Potions of Healing|and Keoghtom''s Ointment on|' +
+                                        'what the spells leave.';
+    C_OPT.OPT_FIX_CURE: AboutText := 'A paladin cures a disease the|spells leave, from the cures|' +
+                                     'a week allows.';
+    C_OPT.OPT_FIX_HEAL: AboutText := 'A paladin lays on hands, once|a day, on the most wounded|' +
+                                     'character the spells leave.';
     C_OPT.OPT_COMBAT_LOG: AboutText := 'Keeps the fight''s messages for|F7 to page back through.||' +
                                        'Under DOS the log needs EMS:|without it the game keeps none,|' +
                                        'whatever this says.';
@@ -743,29 +779,33 @@ begin
   end;
 end;
 
-{ The Game Settings page, or with sound the Sound Settings page: its settings, setting sel highlighted. }
-procedure DrawSettings(sound: Boolean; sel: Byte);
+{ Settings page page (C_OPT.OPT_PAGE_GAME, OPT_PAGE_SOUND or OPT_PAGE_CAMP): its settings, setting sel highlighted,
+  each heading (CfgFile.Heading) above the setting it comes before. }
+procedure DrawSettings(page, sel: Byte);
 var
   opt: Byte;
 begin
   ClearPage;
-  if sound then
-    TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Sound Settings (POOLOPT.CFG)')
+  case page of
+    C_OPT.OPT_PAGE_SOUND: TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Sound Settings (POOLOPT.CFG)');
+    C_OPT.OPT_PAGE_CAMP: TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Camp Settings (POOLOPT.CFG)');
   else
     TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Game Settings (POOLOPT.CFG)');
+  end;
   TuiKit.Box(46, 2, 79, 24, TuiKit.A_FRAME, 'About');
   for opt := 1 to C_OPT.OPT_COUNT do
-    if CfgFile.SoundSetting(opt) = sound then
+    if CfgFile.SettingPage(opt) = page then
       DrawSettingLine(opt, opt = sel);
-  if not sound then
-    TuiKit.PutText(4, SettingRow(C_OPT.OPT_QUICK) - 1, TuiKit.A_FRAME, 'Quick Mode');
+  for opt := 1 to C_OPT.OPT_COUNT do
+    if (CfgFile.SettingPage(opt) = page) and (CfgFile.Heading(opt) <> '') then
+      TuiKit.PutText(4, SettingRow(opt) - 1, TuiKit.A_FRAME, CfgFile.Heading(opt));
   DrawAbout(sel);
   TuiKit.KeyLine('~Up Dn~ Move  ~Lt Rt~ Change  ~F5~ Default  ~Esc~ Main Menu  ~F10~ Save and Exit');
 end;
 
-{ The Game Settings page, or with sound the Sound Settings page (POOLOPT.CFG's settings, as the game's Settings screen
-  lists them) until Escape, or F10 saves and leaves. }
-procedure SettingsPage(sound: Boolean);
+{ Settings page page (POOLOPT.CFG's settings, as the game's Settings screen lists them) until Escape, or F10 saves
+  and leaves. }
+procedure SettingsPage(page: Byte);
 var
   sel: Byte;
   ch: Char;
@@ -784,7 +824,7 @@ begin
   first := 0;
   last := 0;
   for opt := 1 to C_OPT.OPT_COUNT do
-    if CfgFile.SoundSetting(opt) <> sound then
+    if CfgFile.SettingPage(opt) <> page then
       other := other + [opt]
     else begin
       if first = 0 then
@@ -793,7 +833,7 @@ begin
     end;
   sel := first;
   stepRight := False;
-  DrawSettings(sound, sel);
+  DrawSettings(page, sel);
   done := False;
   repeat
     TuiKit.GetKey(ch, ext);
@@ -825,7 +865,7 @@ begin
         C_KEYS.ESCAPE: done := True;
       end;
     if not done then
-      DrawSettings(sound, sel);
+      DrawSettings(page, sel);
   until done;
 end;
 
@@ -1191,6 +1231,7 @@ begin
         'H': item := ITEM_HARDWARE;
         'G': item := ITEM_SETTINGS;
         'O': item := ITEM_SOUND;
+        'C': item := ITEM_CAMP;
         'P': item := ITEM_PATHS;
         'S': item := ITEM_SAVE;
         'X': item := ITEM_QUIT;
@@ -1200,8 +1241,9 @@ begin
       sel := item;
     case item of
       ITEM_HARDWARE: HardwarePage;
-      ITEM_SETTINGS: SettingsPage(False);
-      ITEM_SOUND: SettingsPage(True);
+      ITEM_SETTINGS: SettingsPage(C_OPT.OPT_PAGE_GAME);
+      ITEM_SOUND: SettingsPage(C_OPT.OPT_PAGE_SOUND);
+      ITEM_CAMP: SettingsPage(C_OPT.OPT_PAGE_CAMP);
       ITEM_PATHS: PathsPage;
       ITEM_SAVE: SaveAndLeave;
       ITEM_QUIT: begin

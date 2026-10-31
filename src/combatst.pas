@@ -869,8 +869,12 @@ begin
   GameVars.downedCount := 0;
   GameVars.stinkHead := nil;
   GameVars.lastMissileItem := nil;
+  { no thrown weapon noted for Retrieve Thrown yet (#1118) }
+  CbtActs.thrownCount := 0;
   { no one has been seen casting yet (Silence, #1087) }
   CbtActs.seenCasting := [];
+  { nor doing fire or cold damage (Resist Fire and Resist Cold, #1087) }
+  FillChar(FxEngine.seenElements, SizeOf(FxEngine.seenElements), 0);
   FillChar(GameVars.downed, SizeOf(GameVars.downed), 0);
   GameVars.zone1^[C_GBVM.ATTACKED_ALLIES] := 0;
   if GameVars.zone1^[C_GBVM.MORALE_THRESHOLD] > 100 then

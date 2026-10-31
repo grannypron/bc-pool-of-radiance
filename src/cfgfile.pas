@@ -61,12 +61,17 @@ function KeyName(key: Byte): TName;
 { The label of setting opt on the Settings screen, a sub-setting's indented two spaces under its setting. }
 function SettingName(opt: Byte): TName;
 
-{ True for a setting of the Sound page (C_OPT.OPT_FIRST_SOUND to OPT_LAST_SOUND): the music and the sound. The rest
-  are the Game page's; the game's Settings screen and POOLCFG split them so (#1088). }
-function SoundSetting(opt: Byte): Boolean;
+{ The page setting opt is on: C_OPT.OPT_PAGE_SOUND for the music and the sound (OPT_FIRST_SOUND to OPT_LAST_SOUND,
+  #1088), OPT_PAGE_CAMP for Auto Memorize and Fix's settings (OPT_FIRST_CAMP to OPT_LAST_CAMP, #1119, #1129), and
+  OPT_PAGE_GAME for the rest; the game's Settings screen and POOLCFG split them so. }
+function SettingPage(opt: Byte): Byte;
 
-{ The line of setting opt on its page, from 0, in order: the Sound page's from their own first, the Game page's
-  without them, with the Quick Mode heading's line before OPT_QUICK. }
+{ The heading on the line above setting opt on its page, for a setting that starts a group: Quick Mode above
+  C_OPT.OPT_QUICK and Fix above OPT_FIX_SCROLLS; '' for every other setting. }
+function Heading(opt: Byte): TName;
+
+{ The line of setting opt on its page (SettingPage), from 0: the page's settings in order, with a line for each
+  heading (Heading) above the setting it comes before. }
 function SettingLine(opt: Byte): Byte;
 
 { SettingName with the number the speed and log lines lines show after it: 'Game Speed (1)', '  Log Lines (50)'. }
@@ -83,6 +88,10 @@ function NextSetting(opt: Byte; down: Boolean; skip: TOptSet): Byte;
 { ON for a nonzero flag, OFF for zero. }
 function OnOff(flag: Byte): TName;
 
+{ The value an ON/OFF setting opt shows and POOLOPT.CFG keeps for flag: OnOff, but for Aim Cycles ENEMIES for a nonzero
+  flag and ALL for zero (#1137). }
+function FlagValue(opt, flag: Byte): TName;
+
 { s without the spaces and tabs at either end. }
 function Trim(s: string): string;
 
@@ -93,8 +102,9 @@ function Tidy(s: string): string;
 function KeyOf(line: string): Byte;
 
 { Every setting's default: speed 1, every portrait, Auto Join, music and sound setting on, Auto End Quick Mode on, Use
-  Magic off, the Companion Tools off with their Clue Book notes on, the combat log on with 50 lines, and the later
-  games' paths C:\CURSE\, C:\CURSE\SAVE\ and so on. }
+  Magic off, Allow Gear Changes on, Aim Cycles at ENEMIES, Retrieve Thrown on, the Companion Tools off with their Clue
+  Book notes on, Auto Memorize on, the four Fix settings off, the combat log on with 50 lines, and the later games'
+  paths C:\CURSE\, C:\CURSE\SAVE\ and so on. }
 procedure Defaults(var s: TSettings);
 
 { Setting opt (an ON/OFF one) as 1 for on and 0 for off; 0 for any other. }
@@ -109,12 +119,12 @@ procedure SetFlag(var s: TSettings; opt, value: Byte);
 procedure ChangeSetting(var s: TSettings; opt: Byte; right: Boolean);
 
 { The value of setting or path key as POOLOPT.CFG keeps it: the speed's digit, the log lines' number, a path, ON or
-  OFF. }
+  OFF (FlagValue: ENEMIES or ALL for Aim Cycles). }
 function StoredValue(var s: TSettings; key: Byte): FileUtil.TPathName;
 
 { Set setting or path key from value (tidied): a digit 0..9 for the speed, a number from C_OPT.LOG_MIN to LOG_MAX for
-  the log lines, a path as it is, ON or OFF (or 1 or 0) for the others. False when the value was refused, which leaves
-  the setting as it is; a blank path is passed over, not refused. }
+  the log lines, a path as it is, ON or OFF (or 1 or 0) for the others, and for Aim Cycles ENEMIES or ALL too. False
+  when the value was refused, which leaves the setting as it is; a blank path is passed over, not refused. }
 function ReadValue(var s: TSettings; key: Byte; value: string): Boolean;
 
 { Read POOLOPT.CFG in folder dir (with its trailing backslash) over what s holds (the caller sets the defaults first).
@@ -123,7 +133,7 @@ function ReadValue(var s: TSettings; key: Byte; value: string): Boolean;
 function ReadOptions(dir: FileUtil.TPathName; var s: TSettings; var bad: Byte): TReadResult;
 
 { Write s as POOLOPT.CFG in folder dir: every key in order, then each line of the old file whose key this version does
-  not know, kept for a newer one (blank lines dropped). It is written beside the old file as POOLOPT.CF$
+  not know, kept for a newer one (blank lines dropped). It is written as TMP\POOLOPT.CFG beside the old file
   (FileUtil.TempName) and put in its place, so a failed write leaves the old file. A folder dir that is not there yet
   is made first, with any above it, as a save makes its folder (FileUtil.MakeFolder): a new save folder, or natively a
   new per-user one, keeps the settings from the first change (#1067). True when it was written. }
@@ -194,8 +204,16 @@ begin
     C_OPT.OPT_SPELLS: KeyName := 'SPELLSOUND';
     C_OPT.OPT_QUICK: KeyName := 'AUTOENDQUICK';
     C_OPT.OPT_MAGIC: KeyName := 'QUICKMAGIC';
+    C_OPT.OPT_GEAR: KeyName := 'GEARCHANGES';
+    C_OPT.OPT_AIM: KeyName := 'AIMCYCLES';
+    C_OPT.OPT_RETRIEVE: KeyName := 'RETRIEVETHROWN';
     C_OPT.OPT_COMPANION: KeyName := 'COMPANION';
     C_OPT.OPT_CLUES: KeyName := 'CLUENOTES';
+    C_OPT.OPT_AUTO_MEMORIZE: KeyName := 'AUTOMEMORIZE';
+    C_OPT.OPT_FIX_SCROLLS: KeyName := 'FIXSCROLLS';
+    C_OPT.OPT_FIX_POTIONS: KeyName := 'FIXPOTIONS';
+    C_OPT.OPT_FIX_CURE: KeyName := 'FIXPALADINCURE';
+    C_OPT.OPT_FIX_HEAL: KeyName := 'FIXPALADINHEAL';
     C_OPT.OPT_COMBAT_LOG: KeyName := 'COMBATLOG';
     C_OPT.OPT_LOG_LINES: KeyName := 'LOGLINES';
     C_OPT.KEY_PATHS + 1: KeyName := 'CURSEDATA';
@@ -229,8 +247,16 @@ begin
     C_OPT.OPT_SPELLS: SettingName := '  Spell Effects';
     C_OPT.OPT_QUICK: SettingName := '  Auto End Quick Mode';
     C_OPT.OPT_MAGIC: SettingName := '  Use Magic';
+    C_OPT.OPT_GEAR: SettingName := '  Allow Gear Changes';
+    C_OPT.OPT_AIM: SettingName := 'Aim Cycles';
+    C_OPT.OPT_RETRIEVE: SettingName := 'Retrieve Thrown';
     C_OPT.OPT_COMPANION: SettingName := 'Companion Tools';
     C_OPT.OPT_CLUES: SettingName := '  Clue Book Notes';
+    C_OPT.OPT_AUTO_MEMORIZE: SettingName := 'Auto Memorize';
+    C_OPT.OPT_FIX_SCROLLS: SettingName := '  Use Scrolls';
+    C_OPT.OPT_FIX_POTIONS: SettingName := '  Use Potions';
+    C_OPT.OPT_FIX_CURE: SettingName := '  Use Paladin''s Cure';
+    C_OPT.OPT_FIX_HEAL: SettingName := '  Use Paladin''s Heal';
     C_OPT.OPT_COMBAT_LOG: SettingName := 'Combat Log';
     C_OPT.OPT_LOG_LINES: SettingName := '  Log Lines';
   else
@@ -288,6 +314,16 @@ begin
     OnOff := 'OFF';
 end;
 
+function FlagValue(opt, flag: Byte): TName;
+begin
+  if opt <> C_OPT.OPT_AIM then
+    FlagValue := CfgFile.OnOff(flag)
+  else if flag <> 0 then
+    FlagValue := 'ENEMIES'
+  else
+    FlagValue := 'ALL';
+end;
+
 function Trim(s: string): string;
 begin
   while (Length(s) > 0) and (s[1] in [' ', #9]) do
@@ -322,19 +358,37 @@ begin
       KeyOf := k;
 end;
 
-function SoundSetting(opt: Byte): Boolean;
+function SettingPage(opt: Byte): Byte;
 begin
-  SoundSetting := (opt >= C_OPT.OPT_FIRST_SOUND) and (opt <= C_OPT.OPT_LAST_SOUND);
+  if (opt >= C_OPT.OPT_FIRST_SOUND) and (opt <= C_OPT.OPT_LAST_SOUND) then
+    SettingPage := C_OPT.OPT_PAGE_SOUND
+  else if (opt >= C_OPT.OPT_FIRST_CAMP) and (opt <= C_OPT.OPT_LAST_CAMP) then
+    SettingPage := C_OPT.OPT_PAGE_CAMP
+  else
+    SettingPage := C_OPT.OPT_PAGE_GAME;
+end;
+
+function Heading(opt: Byte): TName;
+begin
+  case opt of
+    C_OPT.OPT_QUICK: Heading := 'Quick Mode';
+    C_OPT.OPT_FIX_SCROLLS: Heading := 'Fix';
+  else
+    Heading := '';
+  end;
 end;
 
 function SettingLine(opt: Byte): Byte;
+var
+  o: Byte;
+  line: Byte;
 begin
-  if CfgFile.SoundSetting(opt) then
-    SettingLine := opt - C_OPT.OPT_FIRST_SOUND
-  else if opt < C_OPT.OPT_FIRST_SOUND then
-    SettingLine := opt - 1
-  else
-    SettingLine := opt - 1 - (C_OPT.OPT_LAST_SOUND - C_OPT.OPT_FIRST_SOUND + 1) + Ord(opt >= C_OPT.OPT_QUICK);
+  { the page's settings before opt, and its headings down to opt's own }
+  line := 0;
+  for o := 1 to opt do
+    if CfgFile.SettingPage(o) = CfgFile.SettingPage(opt) then
+      Inc(line, Ord(o < opt) + Ord(CfgFile.Heading(o) <> ''));
+  SettingLine := line;
 end;
 
 procedure Defaults(var s: TSettings);
@@ -344,7 +398,7 @@ begin
   s.speed := C_OPT.SPEED_DEFAULT;
   s.logLines := C_OPT.LOG_DEFAULT;
   for opt := C_OPT.OPT_FIRST_FLAG to C_OPT.OPT_LAST_FLAG do
-    s.flags[opt] := Ord(not (opt in [C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION]));
+    s.flags[opt] := Ord(not (opt in [C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION, C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL]));
   s.paths[1] := 'C:\CURSE\';
   s.paths[2] := 'C:\CURSE\SAVE\';
   s.paths[3] := 'C:\SECRET\';
@@ -401,7 +455,7 @@ begin
   end else if key > C_OPT.KEY_PATHS then
     StoredValue := s.paths[key - C_OPT.KEY_PATHS]
   else
-    StoredValue := CfgFile.OnOff(CfgFile.Flag(s, key));
+    StoredValue := CfgFile.FlagValue(key, CfgFile.Flag(s, key));
 end;
 
 function ReadValue(var s: TSettings; key: Byte; value: string): Boolean;
@@ -424,9 +478,9 @@ begin
   end else if key > C_OPT.KEY_PATHS then begin
     if value <> '' then
       s.paths[key - C_OPT.KEY_PATHS] := value;
-  end else if (value = 'ON') or (value = '1') then
+  end else if (value = 'ON') or (value = '1') or ((key = C_OPT.OPT_AIM) and (value = 'ENEMIES')) then
     CfgFile.SetFlag(s, key, 1)
-  else if (value = 'OFF') or (value = '0') then
+  else if (value = 'OFF') or (value = '0') or ((key = C_OPT.OPT_AIM) and (value = 'ALL')) then
     CfgFile.SetFlag(s, key, 0)
   else
     ReadValue := False;
@@ -505,7 +559,7 @@ begin
   WriteOptions := False;
   name := dir + C_OPT.OPT_NAME;
   ioRes := IOResult;
-  if not FileUtil.MakeFolder(dir) then Exit;
+  if not FileUtil.MakeFolder(dir) or not FileUtil.MakeTempFolder(name) then Exit;
   Assign(newFile, FileUtil.TempName(name));
   Rewrite(newFile);
   if IOResult <> 0 then Exit;

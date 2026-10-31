@@ -10,7 +10,9 @@
   low memory is likewise left untouched.
 
   Tell adds facts taken directly from a monster record. The sage uses it to
-  reveal information the party has not learned during play (#868). }
+  reveal information the party has not learned during play (#868). FactAt,
+  FactName and ListRows give the entry page (BeastMnu) its two lists, the
+  defenses and the attacks, in the order it shows them. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit BeastFil;
@@ -42,6 +44,19 @@ function WriteTo(fn: FileUtil.TPathName): Boolean;
   C_BEAST.TOLD even when there was nothing new to add. Returns True when another
   fact changed; the caller must then mark the Bestiary dirty. }
 function Tell(var b: Bestiary.TBeast; creature: Types.PCharRecord): Boolean;
+
+{ The C_BEAST fact at place i (from 1) of the entry page's defenses, or of its attacks; 0 past the last. }
+function FactAt(defenses: Boolean; i: Byte): Byte;
+
+{ The entry page's line for a defense or an attack fact, 16 characters at most (a column's width); '' for any other. }
+function FactName(fact: Byte): Types.TStr40;
+
+{ How many of b's defenses, or attacks, it knows. }
+function KnownCount(var b: Bestiary.TBeast; defenses: Boolean): Byte;
+
+{ The rows b's two lists take one a line: a heading and the known facts for each, a blank line between them, and under
+  each list ?? while the sage has not told all (C_BEAST.TOLD), or None under an empty one once she has (#1114). }
+function ListRows(var b: Bestiary.TBeast): Byte;
 
 implementation
 
@@ -167,6 +182,127 @@ begin
   end;
   Know(C_BEAST.TOLD, True);
   Tell := learned or (b.hd <> was.hd) or (b.acLo <> was.acLo) or (b.acHi <> was.acHi);
+end;
+
+{ Literals, in the overlay, rather than tables in the data segment. }
+function FactAt(defenses: Boolean; i: Byte): Byte;
+begin
+  FactAt := 0;
+  if defenses then
+    { halved and lessened damage, immunities, the weapons needed, then the rest }
+    case i of
+      1..7: FactAt := C_BEAST.HALF_BLUNT + i - 1;
+      8: FactAt := C_BEAST.HALF_SILVER;
+      9: FactAt := C_BEAST.RESISTS_FIRE;
+      10..16: FactAt := C_BEAST.IMMUNE_POISON + i - 10;
+      17: FactAt := C_BEAST.NEEDS_MAGIC;
+      18: FactAt := C_BEAST.SILVER_OR_MAGIC;
+      19: FactAt := C_BEAST.MAGIC_RES;
+      20: FactAt := C_BEAST.REGENERATES;
+      21: FactAt := C_BEAST.FIGHTS_ON;
+      22: FactAt := C_BEAST.BLINKS;
+      23: FactAt := C_BEAST.DISPLACED;
+      24: FactAt := C_BEAST.DODGES_MISSILES;
+      25: FactAt := C_BEAST.DODGES_BOULDERS;
+      26: FactAt := C_BEAST.TURNS_INVISIBLE;
+      27: FactAt := C_BEAST.SEES_INVISIBLE;
+      28: FactAt := C_BEAST.GAS_ESCAPE;
+    end
+  else
+    case i of
+      1..7: FactAt := C_BEAST.ATK_POISON + i - 1;
+      8: FactAt := C_BEAST.ATK_FEAR;
+      9: FactAt := C_BEAST.ATK_BLOOD;
+      10: FactAt := C_BEAST.ATK_ACID;
+      11: FactAt := C_BEAST.ATK_BREATH;
+      12: FactAt := C_BEAST.ATK_RAKE;
+      13: FactAt := C_BEAST.ATK_HOLD;
+    end;
+end;
+
+function FactName(fact: Byte): Types.TStr40;
+begin
+  case fact of
+    C_BEAST.HALF_BLUNT: FactName := 'Half: blunt';
+    C_BEAST.HALF_PIERCE: FactName := 'Half: piercing';
+    C_BEAST.HALF_SLASH: FactName := 'Half: slashing';
+    C_BEAST.HALF_MAGICAL: FactName := 'Half: magic wpns';
+    C_BEAST.HALF_FIRE: FactName := 'Half: fire';
+    C_BEAST.HALF_COLD: FactName := 'Half: cold';
+    C_BEAST.HALF_ELEC: FactName := 'Half: lightning';
+    C_BEAST.HALF_SILVER: FactName := 'Half: silver';
+    C_BEAST.RESISTS_FIRE: FactName := 'Resists fire';
+    C_BEAST.IMMUNE_POISON: FactName := 'No poison';
+    C_BEAST.IMMUNE_PARALYSIS: FactName := 'No paralysis';
+    C_BEAST.IMMUNE_SLEEP_CHARM: FactName := 'No sleep, charm';
+    C_BEAST.IMMUNE_MM: FactName := 'No magic missile';
+    C_BEAST.IMMUNE_COLD: FactName := 'No cold';
+    C_BEAST.IMMUNE_FIRE: FactName := 'No fire';
+    C_BEAST.IMMUNE_ELEC: FactName := 'No lightning';
+    C_BEAST.NEEDS_MAGIC: FactName := 'Magic wpns only';
+    C_BEAST.SILVER_OR_MAGIC: FactName := 'Silver or magic';
+    C_BEAST.MAGIC_RES: FactName := 'Resists magic';
+    C_BEAST.REGENERATES: FactName := 'Regenerates';
+    C_BEAST.FIGHTS_ON: FactName := 'Fights past 0 hp';
+    C_BEAST.BLINKS: FactName := 'Blinks';
+    C_BEAST.DISPLACED: FactName := 'Displaced';
+    C_BEAST.DODGES_MISSILES: FactName := 'Dodges missiles';
+    C_BEAST.DODGES_BOULDERS: FactName := 'Dodges boulders';
+    C_BEAST.TURNS_INVISIBLE: FactName := 'Turns invisible';
+    C_BEAST.SEES_INVISIBLE: FactName := 'Sees invisible';
+    C_BEAST.GAS_ESCAPE: FactName := 'Escapes as gas';
+    C_BEAST.ATK_POISON: FactName := 'Poison';
+    C_BEAST.ATK_PARALYZE: FactName := 'Paralysis';
+    C_BEAST.ATK_DRAIN: FactName := 'Level drain';
+    C_BEAST.ATK_ROT: FactName := 'Rotting disease';
+    C_BEAST.ATK_PETRIFY: FactName := 'Petrifying gaze';
+    C_BEAST.ATK_CHARM: FactName := 'Charming gaze';
+    C_BEAST.ATK_FIRE: FactName := 'Burning touch';
+    C_BEAST.ATK_FEAR: FactName := 'Fear aura';
+    C_BEAST.ATK_BLOOD: FactName := 'Drains blood';
+    C_BEAST.ATK_ACID: FactName := 'Acid';
+    C_BEAST.ATK_BREATH: FactName := 'Breath weapon';
+    C_BEAST.ATK_RAKE: FactName := 'Rakes';
+    C_BEAST.ATK_HOLD: FactName := 'Holds fast';
+  else
+    FactName := '';
+  end;
+end;
+
+function KnownCount(var b: Bestiary.TBeast; defenses: Boolean): Byte;
+var
+  i: Byte;
+  n: Byte;
+begin
+  n := 0;
+  i := 1;
+  while BeastFil.FactAt(defenses, i) <> 0 do begin
+    if Bestiary.Knows(b, BeastFil.FactAt(defenses, i)) then
+      Inc(n);
+    Inc(i);
+  end;
+  KnownCount := n;
+end;
+
+function ListRows(var b: Bestiary.TBeast): Byte;
+var
+  defenses: Byte;
+  attacks: Byte;
+  n: Byte;
+begin
+  defenses := BeastFil.KnownCount(b, True);
+  attacks := BeastFil.KnownCount(b, False);
+  { the two headings and the blank line between the lists }
+  n := defenses + attacks + 3;
+  if not Bestiary.Knows(b, C_BEAST.TOLD) then
+    Inc(n, 2)
+  else begin
+    if defenses = 0 then
+      Inc(n);
+    if attacks = 0 then
+      Inc(n);
+  end;
+  ListRows := n;
 end;
 
 procedure Load;
