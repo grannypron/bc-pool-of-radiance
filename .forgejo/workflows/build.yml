@@ -5,6 +5,12 @@
 # directories with the current scripts/ and release scripts. With the tag left empty it only builds and tests main, as
 # a push does, without making a tag (and so without notifying the repository's watchers).
 #
+# Every night (08:00 UTC) the schedule publishes main as the rolling pre-release "nightly" when main has changed since
+# the last production release and since the current nightly (#1108); otherwise the scheduled run does nothing. The
+# nightly tag moves to the commit built, and the release keeps its name and download links, so watchers hear of it
+# once. Dispatching with the tag nightly publishes main as the nightly at once, whether or not it changed. The plan job
+# decides, for every run, whether the other jobs run, whether it publishes, and which tag.
+#
 # Publishing waits for both the normal build and historical reproduction jobs. A toolchain or image change that
 # alters SSI's executables therefore stops the release.
 #
@@ -45,16 +51,82 @@ on:
     branches: [main]
     tags: ['v*']
   pull_request:
+  schedule:
+    - cron: '0 8 * * *'
   workflow_dispatch:
     inputs:
       tag:
-        description: The version tag to build and release, for example v1.1; leave it empty to only build and test
+        description: A version tag to release (v1.1), nightly to publish main now, or empty to build and test only
         required: false
         type: string
 
 jobs:
+  # What this run does: run (the build and test jobs), publish (the release jobs), tag (what they release) and base
+  # (for a nightly, the production release its notes count from).
+  plan:
+    runs-on: docker
+    timeout-minutes: 5
+    container:
+      image: ${{ vars.CI_IMAGE }}
+      credentials:
+        username: ${{ secrets.REGISTRY_USER || 'none' }}
+        password: ${{ secrets.REGISTRY_TOKEN || 'none' }}
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      publish: ${{ steps.plan.outputs.publish }}
+      tag: ${{ steps.plan.outputs.tag }}
+      base: ${{ steps.plan.outputs.base }}
+    steps:
+      - name: Plan
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+          PR_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO_API: ${{ github.event.repository.url }}
+          TOKEN: ${{ github.token }}
+        run: |
+          run=true publish=false tag="" base=""
+          # nightly FORCE: publish this commit as the nightly unless main is the last production release, or (without
+          # FORCE) the nightly already is this commit.
+          nightly() {
+              auth="Authorization: token $TOKEN"
+              base="$(curl -fsS -H "$auth" "$REPO_API/releases?limit=50" \
+                  | jq -r '[.[] | select((.draft or .prerelease) | not)][0].tag_name // empty')"
+              [ -n "$base" ] || { echo "No production release to count the nightly from." >&2; exit 1; }
+              base_sha="$(curl -fsS -H "$auth" "$REPO_API/tags/$base" | jq -r .commit.sha)"
+              nightly_sha="$(curl -sS -H "$auth" "$REPO_API/tags/nightly" | jq -r '.commit.sha // empty')"
+              if [ "$SHA" = "$base_sha" ]; then
+                  run=false
+                  echo "main is $base, the last production release: no nightly."
+              elif [ "$1" = 0 ] && [ "$SHA" = "$nightly_sha" ]; then
+                  run=false
+                  echo "nightly is already $SHA."
+              else
+                  publish=true tag=nightly
+                  echo "Publishing $SHA as nightly, counted from $base."
+              fi
+          }
+          case "$EVENT" in
+              pull_request) [ "$PR_REPO" = "$REPO" ] || run=false ;;
+              push) case "$REF" in refs/tags/v*) publish=true tag="$REF_NAME" ;; esac ;;
+              workflow_dispatch)
+                  case "$INPUT_TAG" in
+                      "") ;;
+                      nightly) nightly 1 ;;
+                      *) publish=true tag="$INPUT_TAG" ;;
+                  esac ;;
+              schedule) nightly 0 ;;
+          esac
+          printf 'run=%s\npublish=%s\ntag=%s\nbase=%s\n' "$run" "$publish" "$tag" "$base" | tee -a "$GITHUB_OUTPUT"
+
   build:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: [plan]
+    if: needs.plan.outputs.run == 'true'
     runs-on: docker
     # build.sh gives DOSBox-X ten minutes; this catches hangs elsewhere in the job.
     timeout-minutes: 20
@@ -85,7 +157,8 @@ jobs:
         run: scripts/build.sh --test
 
   reproduce:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: [plan]
+    if: needs.plan.outputs.run == 'true'
     runs-on: docker
     # build.sh gives DOSBox-X ten minutes; this catches hangs elsewhere in the job.
     timeout-minutes: 20
@@ -118,8 +191,8 @@ jobs:
         run: .forgejo/scripts/reproduce.sh "${{ matrix.tag }}"
 
   release:
-    needs: [build, reproduce]
-    if: (github.event_name == 'workflow_dispatch' && inputs.tag != '') || startsWith(github.ref, 'refs/tags/v')
+    needs: [plan, build, reproduce]
+    if: needs.plan.outputs.publish == 'true'
     runs-on: docker
     # build.sh gives DOSBox-X ten minutes; this catches hangs elsewhere in the job.
     timeout-minutes: 20
@@ -130,8 +203,8 @@ jobs:
         password: ${{ secrets.REGISTRY_TOKEN || 'none' }}
     env:
       TOOLS: /drive_d
-      # Release the manually selected tag or the tag that triggered the workflow.
-      TAG: ${{ inputs.tag || github.ref_name }}
+      # The tag pushed, the tag dispatched, or nightly (the plan job's choice).
+      TAG: ${{ needs.plan.outputs.tag }}
     steps:
       - name: Check out
         env:
@@ -147,7 +220,7 @@ jobs:
           git -c http.extraHeader="$auth" fetch -q --tags origin '+refs/heads/*:refs/remotes/origin/*' "+$REF:refs/ci/head"
           git checkout -q --detach "$SHA"
       - name: Use the dispatched tag's source
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && env.TAG != 'nightly'
         run: |
           # Require an existing tag; otherwise Forgejo could create that name at the current main commit.
           git rev-parse -q --verify "refs/tags/$TAG" > /dev/null || { echo "$TAG is not a tag." >&2; exit 1; }
@@ -158,6 +231,16 @@ jobs:
           echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct "$TAG")" >> "$GITHUB_ENV"
           # HEAD remains the dispatching commit, so explicitly use the tag for the build ID (#849).
           echo "BUILD_REF=$TAG" >> "$GITHUB_ENV"
+
+      # The release jobs that follow check out this same commit, and release.sh finds the release by this tag.
+      - name: Point the nightly tag at this commit
+        if: env.TAG == 'nightly'
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          auth="Authorization: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
+          git -c http.extraHeader="$auth" push -q -f origin HEAD:refs/tags/nightly
+          git tag -f nightly HEAD
 
       # Historical reproduction has already verified this source and image are deterministic.
       - name: Build
@@ -170,12 +253,12 @@ jobs:
         env:
           REPO_API: ${{ github.event.repository.url }}
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NIGHTLY_BASE: ${{ needs.plan.outputs.base }}
         run: .forgejo/scripts/release.sh "$TAG"
 
   native:
-    if: >-
-      vars.NATIVE_CI == 'true'
-      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    needs: [plan]
+    if: vars.NATIVE_CI == 'true' && needs.plan.outputs.run == 'true'
     runs-on: docker
     # The toolchain is downloaded, never built here; the Windows tests under Wine take the longest.
     timeout-minutes: 30
@@ -218,10 +301,8 @@ jobs:
         run: scripts/build-native.sh ${{ matrix.target }}
 
   release-native:
-    needs: [release, native]
-    if: >-
-      vars.NATIVE_CI == 'true'
-      && ((github.event_name == 'workflow_dispatch' && inputs.tag != '') || startsWith(github.ref, 'refs/tags/v'))
+    needs: [plan, release, native]
+    if: vars.NATIVE_CI == 'true' && needs.plan.outputs.publish == 'true'
     runs-on: docker
     timeout-minutes: 30
     container:
@@ -242,7 +323,7 @@ jobs:
             archive: windows-x86.zip
     env:
       FPC_PREFIX: /opt/fpc
-      TAG: ${{ inputs.tag || github.ref_name }}
+      TAG: ${{ needs.plan.outputs.tag }}
     steps:
       - name: Check out
         env:
@@ -258,7 +339,7 @@ jobs:
           git -c http.extraHeader="$auth" fetch -q --tags origin '+refs/heads/*:refs/remotes/origin/*' "+$REF:refs/ci/head"
           git checkout -q --detach "$SHA"
       - name: Use the dispatched tag's source
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && env.TAG != 'nightly'
         run: |
           git rev-parse -q --verify "refs/tags/$TAG" > /dev/null || { echo "$TAG is not a tag." >&2; exit 1; }
           rm -rf src build
@@ -284,7 +365,8 @@ jobs:
         run: .forgejo/scripts/release-asset.sh "$TAG" "dist/pool-of-radiance-$TAG-${{ matrix.archive }}"
 
   macos:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: [plan]
+    if: needs.plan.outputs.run == 'true'
     runs-on: macos-arm64
     # Cached toolchains make this quick; the first run must build Free Pascal and SDL3.
     timeout-minutes: 120
@@ -313,13 +395,13 @@ jobs:
         run: scripts/build-native.sh macos
 
   release-macos:
-    needs: [release]
-    if: (github.event_name == 'workflow_dispatch' && inputs.tag != '') || startsWith(github.ref, 'refs/tags/v')
+    needs: [plan, release]
+    if: needs.plan.outputs.publish == 'true'
     runs-on: macos-arm64
     # Allow for notarization even though Apple usually responds within a few minutes.
     timeout-minutes: 120
     env:
-      TAG: ${{ inputs.tag || github.ref_name }}
+      TAG: ${{ needs.plan.outputs.tag }}
     steps:
       - name: Check out
         env:
@@ -337,7 +419,7 @@ jobs:
           git checkout -q -f --detach "$SHA"
           git clean -qfdx
       - name: Use the dispatched tag's source
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && env.TAG != 'nightly'
         run: |
           git rev-parse -q --verify "refs/tags/$TAG" > /dev/null || { echo "$TAG is not a tag." >&2; exit 1; }
           rm -rf src build
