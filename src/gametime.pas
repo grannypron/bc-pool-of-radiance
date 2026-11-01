@@ -185,10 +185,10 @@ begin
   end;
 end;
 
-{ Scan the memorized-spell slots (CharHlp.MemorizedAt); bit 7 set = still memorizing. With done already True, return the first pending
-  spell's level; otherwise clear the bit (spell finished), announce it and set done, so the scan goes on to return the
-  next pending spell's level. Returns 0 when nothing (more) is pending. A slot whose spell id is outside 1..C_SPELL.LAST
-  is passed over. }
+{ Scan the memorized-spell slots (CharHlp.MemorizedAt); bit 7 set = still memorizing. With done already True, return the
+  first pending spell's level; otherwise clear the bit (spell finished), announce it and set done, so the scan goes on
+  to return the next pending spell's level. Returns 0 when nothing (more) is pending. A slot whose spell id is outside
+  1..C_SPELL.LAST is passed over. }
 function CheckMemorizeDone(creature: Types.PCharRecord; var done: Boolean): Byte;
 var
   lvl: Byte;

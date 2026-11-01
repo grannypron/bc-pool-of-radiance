@@ -301,11 +301,11 @@ end;
 
 { Choose a spell for an NPC, or for a PC while quick magic (Alt-M) is on, when an enemy team remains. The list holds
   every memorized spell (CharHlp.MemorizedAt) that names a spell (CharHlp.IsSpell) if castAllowed is set; one with bit 7
-  set (still being memorized) or past the spells is left out. Each is weighed by how many it would affect (SpellImpact) times its
-  aiPriority, and one is drawn at random by weight, so the big plays come up most and the AI still fumbles now and
-  then; one that would do nothing, or has priority 0, is never drawn (#1086). It goes to CbtActs.CastSpellCombat,
-  whose result is returned. SSI drew at random over passes of falling priority, whatever the spell would do. Nothing
-  is cast in an anti-magic area (CharHlp.AntiMagicArea), where the Cast menu is not offered either (#1120). }
+  set (still being memorized) or past the spells is left out. Each is weighed by how many it would affect (SpellImpact)
+  times its aiPriority, and one is drawn at random by weight, so the big plays come up most and the AI still fumbles now
+  and then; one that would do nothing, or has priority 0, is never drawn (#1086). It goes to CbtActs.CastSpellCombat,
+  whose result is returned. SSI drew at random over passes of falling priority, whatever the spell would do. Nothing is
+  cast in an anti-magic area (CharHlp.AntiMagicArea), where the Cast menu is not offered either (#1120). }
 function SelectSpellToCast(creature: Types.PCharRecord): Boolean;
 var
   list: Types.TMemorized;

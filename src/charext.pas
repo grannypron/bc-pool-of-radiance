@@ -183,7 +183,7 @@ begin
       creature^.portExt.formerClasses := rec3.formerClasses;
       creature^.portExt.flags := rec3.flags;
       creature^.portExt.drainCount := rec3.drainCount;
-      creature^.portExt.drains := rec3.drains;
+      Move(rec3.drains, creature^.portExt.drains, SizeOf(rec3.drains));
     end;
   end else if FileUtil.ReadRecord(fn + '.chx', rec2, SizeOf(rec2)) then begin
     if (rec2.sig = EXT_SIG) and (rec2.version = EXT_VERSION_2) and

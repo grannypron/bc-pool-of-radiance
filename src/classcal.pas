@@ -533,9 +533,9 @@ const
 
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
-  character), and set the spell slots (CasterSlots). classThac0 covers levels 0..10, and a level outside that uses the nearer end. A dual-classed human's itemLimits are set
-  (ItemLimitsFor). Each class counts at the level the creature can use
-  (CharHlp.GetClassLevel): a class a dual-classed human has left and cannot use yet gives nothing, and a resting
+  character), and set the spell slots (CasterSlots). classThac0 covers levels 0..10, and a level outside that uses the
+  nearer end. A dual-classed human's itemLimits are set (ItemLimitsFor). Each class counts at the level the creature can
+  use (CharHlp.GetClassLevel): a class a dual-classed human has left and cannot use yet gives nothing, and a resting
   cleric's or magic-user's slots are emptied (#838); levelHighest takes the levels as they are. Then call RecalcSaves
   and RecalcThiefSkills. }
 { A row of a class's slots by spell level, to Types.CASTER_LEVEL_LAST. }

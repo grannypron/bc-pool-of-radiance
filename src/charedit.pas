@@ -452,7 +452,8 @@ begin
     n := 0;
     for m := 1 to C_SPELL.LAST do
       with GameDefs.spellTable[m] do
-        if CharHlp.IsSpell(m) and (castClass = cls) and (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST) then begin
+        if CharHlp.IsSpell(m) and (castClass = cls) and (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST)
+        then begin
           mark := '  ';
           if CharHlp.KnowsSpell(GameVars.curChar, m) then
             mark := '* ';

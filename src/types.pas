@@ -186,7 +186,8 @@ type
     age: Word;
     { hit points maximum }
     hpMax: Byte;
-    { Known spells, indexed by spell ID, to KNOWN_RECORD_LAST; the later ones are portExt.moreKnown's (CharHlp.KnowsSpell). }
+    { Known spells, indexed by spell ID, to KNOWN_RECORD_LAST; the later ones are portExt.moreKnown's
+      (CharHlp.KnowsSpell). }
     spellsKnown: array[1..KNOWN_RECORD_LAST] of Byte;
     attackLevel: Byte;
     { the combat icon's size, with ICON_LARGE for a Large creature }
