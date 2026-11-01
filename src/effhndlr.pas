@@ -1569,12 +1569,10 @@ var
       if creature^.portExt.formerClasses and (1 shl jj) <> 0 then
         lvl := -1;
       { xp[] runs to level 9; a level above it reads level 9's entry }
-      if lvl > 9 then
-        xpTry := GameDefs.classExperience[jj].xp[9]
-      else if lvl > 1 then
-        xpTry := GameDefs.classExperience[jj].xp[lvl]
+      if lvl > C_LEVEL.LEVEL_LAST then
+        xpTry := ClassCal.LevelXp(jj, C_LEVEL.LEVEL_LAST)
       else
-        xpTry := 0;
+        xpTry := ClassCal.LevelXp(jj, lvl);
       if (lvl >= bestLvl) and (lvl >= 0) then
         if (xpTry >= xpMin) or (xpTry = -1) then begin
           xpMin := xpTry;

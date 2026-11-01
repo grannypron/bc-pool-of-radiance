@@ -862,21 +862,23 @@ const
     (first: 2; second: 6; third: -1), { fighter/thief }
     (first: 2; second: 5; third: 6), { fighter/magic-user/thief }
     (first: 5; second: 6; third: -1)); { magic-user/thief }
-  { Experience and spell slots by class slot. A -1 marks a level the class cannot reach, so cleric and magic-user stop
-    at 6, paladin and ranger at 7 and fighter at 8; the thief's row runs to the end of the table at 9. }
+  { Experience and spell slots by class slot, from the 1st-edition PHB to level 9 (#1121): xp[n] is the experience
+    level n starts at, -1 for a class with no table (druid, monk). How far a class trains is ClassCal.MaxLevel's, which
+    with the Game Level Cap setting on stops at SSI's levels. slots[n] are a cleric's or magic-user's spell slots at
+    level n by spell level, before the Wisdom bonus; level 1's one slot is ClassCal.FirstLevelSlots'. }
   classExperience: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Types.TRuleXp = (
-    (xp: (1501, 3001, 6001, 13001, 27501, -1, -1, -1);
-     slots: ((2, 0, 0), (2, 1, 0), (3, 2, 0), (3, 3, 1), (3, 3, 2), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
+    (xp: (1501, 3001, 6001, 13001, 27501, 55001, 110001, 225001);
+     slots: ((2, 0, 0), (2, 1, 0), (3, 2, 0), (3, 3, 1), (3, 3, 2), (3, 3, 2), (3, 3, 3), (4, 4, 3))),
     (xp: (-1, -1, -1, -1, -1, -1, -1, -1);
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
-    (xp: (2001, 4001, 8001, 18001, 35001, 70001, 125001, -1);
+    (xp: (2001, 4001, 8001, 18001, 35001, 70001, 125001, 250001);
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
-    (xp: (2751, 5501, 12001, 24001, 45001, 95001, -1, -1);
+    (xp: (2751, 5501, 12001, 24001, 45001, 95001, 175001, 350001);
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
-    (xp: (2251, 4501, 10001, 20001, 40001, 90001, -1, -1);
+    (xp: (2251, 4501, 10001, 20001, 40001, 90001, 150001, 225001);
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
-    (xp: (2501, 5001, 10001, 22501, 40001, -1, -1, -1);
-     slots: ((2, 0, 0), (2, 1, 0), (3, 2, 0), (4, 2, 1), (4, 2, 2), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
+    (xp: (2501, 5001, 10001, 22501, 40001, 60001, 90001, 135001);
+     slots: ((2, 0, 0), (2, 1, 0), (3, 2, 0), (4, 2, 1), (4, 2, 2), (4, 3, 2), (4, 3, 3), (4, 3, 3))),
     (xp: (1251, 2501, 5001, 10001, 20001, 42501, 70001, 110001);
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
     (xp: (-1, -1, -1, -1, -1, -1, -1, -1);

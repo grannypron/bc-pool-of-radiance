@@ -1955,14 +1955,11 @@ begin
       lvl := tgt^.classLevels[cls];
       if tgt^.portExt.formerClasses and (1 shl cls) <> 0 then
         lvl := 0;
-      { xp[] runs to level LEVEL_LAST }
-      if (lvl > 0) and (lvl < C_LEVEL.LEVEL_LAST) and (lvl <= bestLvl) and
-          (GameDefs.classExperience[cls].xp[Succ(lvl)] > 0) and
-          (GameDefs.classExperience[cls].xp[Succ(lvl)] < bestXp) and
-          (not CharHlp.AtLevelCap(tgt, cls)) then begin
+      if (lvl > 0) and (lvl <= bestLvl) and ClassCal.LevelOpen(cls, lvl + 1) and
+          (ClassCal.LevelXp(cls, lvl + 1) < bestXp) and (not CharHlp.AtLevelCap(tgt, cls)) then begin
         bestLvl := lvl;
         bestCls := cls;
-        bestXp := GameDefs.classExperience[cls].xp[Succ(lvl)];
+        bestXp := ClassCal.LevelXp(cls, lvl + 1);
       end;
     end;
     if bestCls >= 0 then begin

@@ -53,6 +53,9 @@ var
   autoJoinOn: Byte;
   { the Journal setting: nonzero lists only the items the party has found (JrnlSeen), zero every item (#1090) }
   journalFoundOn: Byte;
+  { the Game Level Cap setting: nonzero stops each class at SSI's highest level, zero lets every class train to 9
+    (ClassCal.MaxLevel, #1121) }
+  levelCapOn: Byte;
   { nonzero: PostCbt and SaveLoad.LoadChar take the party's characters off Quick after each fight and on loading }
   quickEnds: Byte;
   { the Quick Mode Magic setting: CombatSt starts every fight with quickMagic set from it; Alt-M then turns quickMagic

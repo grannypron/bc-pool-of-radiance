@@ -97,16 +97,6 @@ begin
   ChgClass.SyncClassPowers(Types.PCharRecord(GameVars.curChar));
 end;
 
-{ The experience a level of class slot cls starts at: 0 for level 1, and -1 for a level past the experience table's for
-  the class (GameDefs.classExperience). }
-function LevelXp(cls: ShortInt; level: Byte): LongInt;
-begin
-  if level < 2 then
-    LevelXp := 0
-  else
-    LevelXp := GameDefs.classExperience[cls].xp[level];
-end;
-
 { The Levels screen: each class's level, the experience and hit points; row sel highlighted. }
 procedure DrawLevels(sel: Byte);
 var
@@ -165,14 +155,15 @@ begin
               LowerLevel(cls, ClassCal.HpClassCount(Types.PCharRecord(GameVars.curChar)));
               { past the level's range, the experience comes down to one short of the next level; a next level
                 the table does not reach (-1) leaves it, as one short of that is negative }
-              if (LevelXp(cls, classLevels[cls] + 1) > 0) and (experience >= LevelXp(cls, classLevels[cls] + 1)) then
-                experience := LevelXp(cls, classLevels[cls] + 1) - 1;
+              xp := ClassCal.LevelXp(cls, classLevels[cls] + 1);
+              if (xp > 0) and (experience >= xp) then
+                experience := xp - 1;
             end;
           C_KEYS.RIGHT:
             if classLevels[cls] < C_LEVEL.LEVEL_LAST then begin
               CharGen.GainLevels(GameDefs.classBits[cls], False);
-              if experience < LevelXp(cls, classLevels[cls]) then
-                experience := LevelXp(cls, classLevels[cls]);
+              if experience < ClassCal.LevelXp(cls, classLevels[cls]) then
+                experience := ClassCal.LevelXp(cls, classLevels[cls]);
             end;
         end
     else if key = 'E' then begin

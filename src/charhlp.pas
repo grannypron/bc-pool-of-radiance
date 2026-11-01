@@ -137,8 +137,8 @@ function FindDamagingRangedWeapon(creature: Types.PCharRecord; var sel: Types.PI
 function FindAmmo(creature: Types.PCharRecord; w: Types.PItemRec; var sel: Types.PItemRec): Boolean;
 
 { Check the racial level limit for a class: a fighter's, and a half-elf ranger's, from FIGHTER_CAP by the character's
-  PermanentStrength, a half-elf cleric's (HALFELF_CLERIC_CAP), and a half-orc cleric's and thief's by Wisdom and
-  Dexterity (HalfOrcCap, #956); a level at or past the cap counts. }
+  PermanentStrength, a half-elf cleric's and magic-user's (HALFELF_CLERIC_CAP, HALFELF_MAGE_CAP), and a half-orc
+  cleric's and thief's by Wisdom and Dexterity (HalfOrcCap, #956); a level at or past the cap counts. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 
 { The Strength points the creature's disease (eff 43) has taken so far, which a cure gives back: the upper nibble of the
@@ -353,8 +353,10 @@ const
     (5, 5, 6),
     (6, 7, 8),
     (4, 5, 6));
-  { a half-elf cleric's cap }
+  { a half-elf cleric's cap, and a half-elf magic-user's (1st-edition PHB p. 14), which the experience table's end at 6
+    hid until the table ran to 9 (#1121) }
   HALFELF_CLERIC_CAP = 5;
+  HALFELF_MAGE_CAP = 8;
   { a half-orc's caps (1st-edition PHB pp. 14-15): a cleric's 4 to Wisdom 14, then one more a point to 7 at 17; a
     thief's 8 to Dexterity 14, then one more a point to 11 at 17 }
   HALFORC_CLERIC_CAP = 4;
@@ -1467,11 +1469,11 @@ begin
     { a class a dual-classed human has left never trains again (#838) }
     if creature^.portExt.formerClasses and (1 shl cls) <> 0 then
       lvl := 0;
-    { xp[] runs to C_LEVEL.LEVEL_LAST }
-    if (lvl > 0) and (lvl < C_LEVEL.LEVEL_LAST) then
+    { the experience table's end (ClassCal.LevelOpen, the Game Level Cap) and the race's limit are separate tests }
+    if lvl > 0 then
       if not CharHlp.AtLevelCap(creature, cls) then
-        if GameDefs.classExperience[cls].xp[lvl + 1] > 0 then
-          if anyXp or (GameDefs.classExperience[cls].xp[lvl + 1] <= creature^.experience) then
+        if ClassCal.LevelOpen(cls, lvl + 1) then
+          if anyXp or (ClassCal.LevelXp(cls, lvl + 1) <= creature^.experience) then
             mask := mask or (1 shl cls);
   end;
   TrainClasses := mask;
@@ -1528,6 +1530,8 @@ begin
       band := STR_BAND_18;
     if (race = C_RACE.HALF_ELF) and (cls = C_LEVEL.CLERIC) then
       AtLevelCap := lvl >= HALFELF_CLERIC_CAP
+    else if (race = C_RACE.HALF_ELF) and (cls = C_LEVEL.MAGE) then
+      AtLevelCap := lvl >= HALFELF_MAGE_CAP
     else if race = C_RACE.HALF_ORC then
       AtLevelCap := (CharHlp.HalfOrcCap(creature, cls) <> 0) and (lvl >= CharHlp.HalfOrcCap(creature, cls))
     else if (race in [C_RACE.DWARF..C_RACE.HALFLING]) and

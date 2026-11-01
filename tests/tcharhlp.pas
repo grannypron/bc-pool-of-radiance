@@ -306,6 +306,29 @@ begin
   c^.race := C_RACE.HALF_ELF;
   c^.classLevels[C_LEVEL.CLERIC] := 5;
   TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'a half-elf cleric stops at 5');
+  c^.classLevels[C_LEVEL.MAGE] := 7;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.MAGE), 'a half-elf magic-user trains past 7 (#1121)');
+  c^.classLevels[C_LEVEL.MAGE] := 8;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.MAGE), 'and stops at 8');
+
+  { training: the experience table's end, by the Game Level Cap, apart from the racial caps (#1121) }
+  ClearCreature;
+  c^.race := C_RACE.HUMAN;
+  c^.classLevels[C_LEVEL.CLERIC] := 6;
+  c^.experience := 60000;
+  GameVars.levelCapOn := 1;
+  TestKit.CheckEqualsL(0, CharHlp.TrainClasses(c, False), 'the cap on: a level 6 cleric with 60,000 does not train');
+  GameVars.levelCapOn := 0;
+  TestKit.CheckEqualsL(C_LEVEL.CLERIC_BIT, CharHlp.TrainClasses(c, False), 'the cap off: it trains to 7');
+  c^.experience := 50000;
+  TestKit.CheckEqualsL(0, CharHlp.TrainClasses(c, False), 'but not short of 55,001');
+  c^.classLevels[C_LEVEL.CLERIC] := 9;
+  c^.experience := 900000;
+  TestKit.CheckEqualsL(0, CharHlp.TrainClasses(c, False), 'and never past 9');
+  c^.race := C_RACE.HALF_ELF;
+  c^.classLevels[C_LEVEL.CLERIC] := 5;
+  TestKit.CheckEqualsL(0, CharHlp.TrainClasses(c, False), 'the racial cap holds with the table open');
+  GameVars.levelCapOn := 1;
 
   { a half-orc's cleric and thief caps by Wisdom and Dexterity (PHB pp. 14-15, #956) }
   ClearCreature;

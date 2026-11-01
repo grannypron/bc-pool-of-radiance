@@ -1063,7 +1063,7 @@ end;
 { TrainingMenu: Train curChar for 1000 gp. Refuses characters that are not C_STATUS.OKAY, have under 1000 gp, have no
   class this hall trains (C_GBVM.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee, but
   not the class and level limits, so a character with no class left to train is still sent away. Applies the racial
-  fighter (and half-elf cleric and ranger) level caps by permanent Strength (CharHlp.AtLevelCap). A character who trains
+  level caps (CharHlp.AtLevelCap) and the experience table's end (ClassCal.LevelOpen). A character who trains
   has experience clamped to one below the highest level + 2 threshold it has reached. A class a dual-classed human has
   left neither trains nor counts for the hall (#838). Each trained class gains a level and restores one drained level; a
   new magic-user level picks one spell; hit points grow by the rolled dice (and, for hpMax, the trained classes' Con
@@ -1101,8 +1101,9 @@ begin
         lvl := classLevels[cls];
         if trains and (1 shl cls) <> 0 then begin
           Inc(trainMask, GameDefs.classBits[cls]);
-          if lvl < C_LEVEL.LEVEL_LAST - 1 then
-            nextXp := GameDefs.classExperience[cls].xp[Succ(Succ(lvl))]
+          { a level past the class's end (ClassCal.LevelOpen, the Game Level Cap) clamps nothing }
+          if ClassCal.LevelOpen(cls, lvl + 2) then
+            nextXp := ClassCal.LevelXp(cls, lvl + 2)
           else
             nextXp := 0;
           if nextXp > 0 then

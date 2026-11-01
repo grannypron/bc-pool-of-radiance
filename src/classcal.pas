@@ -280,11 +280,28 @@ procedure ChangeClass(creature: Types.PCharRecord; cls: ShortInt);
   outside 1..C_SPELL.LAST. }
 function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 
+{ The experience level lvl of class slot cls (C_LEVEL) starts at: 0 for level 1 or below, the 1st-edition PHB's figure
+  (GameDefs.classExperience) for levels 2..C_LEVEL.LEVEL_LAST, and -1 for a class without a table (druid, monk) or a
+  level past LEVEL_LAST. It holds for a level a creature already has; whether a class may train to it is LevelOpen's. }
+function LevelXp(cls: ShortInt; lvl: Integer): LongInt;
+
+{ The highest level class slot cls trains to (#1121): SSI's while the Game Level Cap setting is on (GameVars.levelCapOn:
+  cleric and magic-user 6, paladin and ranger 7, fighter 8, thief 9), and C_LEVEL.LEVEL_LAST for every class with a
+  table while it is off. The racial limits are CharHlp.AtLevelCap's, a test of their own (#1176). }
+function MaxLevel(cls: ShortInt): ShortInt;
+
+{ True when class slot cls has a level lvl to train to: lvl is 2..MaxLevel and has a LevelXp figure. Training, its
+  experience clamp and Restoration ask it. }
+function LevelOpen(cls: ShortInt; lvl: Integer): Boolean;
+
 implementation
 
 uses GameDefs, GameVars, C_CLASS, C_LEVEL, C_STAT, C_EQUIP, C_ITEM, C_SAVE, Dice, CharHlp, AbilAdj;
 
 const
+  { the highest level each class slot reached in SSI's game, where its experience table stopped: MaxLevel's with the
+    Game Level Cap setting on (#1121); the druid and monk have no table }
+  ssiLevelCaps: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of ShortInt = (6, 0, 8, 7, 7, 6, 9, 0);
   { StartingAge's dice: the DMG's starting ages (p.12), by race and class (C_LEVEL); the monk column (7) has only the
     DMG's human monk, 21 + 1d4, as creation offers no monk }
   ageDice: array[C_RACE.DWARF..C_RACE.HUMAN, C_LEVEL.CLERIC..C_LEVEL.MONK] of Types.TRuleAge = (
@@ -517,8 +534,8 @@ const
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
   character), and for cleric or magic-user levels above 1 set the spell slots (clerics also get the Wisdom bonus and
   every cleric spell of a level with slots marked known, KnowClericSpells; a level-1 caster's slots are FirstLevelSlots'
-  and left as they are). The slot table fills only levels 2..6, the player cap, so a
-  higher-level caster (Genheeris, a level 7 magic-user who joins the party) takes the level 6 row. classThac0 covers
+  and left as they are). The slot table runs to C_LEVEL.LEVEL_LAST, and a higher level takes its last row, so the
+  slots follow the real level (#1121): Genheeris, a level 7 magic-user who joins the party, has level 7's. classThac0 covers
   levels 0..10, and a level outside that uses the nearer end. A dual-classed human's itemLimits are set
   (ItemLimitsFor). Each class counts at the level the creature can use
   (CharHlp.GetClassLevel): a class a dual-classed human has left and cannot use yet gives nothing, and a resting
@@ -543,8 +560,8 @@ begin
         C_LEVEL.MAGE: FillChar(creature^.mageSpells, SizeOf(creature^.mageSpells), 0);
       end;
     slotLvl := lvl;
-    if slotLvl > 6 then
-      slotLvl := 6;
+    if slotLvl > C_LEVEL.LEVEL_LAST then
+      slotLvl := C_LEVEL.LEVEL_LAST;
     tl := lvl;
     if tl < 0 then
       tl := 0
@@ -1213,6 +1230,29 @@ begin
     if (GameDefs.spellTable[spell].castClassSp = C_SPELL.CLASS_CLERIC) and
         (CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT) > 0) then
       SpellFailureChance := AbilAdj.WisSpellFailure(creature^.wisCur);
+end;
+
+function LevelXp(cls: ShortInt; lvl: Integer): LongInt;
+begin
+  if lvl < 2 then
+    LevelXp := 0
+  else if lvl > C_LEVEL.LEVEL_LAST then
+    LevelXp := -1
+  else
+    LevelXp := GameDefs.classExperience[cls].xp[lvl];
+end;
+
+function MaxLevel(cls: ShortInt): ShortInt;
+begin
+  if GameVars.levelCapOn <> 0 then
+    MaxLevel := ssiLevelCaps[cls]
+  else
+    MaxLevel := C_LEVEL.LEVEL_LAST;
+end;
+
+function LevelOpen(cls: ShortInt; lvl: Integer): Boolean;
+begin
+  LevelOpen := (lvl >= 2) and (lvl <= ClassCal.MaxLevel(cls)) and (ClassCal.LevelXp(cls, lvl) > 0);
 end;
 
 end.
