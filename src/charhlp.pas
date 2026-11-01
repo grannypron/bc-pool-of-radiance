@@ -263,8 +263,8 @@ function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
 
 { The spell Use casts from item: its effect, an effect past C_SPELL.ITEM_EFFECT_DIRECT_LAST being item spell effect -
   C_SPELL.ITEM_EFFECT_SHIFT (item effects 80..88 are spells 57..65, 150 and 151 are 127 and 128). C_SPELL.NONE for a
-  scroll, whose spells are picked from its list, for an item with no effect or one readying applies (special $80 and up), and for an effect past the
-  spell table, from corrupt or edited item data (#708). }
+  scroll, whose spells are picked from its list, for an item with no effect or one readying applies (special $80 and
+  up), and for an effect past the spell table, from corrupt or edited item data (#708). }
 function ItemSpell(item: Types.PItemRec): Byte;
 
 { True when item is a scroll creature can read (ScrollLegible) and could use: readied, or of a class Ready accepts. The
