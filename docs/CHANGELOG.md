@@ -38,6 +38,7 @@ This update is a broad one: it adds an easier setup process, smarter inventory h
 - **Consolidate Coin trades your coins up.** Turn on Consolidate Coin on the Settings screen's Game page (or in POOLCFG) and whenever a character picks up coins, by Take, Share or selling, the purse is changed into the fewest coins of the same value: 5 gold pieces make a platinum, 1,000 copper make one too. Every coin weighs the same, so the load drops. It is off by default; coins handed from one character to another stay as they are.
 - **Demihumans can pass their racial level limits.** Turn off Non-Human Level Cap on the Settings screen's Game page (or in POOLCFG) and dwarves, elves, gnomes, half-elves, halflings and half-orcs train as far as the experience table goes, as humans do, and the race screen at character creation shows U for every class the race can take. The game's own level limits for each class still apply, to every race. It is on by default, as in the rule book; a character already past its race's limit when you turn it back on keeps its levels and simply can't train further.
 
+- **The wilderness has a Move mode with diagonal steps.** As in Pools of Darkness, Move on the wilderness menu turns the bottom line to Exit. There the arrow keys move north, south, east and west, and Home, Page Up, End and Page Down (the keypad's 7, 9, 1 and 3) move diagonally, until Exit or Escape. A diagonal step takes 18 hours, against 12 for a straight one. The party can't squeeze diagonally between two impassable squares; one is no obstacle. The arrows still move from the usual menu, and Home and End there still pick the character.
 ### Interface improvements
 
 Most of these changes are small on their own, but together they make the game easier to understand and harder to operate by accident.
@@ -72,6 +73,7 @@ Most of these changes are small on their own, but together they make the game ea
 - The training hall's party menu has a blank line above and below the Name, AC and HP headings, and its Party, Character and Game headings are now magenta, so the highlighted command, in white, stands out.
 - The summary line under the spell lists shows its labels (RNG, AREA, TGT, DUR, SAVE, CAMP, CBT) in white and their values in green.
 - With no sound device (None in POOL.CFG, under DOS), the Settings screen's Sound page shows Music and Sound as OFF and greys out every line on it, and the cursor no longer stops there; POOLCFG's Sound Settings do the same until you pick a device on its Hardware page. Your Music and Sound choices are kept and come back when you choose a device. The native releases always have sound, so their pages are unchanged.
+- Alt-1 to Alt-8 open the first to eighth party member's items straight from the map, the wilderness or camp, making that member the current character as View does; Escape returns to where you were. A member with no items says so. F1's command keys list them.
 
 ### Fixes
 
