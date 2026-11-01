@@ -20,7 +20,7 @@ implementation
 uses Types, C_AREA, C_NPC, C_MSG, GameDefs, GameVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_ECL, C_LEVEL, C_IFC, C_GBVM, C_SOUND, C_MONEY, C_STATUS, C_TIME, VaultMnu, EclTrace, Border,
   Camp, EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
-  StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal, Bestiary, Sage, MagicShp,
+  StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal, Bestiary, Sage, MagicShp, EffHndlr,
   JrnlSeen{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -1408,6 +1408,13 @@ begin
         EclMenu.EclInflictDamage(dmg, p);
     end;
   end else begin
+    { a scripted volley is an encounter of its own: its first attack on a Cloak of Displacement's wearer misses,
+      however the last combat left the cloak (#1183) }
+    q := GameVars.creatureList;
+    while q <> nil do begin
+      EffHndlr.ResetDisplacement(q);
+      q := q^.nextCharAddr;
+    end;
     for i := 1 to attack do begin
       p := GameVars.creatureList;
       count := Dice.RollDice(1, Byte(GameVars.zone1^[C_GBVM.PARTY_SIZE]));

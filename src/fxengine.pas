@@ -100,6 +100,11 @@ function PrayerStrength(caster: Types.PCharRecord; level: Byte): Byte;
 { The side, 0 or 1, that cast a Prayer effect: its strength's C_EFFECT.PRAYER_SIDE bit. }
 function PrayerSide(effect: Types.PEffectRec): Byte;
 
+{ Mark the creature's displacement (effect 89, its first node) as spent this combat: C_EFFECT.DISPLACED_SPENT in its
+  strength, as EffHndlr.EffDisplaced does when it turns an attack aside. RollToHit calls it on a natural 1, which runs
+  no defender effects but is the first attack all the same (#1183). A creature without the effect is left alone. }
+procedure SpendDisplacement(creature: Types.PCharRecord);
+
 { Attack roll with no attacking creature (used by ECL script attacks): d20 into gAttackRoll, where 1 misses and 20
   becomes 100, then the defender's C_COND.ATTACK_ROLL_DEF (16) effects run. Hit when no effect forced a miss
   (GameVars.forcedMiss) and roll + sixtyMinusThac0 >= defender^.acCur, AttackRoll's test; SSI's needed more than
@@ -643,6 +648,14 @@ begin
   PrayerSide := (effect^.strength and C_EFFECT.PRAYER_SIDE) div C_EFFECT.PRAYER_SIDE;
 end;
 
+procedure SpendDisplacement(creature: Types.PCharRecord);
+var
+  effect: Types.PEffectRec;
+begin
+  if CharHlp.HasEffect(creature, C_EFFECT.DISPLACED, effect) then
+    effect^.strength := effect^.strength or C_EFFECT.DISPLACED_SPENT;
+end;
+
 { The d20 both attack rolls share: into gAttackRoll (1 misses, 20 becomes 100), then the attacker's
   C_COND.ATTACK_ROLL_ATT effects (none when attacker is nil) and the defender's C_COND.ATTACK_ROLL_DEF. A hit when no
   effect forced a miss and roll + toHit >= sixtyMinusAc. }
@@ -651,7 +664,10 @@ begin
   RollToHit := False;
   GameVars.forcedMiss := False;
   GameVars.gAttackRoll := Dice.RollDice(1, 20);
-  if GameVars.gAttackRoll > 1 then begin
+  if GameVars.gAttackRoll = 1 then
+    { a natural 1 misses on its own, but it is the attack a displacement was due to turn aside (#1183) }
+    FxEngine.SpendDisplacement(defender)
+  else begin
     if GameVars.gAttackRoll = 20 then GameVars.gAttackRoll := 100;
     if attacker <> nil then
       FxEngine.TriggerEffectsWithCondition(C_COND.ATTACK_ROLL_ATT, attacker);

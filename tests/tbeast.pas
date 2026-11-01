@@ -525,16 +525,17 @@ begin
   GameVars.forcedMiss := False;
   EffHndlr.EffBlinking(troll, nil, False);
   TestKit.Check(GameVars.forcedMiss and Learned('PHASE SPIDER', C_BEAST.BLINKS), 'one yet to act blinks (#1122)');
-  troll^.name := 'DISPLACER BEAST';
+  { a creature in a Cloak of Displacement: the displacer beast is not displaced (#1183) }
+  troll^.name := 'HOBGOBLIN';
   FillChar(node, SizeOf(node), 0);
   GameVars.curChar := kobold;
   EffHndlr.EffDisplaced(troll, @node, False);
-  TestKit.Check(not Learned('DISPLACER BEAST', C_BEAST.DISPLACED), 'a monster''s miss on it shows nothing');
+  TestKit.Check(not Learned('HOBGOBLIN', C_BEAST.DISPLACED), 'a monster''s miss on it shows nothing');
   node.strength := 0;
   GameVars.curChar := a;
   GameVars.forcedMiss := False;
   EffHndlr.EffDisplaced(troll, @node, False);
-  TestKit.Check(GameVars.forcedMiss and Learned('DISPLACER BEAST', C_BEAST.DISPLACED),
+  TestKit.Check(GameVars.forcedMiss and Learned('HOBGOBLIN', C_BEAST.DISPLACED),
                 'a party member''s first attack misses, and shows it (#1122)');
   troll^.name := 'EFREETI';
   GameVars.elementMask := C_EFFECT.ELEM_COLD;

@@ -2,11 +2,12 @@
   whatever the attack roll comes to, even a first-round roll modified to 0, which once cleared the displacement
   instead (#791); EffHndlr.ResetDisplacement makes it due again for the next combat. A Cloak of Displacement readied
   in combat (EffHndlr.EffReadyItem) displaces the next attack, rather than having its miss spent on the readying
-  (#784). }
+  (#784). A natural 1, which misses on its own, is the first attack all the same and spends the displacement
+  (FxEngine.SpendDisplacement, #1183). }
 {$I COMPILER.INC}
 program TDisplac;
 
-uses Types, C_EFFECT, C_IFC, GameVars, FxEngine, EffHndlr, TestKit;
+uses Types, C_EFFECT, C_IFC, GameVars, CharHlp, FxEngine, EffHndlr, TestKit;
 
 var
   att: Types.PCharRecord;
@@ -14,6 +15,7 @@ var
   rollTo: Integer;
   cloak: Types.TItemRec;
   hit: Boolean;
+  effect: Types.PEffectRec;
 
 {$F+}
 { The attacker's C_COND.ATTACK_ROLL_ATT effect: a roll above 1 becomes rollTo, as penalties or bonuses would make it. }
@@ -32,10 +34,16 @@ begin
   NewCreature := c;
 end;
 
-{ True when an attack on def is displaced. A natural 1 misses before any effect runs, so it is rolled again. }
+{ True when an attack on def is displaced. A natural 1 misses before any effect runs, so it is rolled again, with the
+  displacement it spent (#1183) put back. }
 function Displaced: Boolean;
+var
+  before: Byte;
 begin
+  hit := CharHlp.HasEffect(def, C_EFFECT.DISPLACED, effect);
+  before := effect^.strength;
   repeat
+    effect^.strength := before;
     GameVars.gAttackRoll := 0;
     hit := FxEngine.AttackRoll(att, def, 0);
   until GameVars.gAttackRoll = rollTo;
@@ -66,6 +74,17 @@ begin
   rollTo := 0;
   TestKit.Check(Displaced, 'a first-round roll of 0 is displaced');
   TestKit.Check(not Displaced, 'and has not made the displacement due again');
+
+  { a natural 1 as the first attack (#1183) }
+  repeat
+    EffHndlr.ResetDisplacement(def);
+    hit := FxEngine.AttackRoll(att, def, 0);
+  until GameVars.gAttackRoll = 1;
+  TestKit.Check(not hit and not GameVars.forcedMiss, 'a natural 1 misses without the displacement');
+  rollTo := 10;
+  TestKit.Check(not Displaced, 'but spends it: the next attack is not displaced');
+  EffHndlr.ResetDisplacement(def);
+  TestKit.Check(Displaced, 'and the next combat makes it due again');
 
   { a cloak readied in combat (#784) }
   FxEngine.RemoveEffect(def, C_EFFECT.DISPLACED, nil);
