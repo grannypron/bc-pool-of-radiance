@@ -9,6 +9,9 @@ uses C_GENDER, C_SAVE, C_EQUIP, C_LEVEL, C_STAT, C_MONEY, C_GBVM, C_SPELL;
 const
   { the longest name a character or creature has }
   NAME_LEN = 15;
+  { the most drained levels a character's drain log keeps (TCharExt.drains, #1174); a drain past them drops the
+    oldest }
+  DRAIN_LOG_LEN = 8;
   { how much bigger a pointer is than the 4-byte far pointer the saved records hold: 0 in DOS and a 32-bit program, 4 in
     a 64-bit one. TCharRecord's pads grow by it, as the pointer before the field each skips to does (DiskRec has the
     records' disk form). }
@@ -117,6 +120,16 @@ type
   TSpellSlots = array[0..SPELL_SLOT_LAST] of Byte;
   { All of a character's memorized spells, the record's and the port's (CharHlp.GetMemorized). }
   TMemorized = array[0..MEMORIZED_LAST] of Byte;
+  { a count for each class, by C_LEVEL slot }
+  TClassCounts = array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Byte;
+  { One level an energy drain took (#1174): the experience it cost (the experience before less the experience after),
+    the hit points it took and the class it lowered (a C_LEVEL slot). Restoration gives back that level, those hit
+    points and that experience. }
+  TDrainRec = record
+    xp: LongInt;
+    hp: Byte;
+    cls: ShortInt;
+  end;
   { The port's own fields of a character, kept past the record's saved bytes: no file of SSI's has them. A character's
     are kept in its .chx file (CharExt), read when it is loaded; a record from SSI's form (DiskRec.CharFromDisk: a
     .cha or .sav, a monster from MONxCHA.DAX) has them all zero. }
@@ -128,6 +141,12 @@ type
     formerClasses: Byte;
     { CharExt.EXT_* bits: EXT_ANIMATE_JOINED for a creature that joined the party through Animate Dead (#1089). }
     flags: Byte;
+    { The drain log (#1174): the last drainCount levels drained, drains[1] the oldest, drains[drainCount] the most
+      recent, which Restoration gives back first (CharExt.PushDrain, PopDrain). drainedLevels counts every drained
+      level: the ones before the log was kept (an old save) or past its DRAIN_LOG_LEN entries have none, and are
+      restored as before. drainCount is never above drainedLevels. }
+    drainCount: Byte;
+    drains: array[1..DRAIN_LOG_LEN] of TDrainRec;
     { The spells past SSI's record (#1121), read through CharHlp: the cleric's and magic-user's spell slots of levels
       4 and 5, a ranger's druid slots, the spells known past KNOWN_RECORD_LAST (a bit each, id - KNOWN_RECORD_LAST - 1
       from bit 0 of the first byte), and the memorized-spell slots past the record's. }

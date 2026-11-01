@@ -40,7 +40,7 @@ implementation
 uses Types, Crt, C_AREA, GameDefs, GameVars, SaveLoad, ViewChar, Border, C_CLASS, C_LEVEL, C_RACE,
   C_KEYS, C_EFFECT, C_SPELL, C_STATUS, C_IFC, C_GBVM, C_STAT, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
-  VidOps, ChgClass, PartyMnu{$IFDEF FPC}, TpRand{$ENDIF};
+  VidOps, ChgClass, PartyMnu, CharExt{$IFDEF FPC}, TpRand{$ENDIF};
 
 const
   { Racial ability adjustments, by race and ability, added to each 3d6 roll before the racial limits apply. }
@@ -1001,7 +1001,8 @@ begin
 end;
 
 { GainLevels: curChar gains a level in each of its classes in mask (GameDefs.classBits), as training gives it: with
-  restoreDrain, one drained level is restored for each; base skills are recalculated; a new magic-user level picks one
+  restoreDrain, one drained level is restored for each, its entry on the drain log dropped and the experience the
+  drain took forfeit (CharExt.TrainDrain, #1174); base skills are recalculated; a new magic-user level picks one
   spell; hit points grow by the rolled dice (and, for hpMax, the classes' Con bonus) divided by the class count, at
   least 1, damage kept. A dual-classed human (#838) gains no level in a class it has left, and no hit points until the
   class it follows passes the class it left (ClassCal.HitDice): then its own die alone, undivided. A class that
@@ -1019,6 +1020,7 @@ var
   idx: Integer;
   notEmpty: Boolean;
   resting: Byte;
+  entry: Types.TDrainRec;
 begin
   resting := ChgClass.RestingMask(GameVars.curChar);
   with GameVars.curChar^ do begin
@@ -1029,7 +1031,14 @@ begin
         if (GameDefs.classBits[cls] and trainable > 0) and (portExt.formerClasses and (1 shl cls) = 0) then begin
           Inc(classLevels[cls]);
           if restoreDrain and (drainedLevels > 0) then begin
-            Dec(drainedHps, drainedHps div drainedLevels);
+            { the drain's entry goes with its experience (#1174), its hit points by the new roll below }
+            if CharExt.TrainDrain(GameVars.curChar, cls, entry) then begin
+              if entry.hp > drainedHps then
+                drainedHps := 0
+              else
+                Dec(drainedHps, entry.hp);
+            end else
+              Dec(drainedHps, drainedHps div drainedLevels);
             Dec(drainedLevels);
           end;
         end;

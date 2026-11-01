@@ -268,9 +268,9 @@ function CanTakeClass(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 
 { Change creature's class to cls, the record's part of it (ChgClass does the rest): the class it followed becomes
   portExt.formerClasses with its level kept; cls starts at level 1 with no experience and becomes charClass; drained
-  levels are forfeit (Pools zeroes its drain record at the change); memorized spells and spell slots are emptied, and a
-  new caster's first level set up (StartCasterClass); itemLimits and the skills follow (RecalcBaseSkills). Hit points
-  stay as they are. }
+  levels and their drain log are forfeit (Pools zeroes its drain record at the change); memorized spells and spell
+  slots are emptied, and a new caster's first level set up (StartCasterClass); itemLimits and the skills follow
+  (RecalcBaseSkills). Hit points stay as they are. }
 procedure ChangeClass(creature: Types.PCharRecord; cls: ShortInt);
 
 { The chance, in percent, that creature's casting of spell from memory fails: AbilAdj.WisSpellFailure for its Wisdom
@@ -501,6 +501,7 @@ begin
     experience := 0;
     drainedLevels := 0;
     drainedHps := 0;
+    portExt.drainCount := 0;
   end;
   CharHlp.ClearMemorized(creature);
   CharHlp.ClearSpellSlots(creature, C_SPELL.CLASS_CLERIC);

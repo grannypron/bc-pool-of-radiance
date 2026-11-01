@@ -146,6 +146,19 @@ procedure EffPetrifyGaze(creature: Types.PCharRecord; p: Pointer; removed: Boole
 
 procedure EffCharmGaze(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
+{ Drain levels from a creature; an animated creature, or one with no class levels, is destroyed instead. For each level
+  the creature loses hpMax div (total class levels) from hpMax, hpRolled and hpCur, then either dies forever (highest
+  level below 2) or loses a level in the class picked by ClassToDrain, dying if its HP reached 0, its skills and
+  spell slots recalculated and the memorized spells past the new slots cleared (ClassCal.FitSpellsToLevel, POR-0223).
+  Its highest level and experience are then reset from the class ClassToDrain picks after the loss. A dual-classed
+  human (#838) is drained in the class it follows alone, as Pools of Darkness drains it (pools-disassembly v11
+  effhndlr.pas:1829-1834): it loses hit points only for a level that gave them (ClassCal.HitDice), it is dead forever
+  when that class is below level 2, a class it left rests again when the class it follows falls back to it
+  (ChgClass.SyncClassPowers), and its highest level is that of its highest class. Each level lost and not dead
+  forever goes on the drain log (CharExt.PushDrain, #1174): the experience it cost, its hit points and the class
+  lowered, which Restoration gives back. }
+procedure DrainLevels(creature: Types.PCharRecord; levels: Byte);
+
 procedure EffDrainOne(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffDrainTwo(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -262,7 +275,7 @@ implementation
 
 uses C_ITEM, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
   C_RACE, C_STATUS, C_IFC, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
-  C_LEVEL, Dice, Stats, ChgClass, Bestiary, C_BEAST, C_SPRITE;
+  C_LEVEL, Dice, Stats, ChgClass, Bestiary, C_BEAST, C_SPRITE, CharExt;
 
 const
   { The petrifying gaze's range in squares (1" a square). The Monster Manual gives the medusa's 3"; the basilisk's, the
@@ -1529,15 +1542,6 @@ begin
     FxEngine.CallEffectHandler(C_EFFECT.CHARM, target, effect, False);
 end;
 
-{ Drain levels from a creature; an animated creature, or one with no class levels, is destroyed instead. For each level
-  the creature loses hpMax div (total class levels) from hpMax, hpRolled and hpCur, then either dies forever (highest
-  level below 2) or loses a level in the class picked by ClassToDrain, dying if its HP reached 0, its skills and
-  spell slots recalculated and the memorized spells past the new slots cleared (ClassCal.FitSpellsToLevel, POR-0223).
-  Its highest level and experience are then reset from the class ClassToDrain picks after the loss. A dual-classed
-  human (#838) is drained in the class it follows alone, as Pools of Darkness drains it (pools-disassembly v11
-  effhndlr.pas:1829-1834): it loses hit points only for a level that gave them (ClassCal.HitDice), it is dead forever
-  when that class is below level 2, a class it left rests again when the class it follows falls back to it
-  (ChgClass.SyncClassPowers), and its highest level is that of its highest class. }
 procedure DrainLevels(creature: Types.PCharRecord; levels: Byte);
 var
   numStr: Types.TStr40;
@@ -1550,6 +1554,9 @@ var
   k: Byte;
   dual: Boolean;
   top: ShortInt;
+  xpBefore: LongInt;
+  lowered: ShortInt;
+  lost: LongInt;
 
   { Which class to drain: scanning classes 0..7, take each one whose level is >= the best so far and whose XP table
     entry for that level is >= the best so far (or is the -1 "at cap" sentinel); later classes win ties. xpMin is left
@@ -1616,6 +1623,9 @@ begin
       { tested here, so a drain loads Debug only with the STING display on }
       if GameVars.stingHpFlag <> 0 then
         Debug.PrintHpDebug('max,cur,lost', creature^.hpMax, creature^.hpCur, creature^.drainedHps);
+      xpBefore := creature^.experience;
+      { no class lowered yet: a creature dead forever logs nothing }
+      lowered := -1;
       for k := 1 to hpPerLevel do begin
         if creature^.hpMax > 0 then
           Dec(creature^.hpMax);
@@ -1638,6 +1648,7 @@ begin
           creature^.classLevels[cls] := 0;
       end else begin
         Dec(creature^.classLevels[cls]);
+        lowered := cls;
         if creature^.hpCur = 0 then
           if creature^.status <> C_STATUS.DEAD_STATUS then
             EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD_STATUS, 'is killed');
@@ -1652,6 +1663,12 @@ begin
           if creature^.classLevels[j] > creature^.levelHighest then
             creature^.levelHighest := creature^.classLevels[j];
       creature^.experience := xpMin;
+      if lowered >= 0 then begin
+        lost := xpBefore - creature^.experience;
+        if lost < 0 then
+          lost := 0;
+        CharExt.PushDrain(creature, lost, hpPerLevel, lowered);
+      end;
       CharHlp.RecalcStats(creature);
       if dual then
         ChgClass.SyncClassPowers(creature);

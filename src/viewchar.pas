@@ -9,6 +9,11 @@ uses Types;
 
 procedure DisplayChar(creature: Types.PCharRecord);
 
+{ The secondary statuses the View page shows after creature's status, in red (#1161): ', Poisoned' while it has the
+  POISONED effect (a character killed by poison keeps it: 'Dead, Poisoned'), and ', Drained' while it has drained
+  levels; '' with neither. How many levels each class lost is shown on the Level line (Magic.DrainedByClass). }
+function SecondaryStatus(creature: Types.PCharRecord): Types.TStr40;
+
 procedure PrintCombatStats;
 
 procedure PrintStat(statIdx: ShortInt; modifying: Boolean);
@@ -67,42 +72,83 @@ begin
   TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, clearFirst, s);
 end;
 
+{ The Level line's mark after a class's level for the n levels drained from it (#1161): '(-n)', '' when none. }
+function DrainMark(n: Byte): Types.TStr40;
+begin
+  if n = 0 then
+    DrainMark := ''
+  else
+    DrainMark := '(-' + StrUtil.NumStr(n) + ')';
+end;
+
+{ Draw the level of class cls at levelCol of levelRow in color, with its drain mark in red after it (DrainMark),
+  moving levelCol past both. prefix ('/' or ' (') goes before the level and suffix (')' or '') after it. }
+procedure DrawLevel(creature: Types.PCharRecord; cls: ShortInt; drained: Byte; levelRow, color: Byte;
+  prefix, suffix: Types.TStr40; var levelCol: Byte);
+var
+  s: Types.TStr40;
+begin
+  s := prefix + StrUtil.NumStr(creature^.classLevels[cls]);
+  TextRend.DisplayString(levelCol, levelRow, color, s);
+  Inc(levelCol, Length(s));
+  s := ViewChar.DrainMark(drained);
+  if s <> '' then begin
+    TextRend.DisplayString(levelCol, levelRow, LightRed, s);
+    Inc(levelCol, Length(s));
+  end;
+  if suffix <> '' then begin
+    TextRend.DisplayString(levelCol, levelRow, color, suffix);
+    Inc(levelCol, Length(suffix));
+  end;
+end;
+
 { Draws a dual-classed human's current and former classes (#838). A former class
-  is gray and parenthesized while inactive, then white once its abilities return. }
-procedure DrawDualClass(creature: Types.PCharRecord; classRow, levelRow: Byte);
+  is gray and parenthesized while inactive, then white once its abilities return.
+  Each level has its drain mark (drained, DrainMark); levelCol ends past the levels. }
+procedure DrawDualClass(creature: Types.PCharRecord; classRow, levelRow: Byte; var drained: Types.TClassCounts;
+  var levelCol: Byte);
 var
   col: Byte;
   cls: ShortInt;
-  color: Byte;
   s: Types.TStr40;
-  levelCol: Byte;
 begin
   s := GameDefs.classNames[creature^.charClass];
   TextRend.DisplayString(1, classRow, White, s);
   col := 1 + Length(s);
-  s := StrUtil.NumStr(creature^.classLevels[creature^.charClass]);
   levelCol := 7;
-  TextRend.DisplayString(levelCol, levelRow, White, s);
-  Inc(levelCol, Length(s));
+  ViewChar.DrawLevel(creature, creature^.charClass, drained[creature^.charClass], levelRow, White, '', '', levelCol);
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
     if (creature^.portExt.formerClasses and (1 shl cls) <> 0) and (creature^.classLevels[cls] > 0) then begin
       if CharHlp.ClassResting(creature, cls) then begin
-        color := DarkGray;
-        s := ' (' + StrUtil.NumStr(creature^.classLevels[cls]) + ')';
+        ViewChar.DrawLevel(creature, cls, drained[cls], levelRow, DarkGray, ' (', ')', levelCol);
+        s := ' (' + GameDefs.classNames[cls] + ')';
+        TextRend.DisplayString(col, classRow, DarkGray, s);
       end else begin
-        color := White;
-        s := '/' + StrUtil.NumStr(creature^.classLevels[cls]);
+        ViewChar.DrawLevel(creature, cls, drained[cls], levelRow, White, '/', '', levelCol);
+        s := ' (' + GameDefs.classNames[cls] + ')';
+        TextRend.DisplayString(col, classRow, White, s);
       end;
-      TextRend.DisplayString(levelCol, levelRow, color, s);
-      Inc(levelCol, Length(s));
-      s := ' (' + GameDefs.classNames[cls] + ')';
-      TextRend.DisplayString(col, classRow, color, s);
       Inc(col, Length(s));
     end;
 end;
 
+function SecondaryStatus(creature: Types.PCharRecord): Types.TStr40;
+var
+  s: Types.TStr40;
+  effect: Types.PEffectRec;
+begin
+  s := '';
+  if CharHlp.HasEffect(creature, C_EFFECT.POISONED, effect) then
+    s := s + ', Poisoned';
+  if creature^.drainedLevels > 0 then
+    s := s + ', Drained';
+  SecondaryStatus := s;
+end;
+
 { Draw creature's character sheet; the portrait is curChar's (Portrait.DisplayCharPortrait), which every caller shows.
-  A dual-classed human's class and level lines show the classes it has left too (DrawDualClass). }
+  A dual-classed human's class and level lines show the classes it has left too (DrawDualClass). A class that lost
+  levels to energy drains has their count after its level, in red (DrainMark, #1161); a mark that would run into Exp
+  moves it right. The status has its secondary statuses after it, in red (SecondaryStatus). }
 procedure DisplayChar(creature: Types.PCharRecord);
 var
   row: Byte;
@@ -111,6 +157,7 @@ var
   j: ShortInt;
   s: String;
   multi: Boolean;
+  drained: Types.TClassCounts;
 begin
   TextRend.ClearScreen;
   Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
@@ -137,22 +184,26 @@ begin
   end;
   ViewChar.PrintMoney;
   TextRend.DisplayString(1, 15, White, 'Level');
+  Magic.DrainedByClass(creature, drained);
   if CharHlp.IsDualClass(creature) then
-    ViewChar.DrawDualClass(creature, 5, 15)
+    ViewChar.DrawDualClass(creature, 5, 15, drained, col)
   else begin
     multi := False;
-    s := '';
+    col := 7;
     { one entry per class the character has levels in, joined with '/' }
     for j := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if creature^.classLevels[j] > 0 then begin
         if multi then
-          s := s + '/';
-        s := s + StrUtil.NumStr(creature^.classLevels[j]);
+          ViewChar.DrawLevel(creature, j, drained[j], 15, White, '/', '', col)
+        else
+          ViewChar.DrawLevel(creature, j, drained[j], 15, White, '', '', col);
         multi := True;
       end;
-    TextRend.DisplayString(7, 15, White, s);
   end;
-  TextRend.DisplayString(17, 15, White, 'Exp ' + StrUtil.NumStr(creature^.experience));
+  { Exp in its column, or a column past drain marks that reach it: a triple class drained in each still fits }
+  if col < 16 then
+    col := 16;
+  TextRend.DisplayString(col + 1, 15, White, 'Exp ' + StrUtil.NumStr(creature^.experience));
   ViewChar.PrintCombatStats;
   row := 20;
   if creature^.equipped[C_EQUIP.WEAPON] <> nil then begin
@@ -167,7 +218,10 @@ begin
   end;
   Inc(row);
   TextRend.DisplayString(1, row, White, 'Status');
-  TextRend.DisplayString(8, row, LightGreen, GameDefs.statusNames[creature^.status]);
+  s := GameDefs.statusNames[creature^.status];
+  TextRend.DisplayString(8, row, LightGreen, s);
+  { the longest, 'Unconscious, Poisoned, Drained', ends in column 37 }
+  TextRend.DisplayString(8 + Length(s), row, LightRed, ViewChar.SecondaryStatus(creature));
   if (GameVars.portraitsAll <> 0) and (GameVars.portraitsOn <> 0) and Portrait.PlayerPortraitsHere then
     Portrait.DisplayCharPortrait;
 end;
