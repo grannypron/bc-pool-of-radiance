@@ -103,6 +103,10 @@ function Team(creature: Types.PCharRecord): Byte;
 
 procedure CountTeams;
 
+{ True when CountTeams last found a side with no one in action (teamCount[0] or teamCount[1] is 0): the fight is over.
+  Combat.CombatMain asks it after each creature acts, and Combat.EndOfRound at the round's end. }
+function SideEmpty: Boolean;
+
 function EndActions(creature: Types.PCharRecord): Boolean;
 
 function CanUseItems(creature: Types.PCharRecord): Boolean;
@@ -1408,6 +1412,11 @@ begin
       Inc(GameVars.teamCount[CharHlp.Team(p)]);
     p := p^.nextCharAddr;
   end;
+end;
+
+function SideEmpty: Boolean;
+begin
+  SideEmpty := (GameVars.teamCount[0] = 0) or (GameVars.teamCount[1] = 0);
 end;
 
 { Zero the creature's per-round combat state (initiative, spell being cast, guarding, movement). Always returns True. }

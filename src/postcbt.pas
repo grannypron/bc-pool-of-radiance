@@ -24,12 +24,13 @@ procedure PostCombat;
 { Monsters and hostile creatures are removed, counting the ones not enabled in C_GBVM.MONSTERS_DEFEATED; the others get
   their combat records freed, and while the Quick Ends With Fight setting is on (GameVars.quickEnds) party members leave
   Quick (quickfight 0) so that the treasure screen and the next combat find them under manual control. NPCs and animated
-  creatures keep quickfight, as Space in combat leaves them. When the party won (won), a monster Animate Dead raised on
-  its side and still animated is kept instead, while the party has room for it (#1089): taken out of the list with its
-  combat record freed and its Animate Dead effect's stored side made the party's, so that Dispel Magic ending the spell
-  (EffHndlr.EffAnimateDead, which gives the creature back that side) leaves a party member on the party's side, and
-  marked CharExt.EXT_ANIMATE_JOINED; it goes into risen.kept for JoinRisen. One with no room is removed as before, its
-  name in risen.lost. curChar is left at the list head. }
+  creatures keep quickfight, as Space in combat leaves them, but an NPC a paladin led this fight (the combat record's
+  led, #1124) goes back under the computer's control (quickfight 1). When the party won (won), a monster Animate Dead
+  raised on its side and still animated is kept instead, while the party has room for it (#1089): taken out of the list
+  with its combat record freed and its Animate Dead effect's stored side made the party's, so that Dispel Magic ending
+  the spell (EffHndlr.EffAnimateDead, which gives the creature back that side) leaves a party member on the party's
+  side, and marked CharExt.EXT_ANIMATE_JOINED; it goes into risen.kept for JoinRisen. One with no room is removed as
+  before, its name in risen.lost. curChar is left at the list head. }
 procedure PostCombatCreatureCleanup(won: Boolean; var risen: TRisen);
 
 { Runs the post-combat loot menu. When only money or items remain, opens that
@@ -535,6 +536,9 @@ begin
       p := next;
     end else begin
       if p^.combatAddr <> nil then begin
+        { an NPC a paladin led goes back under the computer's control (#1124) }
+        if p^.combatAddr^.led <> 0 then
+          p^.quickfight := 1;
         FreeMem(p^.combatAddr, SizeOf(Types.TCombatRec));
         p^.combatAddr := nil;
       end;
