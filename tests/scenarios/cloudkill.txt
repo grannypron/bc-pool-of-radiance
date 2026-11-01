@@ -1,0 +1,44 @@
+# Cloudkill in combat (#1193), from save I's party in Podal Plaza with ANDREA raised to a 9th-level magic-user and
+# Cloudkill memorized (saves/cloudkill, slot D). Resting draws orcs; Andrea casts Cloudkill, the aim preview shows its
+# 3x3 cloud and its catch, and the cloud kills the orcs in it and stays on the map. The golden build has no Cloudkill,
+# so it fails until the goldens are recorded from a build with it.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/cloudkill
+press l d
+wait AREA
+checkpoint podal-plaza
+press e
+wait CAMP
+press r d i i i i i r
+wait CAMP
+press r d i i i i i r
+wait CAMP
+press r d i h i i i i i i i i r
+wait MOVE 180
+checkpoint encounter
+# Gins guards; Andrea's turn
+press d g
+wait-text ^ANDREA$ 120
+wait CAST 60
+press c
+wait CAST:
+press end end end end end
+checkpoint cast-list
+press c
+# the spell takes its time: Talonia guards, then Andrea aims
+wait-text ^TALONIA$ 120
+wait MOVE 60
+press d g
+wait AIM 120
+checkpoint aim
+press t
+wait MOVE 120
+checkpoint cloud
+# look along the cloud: no orc is left in it
+press a m down down down
+wait CURSOR
+checkpoint cloud-view
+press esc esc
+wait MOVE

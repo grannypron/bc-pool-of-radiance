@@ -22,7 +22,7 @@ const
 var
   { 2D map tile set image buffer 2; bit 7 of a tile id selects it }
   mapTilePtr2: Types.PImgBuf;
-  { Cloudkill's cloud in combat (#1193): RANDCOM.DAX again, its stinking cloud frame recoloured; nil outside combat }
+  { Cloudkill's cloud in combat (#1193): RANDCOM.DAX's stinking cloud frame alone, recoloured; nil outside combat }
   cloudkillArt: Types.PImgBuf;
 
 procedure Load24x24Set(name: string; mult: Byte);
@@ -106,21 +106,33 @@ end;
 procedure DrawTerrain(col, row: ShortInt; terr: Byte);
 begin
   if (terr = C_TERR.CLOUDKILL) and (cloudkillArt <> nil) then
-    Blit.BlitTileCell(col, row, GameDefs.terrainInfo[C_TERR.STINKING_CLOUD].tileId - FEATURE_SLOT, 0, cloudkillArt,
-                      GameVars.viewBuffer)
+    Blit.BlitTileCell(col, row, 0, 0, cloudkillArt, GameVars.viewBuffer)
   else
     MapTiles.Copy2DTile(col, row, GameDefs.terrainInfo[terr].tileId);
 end;
 
 procedure LoadCloudkillArt;
 var
+  pic: Types.PImgBuf;
+  src: Types.PImgBuf;
+  frame: Word;
   toT: Types.TColorTab;
 begin
-  Blit.LoadPic('RandCom', 1, False, 0, cloudkillArt);
+  Blit.FreePic(cloudkillArt);
+  pic := nil;
+  Blit.LoadPic('RandCom', 1, False, 0, pic);
+  if pic = nil then Exit;
+  { the stinking cloud's frame alone, so the fight holds one tile more and not the whole set }
+  Blit.AllocPic(pic^.height, pic^.width, 1, 0, cloudkillArt);
+  cloudkillArt^.map := pic^.map;
+  src := pic;
+  frame := GameDefs.terrainInfo[C_TERR.STINKING_CLOUD].tileId - FEATURE_SLOT;
+  Blit.FrameBlock(src, frame);
+  Move(src^.data[frame * src^.imgSize], cloudkillArt^.data, src^.imgSize);
+  Blit.FreePic(pic);
   toT := GameDefs.colorIdentity;
   toT[LightGreen] := Yellow;
-  Blit.RemapPic(GameDefs.colorIdentity, toT, GameDefs.terrainInfo[C_TERR.STINKING_CLOUD].tileId - FEATURE_SLOT, False,
-                cloudkillArt);
+  Blit.RemapPic(GameDefs.colorIdentity, toT, 0, False, cloudkillArt);
 end;
 
 procedure FreeCloudkillArt;
