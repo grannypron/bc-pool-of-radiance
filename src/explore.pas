@@ -11,10 +11,11 @@ procedure ResolveMovement;
 
 function MapMainMenu: Char;
 
-{ F1, F2 and F6 on the map and camp menus: the Command Keys window (KeyHelp.ShowKeys, #855; quickKeys says whether it
-  lists F5 and F8), the Bestiary (#842) and the Companion Tools while that setting is on (phase 8), each followed by the
-  screen drawn again (CharDisp.DisplayWildernessInterface when wild, else DisplayNoncombatInterface). False for any
-  other key, which the caller handles. }
+{ F1, F2, F6 and Alt-1 to Alt-8 on the map and camp menus: the Command Keys window (KeyHelp.ShowKeys, #855; quickKeys
+  says whether it lists F5 and F8), the Bestiary (#842), the Companion Tools while that setting is on (phase 8) and
+  party member n's items (ViewChar.MemberItems, #1175; nothing without a member n), each followed by the screen drawn
+  again (CharDisp.DisplayWildernessInterface when wild, else DisplayNoncombatInterface). False for any other key, which
+  the caller handles. }
 function SideScreen(c: Char; quickKeys, wild: Boolean): Boolean;
 
 { The party member who would cast Knock at a door (#1015): the first Okay member with it memorized (scroll nil), or
@@ -342,10 +343,19 @@ end;
 function SideScreen(c: Char; quickKeys, wild: Boolean): Boolean;
 var
   shown: Boolean;
+  member: Types.PCharRecord;
 begin
   shown := True;
   case c of
     C_KEYS.F1: KeyHelp.ShowKeys(quickKeys);
+    { a party member's items (#1175); with no member n, nothing }
+    C_KEYS.ALT_1..C_KEYS.ALT_8: begin
+                                  member := Party.MemberAt(Ord(c) - Ord(C_KEYS.ALT_1) + 1);
+                                  if member <> nil then
+                                    ViewChar.MemberItems(member)
+                                  else
+                                    shown := False;
+                                end;
     C_KEYS.F2: BeastMnu.BestiaryMenu;
     C_KEYS.F6: if GameVars.companionOn <> 0 then
                  CompTool.ToolsMenu

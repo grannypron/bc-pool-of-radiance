@@ -1,5 +1,5 @@
 { Tests for Party: stepping the current character with SelectPrevNextChar, from a character and from none (#806),
-  and the creature before and after nil (#949). }
+  the creature before and after nil (#949), and party member n for Alt-1 to Alt-8 (#1175). }
 {$I COMPILER.INC}
 program TParty;
 
@@ -56,6 +56,14 @@ begin
   { PrevCreature and NextCreature of nil: nil is the place after the last }
   TestKit.Check(Party.PrevCreature(nil) = c, 'the creature before nil is the last');
   TestKit.Check(Party.NextCreature(nil) = a, 'the creature after nil is the head');
+
+  { MemberAt counts from the head, the party's members only }
+  TestKit.Check(Party.MemberAt(1) = a, 'member 1 is the head');
+  TestKit.Check(Party.MemberAt(3) = c, 'member 3 is the third');
+  TestKit.Check(Party.MemberAt(4) = nil, 'a three-member party has no member 4');
+  TestKit.Check(Party.MemberAt(0) = nil, 'nor a member 0');
+  GameVars.zone1^[C_GBVM.PARTY_SIZE] := 2;
+  TestKit.Check(Party.MemberAt(3) = nil, 'a creature after the party is no member');
 
   { an empty list leaves no one selected }
   GameVars.creatureList := nil;

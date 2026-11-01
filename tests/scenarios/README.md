@@ -66,6 +66,7 @@ the text matches (an animated picture) is only a warning.
 | `areachange` | New Phlan's script handing over to the training hall's (NEWECL), named in the save popup |
 | `wilderness` | the central wilderness from save G (`saves/wild`, put into `SAVE\` by the scenario): the map and its second tile set, three steps, and the overlay loads, heap and picture memory (Ctrl-Y; ours only) |
 | `wildfight` | save G again: a 32-step walk that meets a random encounter under NORAND, the fight's start, and the memory there |
+| `altitems` | Alt-1 to Alt-8 (#1175), from save G (`saves/wild`): Alt-2 opens the second member's items and Escape puts the wilderness back, Alt-7 with six members does nothing, F1 lists the Alt keys, and Alt-1 in camp opens the first member's items; the golden build has no Alt keys, so it fails until the goldens are recorded from a build with them |
 | `stojanow` | Stojanow Gate once taken (#683), from save A moved there (`saves/stojanow`): the cheer before the gatehouse and behind it, once a visit, and the guard room become barracks |
 | `bane` | the Temple of Bane freed with Dirten in the party (#682), from save A moved beside its altar with a member made Dirten (`saves/bane`): the fight won with Alt-X, the farewell, the day kept in the save, the rebuilding |
 | `banetemple` | Dirten's temple 14 days on (#682, `saves/banetemple`): his welcome, the temple, the twelve-line Heal list (#1125), Cure Light Wounds at 90 gold pieces, Repair's quote (this build only), the view restored |

@@ -16,7 +16,7 @@ const
   SHOW_SOUND = 4;
   SHOW_LOG = 5;
   { Number of entries in KEYS. }
-  KEY_LINES = 8;
+  KEY_LINES = 16;
 
 type
   { One row in the help window. }
@@ -35,6 +35,14 @@ const
     (key: 'F6  '; what: 'Companion Tools'; show: SHOW_COMPANION),
     (key: 'F7  '; what: 'Action Log (Combat Only)'; show: SHOW_LOG),
     (key: 'F8  '; what: 'Quick Load'; show: SHOW_QUICK),
+    (key: 'ALT-1  '; what: 'View PC 1''s inventory'; show: SHOW_ALWAYS),
+    (key: 'ALT-2  '; what: 'View PC 2''s inventory'; show: SHOW_ALWAYS),
+    (key: 'ALT-3  '; what: 'View PC 3''s inventory'; show: SHOW_ALWAYS),
+    (key: 'ALT-4  '; what: 'View PC 4''s inventory'; show: SHOW_ALWAYS),
+    (key: 'ALT-5  '; what: 'View PC 5''s inventory'; show: SHOW_ALWAYS),
+    (key: 'ALT-6  '; what: 'View PC 6''s inventory'; show: SHOW_ALWAYS),
+    (key: 'ALT-7  '; what: 'View PC 7''s inventory'; show: SHOW_ALWAYS),
+    (key: 'ALT-8  '; what: 'View PC 8''s inventory'; show: SHOW_ALWAYS),
     (key: 'CTRL-S '; what: 'Sound On/Off'; show: SHOW_SOUND),
     (key: 'CTRL-Y '; what: 'Memory Stats'; show: SHOW_STING));
 
@@ -81,7 +89,7 @@ procedure ShowKeys(quickKeys: Boolean);
 var
   n: Byte;
   row: Byte;
-  { the first character of the last line shown: F for a function key, C for a Ctrl key }
+  { the first character of the last line shown: F for a function key, A for an Alt key, C for a Ctrl key }
   group: Char;
   ch: Char;
   ext: Boolean;
@@ -98,7 +106,7 @@ begin
   group := ' ';
   for n := 1 to KEY_LINES do
     if KeyHelp.LineShown(n, quickKeys) then begin
-      { a blank row between the function keys and the Ctrl keys }
+      { a blank row between groups: the function keys, the Alt keys (#1175) and the Ctrl keys }
       if (group <> ' ') and (KEYS[n].key[1] <> group) then
         Inc(row);
       group := KEYS[n].key[1];

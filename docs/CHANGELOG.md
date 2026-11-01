@@ -66,6 +66,7 @@ Most of these changes are small on their own, but together they make the game ea
 - The training hall's party menu has a blank line above and below the Name, AC and HP headings, and its Party, Character and Game headings are now magenta, so the highlighted command, in white, stands out.
 - The summary line under the spell lists shows its labels (RNG, AREA, TGT, DUR, SAVE, CAMP, CBT) in white and their values in green.
 - With no sound device (None in POOL.CFG, under DOS), the Settings screen's Sound page shows Music and Sound as OFF and greys out every line on it, and the cursor no longer stops there; POOLCFG's Sound Settings do the same until you pick a device on its Hardware page. Your Music and Sound choices are kept and come back when you choose a device. The native releases always have sound, so their pages are unchanged.
+- Alt-1 to Alt-8 open the first to eighth party member's items straight from the map, the wilderness or camp, making that member the current character as View does; Escape returns to where you were. A member with no items says so. F1's command keys list them.
 
 ### Fixes
 
