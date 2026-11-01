@@ -7,6 +7,8 @@ POOLCFG (#876): Hardware (POOL.CFG)
   ║  Video               EGA                                                 ║
   ║  Sound Device        Sound Blaster                                       ║
   ║  Introduction        Full                                                ║
+  ║  Data Path           C:\POOLRAD\                                         ║
+  ║  Save Path           C:\POOLRAD\SAVE\                                    ║
   ║                                                                          ║
   ╟──────────────────────────────────────────────────────────────────────────╢
   ║  The graphics card the game draws with:                                  ║
@@ -17,8 +19,6 @@ POOLCFG (#876): Hardware (POOL.CFG)
   ║    VGA     EGA's 16 colours in VGA's 320x200 mode (not in SSI's game)    ║
   ║                                                                          ║
   ║  START reads this as POOL.CFG's first line.                              ║
-  ║                                                                          ║
-  ║                                                                          ║
   ║                                                                          ║
   ║                                                                          ║
   ║                                                                          ║
@@ -37,9 +37,11 @@ Pressing Enter on a line opens its list:
   ║  Video               EGA            ║  None                  ║           ║
   ║  Sound Device        Sound Blaster  ║  PC Speaker            ║           ║
   ║  Introduction        Full           ║  Tandy                 ║           ║
-  ║                                     ║  AdLib                 ║           ║
-  ╟─────────────────────────────────────║  Sound Blaster         ║───────────╢
-  ║  The card the game plays music and e╚════════════════════════╝           ║
+  ║  Data Path           C:\POOLRAD\    ║  AdLib                 ║           ║
+  ║  Save Path           C:\POOLRAD\SAV ║  Sound Blaster         ║           ║
+  ║                                     ╚════════════════════════╝           ║
+  ╟──────────────────────────────────────────────────────────────────────────╢
+  ║  The card the game plays music and effects on:                           ║
   ║                                                                          ║
   ║    None            silence                                               ║
   ║    PC Speaker      music and effects on the speaker                      ║
@@ -50,17 +52,47 @@ Pressing Enter on a line opens its list:
   ║  START reads this as POOL.CFG's second line.                             ║
   ║                                                                          ║
   ║                                                                          ║
-  ║                                                                          ║
-  ║                                                                          ║
   ╚══════════════════════════════════════════════════════════════════════════╝
 
  Up Dn Move  Enter Choose  Esc Cancel
+
+The Data Path and Save Path lines are POOL.CFG's third and fourth lines; the Paths page that held them, with the
+later games' folders, is gone (#1177). On a path line the help reads "A folder must already exist: Setup checks each
+path as it is entered and creates none." (or, for a folder that is not there or a path too long for DOS, what that
+means, in yellow or red), and the key line reads "Up Dn Move  Enter Edit  F5 Default  Esc Main Menu  F10 Save and
+Exit". Enter, or typing a character, edits the path in place:
+
+ Pool of Radiance Setup                                       POOLCFG V1.3-1182
+
+  ╔══════════════════════════ Hardware (POOL.CFG) ═══════════════════════════╗
+  ║                                                                          ║
+  ║  Video               EGA                                                 ║
+  ║  Sound Device        Sound Blaster                                       ║
+  ║  Introduction        Full                                                ║
+  ║  Data Path           C:\POOLRAD\                                         ║
+  ║  Save Path          [C:\POOLRAD\SAVX\_                                 ]  ║
+  ║                                                                          ║
+  ╟──────────────────────────────────────────────────────────────────────────╢
+  ║  A folder must already exist: Setup checks each path as it is            ║
+  ║  entered and creates none.                                               ║
+  ║                                                                          ║
+  ║  START reads this as POOL.CFG's fourth line.                             ║
+  ║                                                                          ║
+  ╚══════════════════════════════════════════════════════════════════════════╝
+
+ Type the folder   Lt Rt Home End Del Bksp   Enter Accept   Esc Cancel
+
+Enter on a folder that isn't there shows an error box over the page ("Please verify the directory exists." and the
+path), and any key goes back to the edit with the text kept. A data folder without ITEMS or GEO1.DAX is taken with a
+warning that START will ask for the disk; a new save folder with a note that the saved games stay where they are.
 
 Color Key:
     LABEL               LIGHT GRAY ON BLUE
     VALUE               YELLOW ON BLUE
     HIGHLIGHTED LINE    BLACK ON CYAN
     CHANGED VALUE       WHITE ON BLUE, WITH A "*" AFTER IT
+    PATH START REFUSES  LIGHT RED ON BLUE (TOO LONG FOR DOS)
+    EDIT FIELD          WHITE ON BLACK, BRACKETS LIGHT GRAY, CURSOR SHOWN
     HELP TEXT           LIGHT CYAN ON BLUE
     PICK LIST           BLACK ON LIGHT GRAY, FRAME WHITE; ITS HIGHLIGHT WHITE ON BLACK; THE CURRENT VALUE MARKED
 
@@ -68,6 +100,7 @@ Command Key:
     UP / DOWN           UP, DOWN, HOME, END
     CHANGE              LEFT, RIGHT (THROUGH THE CHOICES), SPACE (NEXT)
     LIST                ENTER
-    DEFAULT             F5 (THE HIGHLIGHTED LINE)
+    EDIT A PATH         ENTER, OR TYPING A CHARACTER (STARTS THE EDIT WITH IT); ESC CANCELS, ENTER ACCEPTS (CHECKED)
+    DEFAULT             F5 (THE HIGHLIGHTED LINE; A PATH: THE GAME FOLDER, OR SAVE\ UNDER IT)
     BACK                ESC (TO THE MAIN MENU; NOTHING IS LOST)
     SAVE AND EXIT       F10

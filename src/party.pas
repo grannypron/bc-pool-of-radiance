@@ -20,6 +20,10 @@ function IsPartyMember(creature: Types.PCharRecord): Boolean;
   #733). With no current character the step starts from the head (#806). }
 procedure SelectPrevNextChar(c: Char);
 
+{ Returns party member n (1 for the head of GameVars.creatureList), or nil when the party has fewer than n members
+  (#1175). }
+function MemberAt(n: Byte): Types.PCharRecord;
+
 { Returns the last creature in the list, or nil when the list is empty. }
 function LastCreature: Types.PCharRecord;
 
@@ -69,6 +73,21 @@ begin
       C_KEYS.END_KEY, C_KEYS.DOWN: p := Party.NextCreature(p);
     end;
   GameVars.curChar := p;
+end;
+
+function MemberAt(n: Byte): Types.PCharRecord;
+var
+  p: Types.PCharRecord;
+begin
+  p := nil;
+  if (n >= 1) and (n <= GameVars.zone1^[C_GBVM.PARTY_SIZE]) then begin
+    p := GameVars.creatureList;
+    while (p <> nil) and (n > 1) do begin
+      p := p^.nextCharAddr;
+      Dec(n);
+    end;
+  end;
+  MemberAt := p;
 end;
 
 function LastCreature: Types.PCharRecord;

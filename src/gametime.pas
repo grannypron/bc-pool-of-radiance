@@ -78,27 +78,31 @@ begin
   end;
 end;
 
-{ Display the rest timer as days, hours and minutes. Highlight component hl (2 minutes, 3 hours, 4 days); 0 leaves all
-  components unhighlighted. }
+{ Display the rest timer as days, hours and minutes. Highlight component hl (2 minutes, 3 hours, 4 days) in inverse
+  video, black on white (#1160); 0 leaves all components unhighlighted. }
 procedure DisplayRestTime(hl: ShortInt);
+
+  { Draw component i's two digits s from column col: inverse when it is hl, else light green. }
+  procedure DrawField(col: Byte; i: ShortInt; s: Types.TStr40);
+  begin
+    if i = hl then
+      TextRend.DisplayStringOn(col, 17, Black, White, s)
+    else
+      TextRend.DisplayString(col, 17, LightGreen, s);
+  end;
+
 var
   i: ShortInt;
-  colors: array[0..6] of Word;
   x: Byte;
 begin
-  for i := 0 to 6 do
-    colors[i] := LightGreen;
-  colors[hl] := White;
   TextRend.DisplayString(1, 17, LightGreen, 'Rest Time:');
   x := 11;
   for i := C_TIME.DAYS downto C_TIME.HOURS do begin
-    TextRend.DisplayString(x + 1, 17, colors[i], StrUtil.ZeroPad2(restTime[i]));
+    DrawField(x + 1, i, StrUtil.ZeroPad2(restTime[i]));
     TextRend.DisplayString(x + 1 + 2, 17, LightGreen, ':');
     Inc(x, 3);
   end;
-  TextRend.DisplayString(x + 1, 17, colors[C_TIME.TURNS],
-                         StrUtil.ZeroPad2(10 * restTime[C_TIME.TURNS] +
-                           restTime[C_TIME.MINUTES]));
+  DrawField(x + 1, C_TIME.TURNS, StrUtil.ZeroPad2(10 * restTime[C_TIME.TURNS] + restTime[C_TIME.MINUTES]));
 end;
 
 { Rest-duration menu; returns True when the player picks Rest. Arrow keys: up = Inc, down = Dec, left/right = cycle the

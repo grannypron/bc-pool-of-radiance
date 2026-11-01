@@ -1,6 +1,6 @@
 { Pool of Radiance's 80x25 setup program (#876). It edits POOL.CFG hardware and
-  path settings, plus the gameplay settings and later-game paths stored in
-  POOLOPT.CFG. Paths must already exist. Save and Exit writes each file through
+  path settings, plus the gameplay settings stored in POOLOPT.CFG. Paths must
+  already exist. Save and Exit writes each file through
   a temporary replacement so a failed write leaves the old file intact. Exit
   status 0 means the configuration was saved or unchanged; status 1 means the
   user left with unsaved changes.
@@ -23,27 +23,27 @@ uses Dos, C_KEYS, C_OPT, FileUtil, CfgFile, StrUtil, TuiKit{$IFDEF FPC}, SysUtil
 {$I BUILDID.INC}
 
 const
-  { the Main Menu's items: the three pages, then Save and Exit and Exit Without Saving }
+  { the Main Menu's items: the pages, then Save and Exit and Exit Without Saving }
   ITEM_HARDWARE = 1;
   ITEM_SETTINGS = 2;
   ITEM_SOUND = 3;
   ITEM_CAMP = 4;
-  ITEM_PATHS = 5;
+  ITEM_COMBAT = 5;
   ITEM_SAVE = 6;
   ITEM_QUIT = 7;
   ITEMS = 7;
-  { the Hardware page's lines }
+  { the Hardware page's lines: the three with choices, then POOL.CFG's data and save paths, which the Paths page had
+    before it went (#1177) }
   HW_VIDEO = 1;
   HW_SOUND = 2;
   HW_INTRO = 3;
-  HW_LINES = 3;
-  { the Paths page's lines: Pool of Radiance's data and save paths, then each later game's (CfgFile's paths 1..6) }
-  PATH_DATA = 1;
-  PATH_SAVE = 2;
-  PATH_LINES = 2 + C_OPT.LATER_PATHS;
-  { the Paths page's path values: their column, and the edit field's }
-  PATH_COL = 20;
-  FIELD_WIDTH = 56;
+  HW_CHOICES = 3;
+  HW_DATA = 4;
+  HW_SAVE = 5;
+  HW_LINES = 5;
+  { the Hardware page's values: their column, and a path's edit field }
+  VALUE_COL = 26;
+  FIELD_WIDTH = 50;
   { the longest path that can be typed: a DOS path's 79 characters, natively 255 }
   PATH_TYPED = C_OPT.MAX_PATH_TEXT + C_OPT.LONGEST_NAME + C_OPT.WORK_FOLDERS;
   { the program that reads POOL.CFG: START under DOS, the game itself natively }
@@ -61,8 +61,8 @@ var
   notes: CfgFile.TCfgNotes;
   { POOL.CFG's defaults (CfgFile.PoolDefaults), for a missing file and F5 }
   cfgDefaults: CfgFile.TPoolCfg;
-  { a Pool path, as read, that START refuses as too long for DOS: shown in red until corrected }
-  tooLong: array[PATH_DATA..PATH_SAVE] of Boolean;
+  { a path, as read, that START refuses as too long for DOS: shown in red until corrected }
+  tooLong: array[HW_DATA..HW_SAVE] of Boolean;
   { POOLOPT.CFG as Setup will write it, as it was read, and every setting's default; what the read found, and how many
     values it would not take }
   opts: CfgFile.TSettings;
@@ -159,7 +159,8 @@ end;
 { Hardware line's label, on the page and over its pick list. }
 function LineName(line: Byte): TuiKit.TLine;
 const
-  NAMES: array[1..HW_LINES] of string[12] = ('Video', 'Sound Device', 'Introduction');
+  NAMES: array[1..HW_LINES] of string[12] = ('Video', 'Sound Device', 'Introduction', 'Data Path',
+    'Save Path');
 begin
   LineName := NAMES[line];
 end;
@@ -199,41 +200,34 @@ end;
 
 { --- the paths ------------------------------------------------------------------------------------------------- }
 
-{ Paths line's path: Pool's from POOL.CFG, the later games' from POOLOPT.CFG. }
-function PathOf(var c: CfgFile.TPoolCfg; var s: CfgFile.TSettings; line: Byte): string;
+{ Path line's path in c (HW_DATA or HW_SAVE). }
+function PathOf(var c: CfgFile.TPoolCfg; line: Byte): string;
 begin
-  case line of
-    PATH_DATA: PathOf := c.dataDir;
-    PATH_SAVE: PathOf := c.saveDir;
+  if line = HW_DATA then
+    PathOf := c.dataDir
   else
-    PathOf := s.paths[line - 2];
-  end;
+    PathOf := c.saveDir;
 end;
 
-{ Set Paths line to path (a normalized one); a Pool path is marked when it is too long for START (tooLong), as a
-  default can be in a folder too deep for DOS. }
+{ Set path line to path (a normalized one), marked when it is too long for START (tooLong), as a default can be in a
+  folder too deep for DOS. }
 procedure SetPath(line: Byte; path: string);
 begin
-  case line of
-    PATH_DATA: cfg.dataDir := path;
-    PATH_SAVE: cfg.saveDir := path;
+  if line = HW_DATA then
+    cfg.dataDir := path
   else
-    opts.paths[line - 2] := path;
-  end;
-  if line <= PATH_SAVE then
-    tooLong[line] := Length(path) > C_OPT.MAX_PATH_TEXT;
+    cfg.saveDir := path;
+  tooLong[line] := Length(path) > C_OPT.MAX_PATH_TEXT;
 end;
 
-{ Paths line's default: Pool's data in the folder Setup runs in (natively the data folder the game finds) and its saves
-  in SAVE\ under it (natively under the writable folder), the later games' as CfgFile.Defaults has them. }
+{ Path line's default: the data in the folder Setup runs in (natively the data folder the game finds) and the saves in
+  SAVE\ under it (natively under the writable folder). }
 function DefaultPath(line: Byte): string;
 begin
-  case line of
-    PATH_DATA: DefaultPath := {$IFDEF FPC}dataHome{$ELSE}homeDir{$ENDIF};
-    PATH_SAVE: DefaultPath := homeDir + 'SAVE\';
+  if line = HW_DATA then
+    DefaultPath := {$IFDEF FPC}dataHome{$ELSE}homeDir{$ENDIF}
   else
-    DefaultPath := defaults.paths[line - 2];
-  end;
+    DefaultPath := homeDir + 'SAVE\';
 end;
 
 { True when folder dir holds Pool of Radiance's data: ITEMS or GEO1.DAX. }
@@ -244,9 +238,16 @@ end;
 
 { --- what has changed ------------------------------------------------------------------------------------------ }
 
+function PathChanged(line: Byte): Boolean;
+begin
+  PathChanged := PathOf(cfg, line) <> PathOf(cfgRead, line);
+end;
+
+{ True when anything on the Hardware page differs from POOL.CFG as read: a letter or a path. }
 function HardwareChanged: Boolean;
 begin
-  HardwareChanged := (cfg.video <> cfgRead.video) or (cfg.sound <> cfgRead.sound) or (cfg.intro <> cfgRead.intro);
+  HardwareChanged := (cfg.video <> cfgRead.video) or (cfg.sound <> cfgRead.sound) or (cfg.intro <> cfgRead.intro) or
+                     PathChanged(HW_DATA) or PathChanged(HW_SAVE);
 end;
 
 { True when setting opt differs from POOLOPT.CFG as read. }
@@ -279,39 +280,19 @@ begin
   AnySettingChanged := changed;
 end;
 
-function PathChanged(line: Byte): Boolean;
-begin
-  PathChanged := PathOf(cfg, opts, line) <> PathOf(cfgRead, optsRead, line);
-end;
-
-function PathsChanged: Boolean;
-var
-  line: Byte;
-  changed: Boolean;
-begin
-  changed := False;
-  for line := 1 to PATH_LINES do
-    changed := changed or PathChanged(line);
-  PathsChanged := changed;
-end;
-
 { True when saving writes POOL.CFG: something in it changed, or it was missing or is not as START would read it. }
 function PoolCfgDue: Boolean;
 begin
-  PoolCfgDue := HardwareChanged or PathChanged(PATH_DATA) or PathChanged(PATH_SAVE) or
-                (cfgState in [CfgFile.CFG_MISSING, CfgFile.CFG_FIXED]);
+  PoolCfgDue := HardwareChanged or (cfgState in [CfgFile.CFG_MISSING, CfgFile.CFG_FIXED]);
 end;
 
 { True when saving writes POOLOPT.CFG: something in it changed, or the save folder did (the settings go with it), or it
   was missing or not as the game would read it and the save folder is there. }
 function OptionsDue: Boolean;
 var
-  line: Byte;
   due: Boolean;
 begin
-  due := AnySettingChanged or PathChanged(PATH_SAVE);
-  for line := PATH_SAVE + 1 to PATH_LINES do
-    due := due or PathChanged(line);
+  due := AnySettingChanged or PathChanged(HW_SAVE);
   if (optState in [CfgFile.CFG_MISSING, CfgFile.CFG_FIXED]) and CfgFile.DirExists(cfg.saveDir) then
     due := True;
   OptionsDue := due;
@@ -320,7 +301,7 @@ end;
 { True when leaving now would lose something: a change, or a POOL.CFG still to be written. }
 function Unsaved: Boolean;
 begin
-  Unsaved := AnySettingChanged or PathsChanged or PoolCfgDue;
+  Unsaved := AnySettingChanged or PoolCfgDue;
 end;
 
 { --- the Main Menu --------------------------------------------------------------------------------------------- }
@@ -378,8 +359,8 @@ begin
     Changed('Sound Settings');
   if SettingsChanged(C_OPT.OPT_PAGE_CAMP) then
     Changed('Camp Settings');
-  if PathsChanged then
-    Changed('Paths');
+  if SettingsChanged(C_OPT.OPT_PAGE_COMBAT) then
+    Changed('Combat Settings');
   if (changes = '') and PoolCfgDue then
     changes := 'none; saving writes POOL.CFG';
   if changes <> '' then
@@ -397,12 +378,13 @@ end;
 { The Main Menu, item sel highlighted. }
 procedure DrawMain(sel: Byte);
 const
-  NAMES: array[1..ITEMS] of string[19] = ('Hardware', 'Game Settings', 'Sound Settings', 'Camp Settings', 'Paths',
-    'Save and Exit', 'Exit Without Saving');
-  { each item's hot letter's place in its name: Sound Settings' O, as Save and Exit has S }
-  HOT: array[1..ITEMS] of Byte = (1, 1, 2, 1, 1, 1, 2);
-  ABOUT: array[1..ITEM_PATHS] of string[28] = ('Video, sound, introduction', 'Speed, portraits, Quick Mode',
-    'Music and sound effects', 'Auto Memorize, Fix', 'Data and save folders');
+  NAMES: array[1..ITEMS] of string[19] = ('Hardware', 'Game Settings', 'Sound Settings', 'Camp Settings',
+    'Combat Settings', 'Save and Exit', 'Exit Without Saving');
+  { each item's hot letter's place in its name: Sound Settings' O, as Save and Exit has S, and Combat Settings' M, as
+    Camp Settings has C }
+  HOT: array[1..ITEMS] of Byte = (1, 1, 2, 1, 3, 1, 2);
+  ABOUT: array[1..ITEM_SAVE - 1] of string[28] = ('Video, sound, intro, folders', 'Speed, portraits, Journal',
+    'Music and sound effects', 'Auto Memorize, Fix', 'Quick Mode, aim, combat log');
 var
   i: Byte;
 begin
@@ -411,7 +393,7 @@ begin
   for i := 1 to ITEMS do begin
     TuiKit.PutText(20, ItemRow(i), TuiKit.A_TEXT, NAMES[i]);
     TuiKit.PutRun(19 + HOT[i], ItemRow(i), TuiKit.A_HOT, NAMES[i][HOT[i]], 1);
-    if i <= ITEM_PATHS then
+    if i < ITEM_SAVE then
       TuiKit.PutText(36, ItemRow(i), TuiKit.A_HELP, ABOUT[i]);
   end;
   TuiKit.Recolor(17, ItemRow(sel), 48, TuiKit.A_HIGHLIGHT);
@@ -449,8 +431,8 @@ begin
     ShowError('POOL.CFG could not be read, so Setup will not', 'write over it: ' + CutPath(cfgName, 22));
     Exit;
   end;
-  if tooLong[PATH_DATA] or tooLong[PATH_SAVE] then begin
-    ShowError('A Pool of Radiance path is too long for DOS.', 'Correct it on the Paths page first.');
+  if tooLong[HW_DATA] or tooLong[HW_SAVE] then begin
+    ShowError('A Pool of Radiance path is too long for DOS.', 'Correct it on the Hardware page first.');
     Exit;
   end;
   poolDue := PoolCfgDue;
@@ -466,7 +448,7 @@ begin
   end;
 {$IFDEF FPC}
   { the data folder the game is to use from now on (#1064) }
-  if PathChanged(PATH_DATA) and not GameDirs.Remember(GameDirs.POOL, NatFile.NativeName(cfg.dataDir)) then begin
+  if PathChanged(HW_DATA) and not GameDirs.Remember(GameDirs.POOL, NatFile.NativeName(cfg.dataDir)) then begin
     ShowError('Could not remember the data folder in', CutPath(GameDirs.UserFolder(GameDirs.POOL, GameDirs.THIS_OS,
               GetUserDir), 38));
     Exit;
@@ -499,7 +481,8 @@ end;
 
 { --- the Hardware page ----------------------------------------------------------------------------------------- }
 
-{ The Hardware page's help for line, under the divider. }
+{ The Hardware page's help for line, under the divider: for a path START refuses or whose folder is not there, what
+  that means. }
 procedure DrawHardwareHelp(line: Byte);
 var
   row: Byte;
@@ -510,9 +493,47 @@ var
     Inc(row);
   end;
 
+  { s in attr }
+  procedure Warn(attr: Byte; s: string);
+  begin
+    TuiKit.PutText(6, row, attr, s);
+    Inc(row);
+  end;
+
 begin
-  TuiKit.Fill(4, 10, 77, 22, TuiKit.A_TEXT);
-  row := 10;
+  TuiKit.Fill(4, 12, 77, 22, TuiKit.A_TEXT);
+  row := 12;
+  if line >= HW_DATA then begin
+{$IFDEF FPC}
+    if line = HW_DATA then begin
+      Put(0, 'The folder the native game reads SSI''s files from, found beside it');
+      Put(0, 'or in GOG''s or Steam''s folders. Saving a change makes the game use');
+      Put(0, 'it. It needs GEO1.DAX; poolrad --choose-data-folder chooses it too.');
+      Inc(row);
+    end;
+{$ENDIF}
+    if tooLong[line] then begin
+      Warn(TuiKit.A_BAD, 'This path is too long for DOS (' + StrUtil.NumStr(C_OPT.MAX_PATH_TEXT) +
+           ' characters at most).');
+      Warn(TuiKit.A_BAD, 'START will not run until it is corrected.');
+    end else if not CfgFile.DirExists(PathOf(cfg, line)) then begin
+      Warn(TuiKit.A_WARN, 'This folder is not there.');
+      if line = HW_DATA then
+        Warn(TuiKit.A_WARN, 'START will ask for the disk when it needs a file.')
+      else
+        Warn(TuiKit.A_WARN, 'The game will create it on the first save.');
+      Warn(TuiKit.A_WARN, 'Enter a folder that exists, or F5 for the default.');
+    end else begin
+      Put(0, 'A folder must already exist: Setup checks each path as it is');
+      Put(0, 'entered and creates none.');
+    end;
+    Inc(row);
+    if line = HW_DATA then
+      Put(0, GAME_PROG + ' reads this as POOL.CFG''s third line.')
+    else
+      Put(0, GAME_PROG + ' reads this as POOL.CFG''s fourth line.');
+    Exit;
+  end;
 {$IFDEF FPC}
   case line of
     HW_VIDEO: begin
@@ -575,20 +596,38 @@ begin
 {$ENDIF}
 end;
 
-{ Hardware line on its row, highlighted when sel. }
+{ The Hardware page's row of line. }
+function HardwareRow(line: Byte): Byte;
+begin
+  HardwareRow := 4 + line;
+end;
+
+{ Hardware line on its row, highlighted when sel: a choice's name, or a path, red when START refuses it; a changed one
+  white with a '*'. }
 procedure DrawHardwareLine(line: Byte; sel: Boolean);
 var
   row: Byte;
   value: string;
+  attr: Byte;
 begin
-  row := 4 + line;
+  row := HardwareRow(line);
   TuiKit.PutRun(4, row, TuiKit.A_TEXT, ' ', 74);
   TuiKit.PutText(6, row, TuiKit.A_TEXT, LineName(line));
-  value := ChoiceName(line, ChoiceOf(cfg, line));
-  if LineLetter(cfg, line) <> LineLetter(cfgRead, line) then
-    TuiKit.PutText(26, row, TuiKit.A_CHANGED, value + '*')
-  else
-    TuiKit.PutText(26, row, TuiKit.A_VALUE, value);
+  attr := TuiKit.A_VALUE;
+  if line >= HW_DATA then begin
+    value := CutPath(PathOf(cfg, line), FIELD_WIDTH - 1);
+    if tooLong[line] then
+      attr := TuiKit.A_BAD
+    else if PathChanged(line) then
+      attr := TuiKit.A_CHANGED;
+  end else begin
+    value := ChoiceName(line, ChoiceOf(cfg, line));
+    if LineLetter(cfg, line) <> LineLetter(cfgRead, line) then
+      attr := TuiKit.A_CHANGED;
+  end;
+  if attr = TuiKit.A_CHANGED then
+    value := value + '*';
+  TuiKit.PutText(VALUE_COL, row, attr, value);
   if sel then
     TuiKit.Recolor(4, row, 74, TuiKit.A_HIGHLIGHT);
 end;
@@ -599,14 +638,82 @@ var
 begin
   ClearPage;
   TuiKit.Box(3, 3, 78, 23, TuiKit.A_FRAME, 'Hardware (POOL.CFG)');
-  TuiKit.Divider(3, 78, 9, TuiKit.A_FRAME);
+  TuiKit.Divider(3, 78, HardwareRow(HW_LINES) + 2, TuiKit.A_FRAME);
   for line := 1 to HW_LINES do
     DrawHardwareLine(line, line = sel);
   DrawHardwareHelp(sel);
-  TuiKit.KeyLine('~Up Dn~ Move  ~Lt Rt~ Change  ~Enter~ List  ~F5~ Default  ~Esc~ Main Menu  ~F10~ Save+Exit');
+  if sel >= HW_DATA then
+    TuiKit.KeyLine('~Up Dn~ Move  ~Enter~ Edit  ~F5~ Default  ~Esc~ Main Menu  ~F10~ Save and Exit')
+  else
+    TuiKit.KeyLine('~Up Dn~ Move  ~Lt Rt~ Change  ~Enter~ List  ~F5~ Default  ~Esc~ Main Menu  ~F10~ Save+Exit');
 end;
 
-{ The Hardware page (POOL.CFG's letters) until Escape, or F10 saves and leaves. }
+{ Edit path line in place, starting with character first (#0: the path as it is) until a path is accepted or Escape
+  puts the old one back. A path is checked as it is accepted (CfgFile.CheckPath): one that is empty, holds a character
+  no path may, is too long for DOS or is not an existing folder is refused with the reason, and the edit goes on with
+  the text kept. A data folder without the game's data is taken with a warning; a changed save folder with a note that
+  the saved games stay where they are. }
+procedure EditPath(line: Byte; first: Char);
+var
+  text: string;
+  full: string;
+  key: Char;
+  check: CfgFile.TPathCheck;
+  lines: TuiKit.TLines;
+  accepted: Boolean;
+begin
+  text := CutPath(PathOf(cfg, line), 255);
+  accepted := False;
+  { the field in place of the highlight, its brackets on the page's own colour }
+  DrawHardwareLine(line, False);
+  repeat
+    TuiKit.KeyLine('Type the folder   ~Lt Rt Home End Del Bksp~   ~Enter~ Accept   ~Esc~ Cancel');
+    key := TuiKit.EditLine(VALUE_COL, HardwareRow(line), FIELD_WIDTH, text, PATH_TYPED, first);
+    first := #0;
+    if key = C_KEYS.ENTER then begin
+      check := CfgFile.CheckPath(text, full);
+      case check of
+{$IFDEF FPC}
+        CfgFile.PATH_OK: if (line <> HW_DATA) or GameDirs.HoldsData(NatFile.NativeName(full), GameDirs.POOL) then
+                           accepted := True
+                         else
+                           ShowError('No Pool of Radiance data (GEO1.DAX) is in', CutPath(full, 38));
+{$ELSE}
+        CfgFile.PATH_OK: accepted := True;
+{$ENDIF}
+        CfgFile.PATH_EMPTY: ShowError('Please type the folder''s path.', '');
+        CfgFile.PATH_BAD_CHAR: ShowError('A folder''s path cannot hold * ? " < > or |.', CutPath(full, 38));
+        CfgFile.PATH_TOO_LONG: ShowError('This path is too long for DOS (' + StrUtil.NumStr(C_OPT.MAX_PATH_TEXT) +
+                                         ' characters at most).', CutPath(full, 38));
+      else
+        ShowError('Please verify the directory exists.', CutPath(full, 38));
+      end;
+    end;
+  until accepted or (key = C_KEYS.ESCAPE);
+  if not accepted then Exit;
+{$IFNDEF FPC}
+  if (line = HW_DATA) and not HasPoolData(full) then begin
+    TuiKit.ClearLines(lines);
+    TuiKit.AddLine(lines, 'No Pool of Radiance data (ITEMS, GEO1.DAX) is in', 0);
+    TuiKit.AddLine(lines, '', 0);
+    TuiKit.AddLine(lines, '  ' + CutPath(full, 54), TuiKit.A_POP_VALUE);
+    TuiKit.AddLine(lines, '', 0);
+    TuiKit.AddLine(lines, 'Setup takes it, but START will ask for the disk.', 0);
+    TuiKit.Message('Warning', lines, TuiKit.STYLE_NOTICE, 64);
+  end;
+{$ENDIF}
+  if (line = HW_SAVE) and (full <> cfgRead.saveDir) and (full <> cfg.saveDir) then begin
+    TuiKit.ClearLines(lines);
+    TuiKit.AddLine(lines, 'Saved games stay in ' + CutPath(cfgRead.saveDir, 38), 0);
+    TuiKit.AddLine(lines, 'Setup does not move them. The settings go with', 0);
+    TuiKit.AddLine(lines, 'the new folder when you save.', 0);
+    TuiKit.Message('Note', lines, TuiKit.STYLE_NOTICE, 64);
+  end;
+  SetPath(line, full);
+end;
+
+{ The Hardware page (POOL.CFG's letters and paths) until Escape, or F10 saves and leaves. On a path, Enter or a
+  character typed edits it (EditPath); Left, Right and Space change only a choice. }
 procedure HardwarePage;
 var
   sel: Byte;
@@ -614,6 +721,7 @@ var
   ch: Char;
   ext: Boolean;
   done: Boolean;
+  path: Boolean;
   items: TuiKit.TLines;
 begin
   sel := HW_VIDEO;
@@ -621,13 +729,21 @@ begin
   done := False;
   repeat
     TuiKit.GetKey(ch, ext);
-    i := ChoiceOf(cfg, sel);
+    path := sel >= HW_DATA;
+    i := 1;
+    if not path then
+      i := ChoiceOf(cfg, sel);
     if ext then begin
       TuiKit.MoveInList(ch, sel, HW_LINES);
       case ch of
-        C_KEYS.LEFT: if i > 1 then SetChoice(sel, i - 1) else SetChoice(sel, ChoiceCount(sel));
-        C_KEYS.RIGHT: SetChoice(sel, i mod ChoiceCount(sel) + 1);
-        C_KEYS.F5: SetChoice(sel, ChoiceOf(cfgDefaults, sel));
+        C_KEYS.LEFT: if not path then
+                       SetChoice(sel, (i + ChoiceCount(sel) - 2) mod ChoiceCount(sel) + 1);
+        C_KEYS.RIGHT: if not path then
+                        SetChoice(sel, i mod ChoiceCount(sel) + 1);
+        C_KEYS.F5: if path then
+                     SetPath(sel, DefaultPath(sel))
+                   else
+                     SetChoice(sel, ChoiceOf(cfgDefaults, sel));
         C_KEYS.F10: begin
                       SaveAndLeave;
                       done := leave;
@@ -635,8 +751,11 @@ begin
       end;
     end else
       case ch of
-        ' ': SetChoice(sel, i mod ChoiceCount(sel) + 1);
-        C_KEYS.ENTER: begin
+        ' ': if not path then
+               SetChoice(sel, i mod ChoiceCount(sel) + 1);
+        C_KEYS.ENTER: if path then
+                        EditPath(sel, #0)
+                      else begin
                         TuiKit.ClearLines(items);
                         for i := 1 to ChoiceCount(sel) do
                           TuiKit.AddLine(items, ChoiceName(sel, i), 0);
@@ -646,6 +765,8 @@ begin
                           SetChoice(sel, i);
                       end;
         C_KEYS.ESCAPE: done := True;
+        '!'..'~': if path then
+                    EditPath(sel, ch);
       end;
     if not done then
       DrawHardware(sel);
@@ -695,9 +816,19 @@ begin
     C_OPT.OPT_AUTO_JOIN: AboutText := 'Arrows, darts and the like|join the stack you carry as|' +
                                       'you buy, take or trade them,|so a new bundle takes no|' +
                                       'item slot of its own. Up to|255 to a stack; a readied|stack stays readied.';
+    C_OPT.OPT_CONSOLIDATE: AboutText := 'When a character picks up|coins, its purse is changed|' +
+                                        'into the fewest coins of the|same value: 5 gold make a|' +
+                                        'platinum. Coins weigh the|same, so the load drops.';
     C_OPT.OPT_JOURNAL: AboutText := 'FOUND: the Journal lists the|entries, tavern tales and|' +
                                     'proclamations the party has|come across. ALL: the whole|' +
                                     'printed Journal.||A game saved before this|version counts them all|found.';
+    C_OPT.OPT_NONHUMAN_CAP: AboutText := 'Dwarves, elves, gnomes,|half-elves, halflings and|' +
+                                         'half-orcs stop at their|race''s level limits.||' +
+                                         'Off: they train as far as|the experience table goes,|as humans do.';
+    C_OPT.OPT_LEVEL_CAP: AboutText := 'Each class stops where|SSI''s game stopped it:|' +
+                                      'clerics and magic-users at|6, paladins and rangers at|' +
+                                      '7, fighters at 8.||Off: every class trains to|' +
+                                      '9, with the spells of|levels 4 and 5.';
     C_OPT.OPT_MUSIC: AboutText := 'Every tune at once.';
     C_OPT.OPT_TITLE_MUSIC: AboutText := 'The title theme.';
     C_OPT.OPT_BATTLE_MUSIC: AboutText := 'The music as a fight starts.';
@@ -813,8 +944,8 @@ begin
   end;
 end;
 
-{ Settings page page (C_OPT.OPT_PAGE_GAME, OPT_PAGE_SOUND or OPT_PAGE_CAMP): its settings, setting sel highlighted,
-  each heading (CfgFile.Heading) above the setting it comes before. }
+{ Settings page page (C_OPT.OPT_PAGE_GAME, OPT_PAGE_SOUND, OPT_PAGE_CAMP or OPT_PAGE_COMBAT): its settings, setting
+  sel highlighted, each heading (CfgFile.Heading) above the setting it comes before. }
 procedure DrawSettings(page, sel: Byte);
 var
   opt: Byte;
@@ -823,6 +954,7 @@ begin
   case page of
     C_OPT.OPT_PAGE_SOUND: TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Sound Settings (POOLOPT.CFG)');
     C_OPT.OPT_PAGE_CAMP: TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Camp Settings (POOLOPT.CFG)');
+    C_OPT.OPT_PAGE_COMBAT: TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Combat Settings (POOLOPT.CFG)');
   else
     TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Game Settings (POOLOPT.CFG)');
   end;
@@ -912,187 +1044,6 @@ begin
   until done;
 end;
 
-{ --- the Paths page -------------------------------------------------------------------------------------------- }
-
-{ The Paths page's row of line. }
-function PathRow(line: Byte): Byte;
-begin
-  PathRow := 5 + ((line - 1) div 2) * 4 + (line - 1) mod 2;
-end;
-
-{ The note under the divider: for a Pool path that START refuses or whose folder is not there, what that means, else
-  the page's rule. }
-procedure DrawPathNote(line: Byte);
-begin
-  TuiKit.Fill(3, 21, 78, 23, TuiKit.A_TEXT);
-{$IFDEF FPC}
-  if line = PATH_DATA then begin
-    TuiKit.PutText(5, 21, TuiKit.A_HELP, 'The folder the native game reads SSI''s files from, found beside it or');
-    TuiKit.PutText(5, 22, TuiKit.A_HELP, 'in GOG''s or Steam''s folders. Saving a change makes the game use it.');
-    TuiKit.PutText(5, 23, TuiKit.A_HELP, 'It needs GEO1.DAX; poolrad --choose-data-folder chooses it too.');
-  end else
-{$ENDIF}
-  if (line <= PATH_SAVE) and tooLong[line] then begin
-    TuiKit.PutText(5, 21, TuiKit.A_BAD, 'This path is too long for DOS (' + StrUtil.NumStr(C_OPT.MAX_PATH_TEXT) +
-                   ' characters at most).');
-    TuiKit.PutText(5, 22, TuiKit.A_BAD, 'START will not run until it is corrected.');
-  end else if (line <= PATH_SAVE) and not CfgFile.DirExists(PathOf(cfg, opts, line)) then begin
-    TuiKit.PutText(5, 21, TuiKit.A_WARN, 'This folder is not there.');
-    if line = PATH_DATA then
-      TuiKit.PutText(5, 22, TuiKit.A_WARN, 'START will ask for the disk when it needs a file.')
-    else
-      TuiKit.PutText(5, 22, TuiKit.A_WARN, 'The game will create it on the first save.');
-    TuiKit.PutText(5, 23, TuiKit.A_WARN, 'Enter a folder that exists, or F5 for the default.');
-  end else begin
-    TuiKit.PutText(5, 21, TuiKit.A_HELP, 'A folder must already exist: Setup checks each path as it is entered');
-    TuiKit.PutText(5, 22, TuiKit.A_HELP, 'and creates none. Pool of Radiance''s are POOL.CFG''s; the others are');
-    TuiKit.PutText(5, 23, TuiKit.A_HELP, 'kept in POOLOPT.CFG for the later games'' ports.');
-  end;
-end;
-
-{ Paths line on its row, highlighted when sel: a path START refuses red, a changed one white with a '*'. }
-procedure DrawPathLine(line: Byte; sel: Boolean);
-var
-  row: Byte;
-  attr: Byte;
-  value: string;
-begin
-  row := PathRow(line);
-  TuiKit.PutRun(3, row, TuiKit.A_TEXT, ' ', 76);
-  if line mod 2 = 1 then
-    TuiKit.PutText(7, row, TuiKit.A_TEXT, 'Data Path')
-  else
-    TuiKit.PutText(7, row, TuiKit.A_TEXT, 'Save Path');
-  value := CutPath(PathOf(cfg, opts, line), FIELD_WIDTH - 1);
-  attr := TuiKit.A_VALUE;
-  if (line <= PATH_SAVE) and tooLong[line] then
-    attr := TuiKit.A_BAD
-  else if PathChanged(line) then begin
-    attr := TuiKit.A_CHANGED;
-    value := value + '*';
-  end;
-  TuiKit.PutText(PATH_COL, row, attr, value);
-  if sel then
-    TuiKit.Recolor(3, row, 76, TuiKit.A_HIGHLIGHT);
-end;
-
-procedure DrawPaths(sel: Byte);
-const
-  GAMES: array[1..4] of string[27] = ('Pool of Radiance', 'Curse of the Azure Bonds', 'Secret of the Silver Blades',
-    'Pools of Darkness');
-var
-  g: Byte;
-  line: Byte;
-begin
-  ClearPage;
-  TuiKit.Box(2, 2, 79, 24, TuiKit.A_FRAME, 'Paths');
-  TuiKit.Divider(2, 79, 20, TuiKit.A_FRAME);
-  for g := 1 to 4 do
-    TuiKit.PutText(5, 4 + (g - 1) * 4, TuiKit.A_FRAME, GAMES[g]);
-  for line := 1 to PATH_LINES do
-    DrawPathLine(line, line = sel);
-  DrawPathNote(sel);
-  TuiKit.KeyLine('~Up Dn~ Move  ~Enter~ Edit  ~F5~ Default  ~Esc~ Main Menu  ~F10~ Save and Exit');
-end;
-
-{ Edit Paths line in place, starting with character first (#0: the path as it is) until a path is accepted or Escape
-  puts the old one back. A path is checked as it is accepted (CfgFile.CheckPath): one that is empty, holds a character
-  no path may, is too long for DOS or is not an existing folder is refused with the reason, and the edit goes on with
-  the text kept. A Pool data folder without the game's data is taken with a warning; a changed Pool save folder with a
-  note that the saved games stay where they are. }
-procedure EditPath(line: Byte; first: Char);
-var
-  text: string;
-  full: string;
-  key: Char;
-  check: CfgFile.TPathCheck;
-  lines: TuiKit.TLines;
-  accepted: Boolean;
-begin
-  text := CutPath(PathOf(cfg, opts, line), 255);
-  accepted := False;
-  { the field in place of the highlight, its brackets on the page's own colour }
-  DrawPathLine(line, False);
-  repeat
-    TuiKit.KeyLine('Type the folder   ~Lt Rt Home End Del Bksp~   ~Enter~ Accept   ~Esc~ Cancel');
-    key := TuiKit.EditLine(PATH_COL, PathRow(line), FIELD_WIDTH, text, PATH_TYPED, first);
-    first := #0;
-    if key = C_KEYS.ENTER then begin
-      check := CfgFile.CheckPath(text, full);
-      case check of
-{$IFDEF FPC}
-        CfgFile.PATH_OK: if (line <> PATH_DATA) or GameDirs.HoldsData(NatFile.NativeName(full), GameDirs.POOL) then
-                           accepted := True
-                         else
-                           ShowError('No Pool of Radiance data (GEO1.DAX) is in', CutPath(full, 38));
-{$ELSE}
-        CfgFile.PATH_OK: accepted := True;
-{$ENDIF}
-        CfgFile.PATH_EMPTY: ShowError('Please type the folder''s path.', '');
-        CfgFile.PATH_BAD_CHAR: ShowError('A folder''s path cannot hold * ? " < > or |.', CutPath(full, 38));
-        CfgFile.PATH_TOO_LONG: ShowError('This path is too long for DOS (' + StrUtil.NumStr(C_OPT.MAX_PATH_TEXT) +
-                                         ' characters at most).', CutPath(full, 38));
-      else
-        ShowError('Please verify the directory exists.', CutPath(full, 38));
-      end;
-    end;
-  until accepted or (key = C_KEYS.ESCAPE);
-  if not accepted then Exit;
-{$IFNDEF FPC}
-  if (line = PATH_DATA) and not HasPoolData(full) then begin
-    TuiKit.ClearLines(lines);
-    TuiKit.AddLine(lines, 'No Pool of Radiance data (ITEMS, GEO1.DAX) is in', 0);
-    TuiKit.AddLine(lines, '', 0);
-    TuiKit.AddLine(lines, '  ' + CutPath(full, 54), TuiKit.A_POP_VALUE);
-    TuiKit.AddLine(lines, '', 0);
-    TuiKit.AddLine(lines, 'Setup takes it, but START will ask for the disk.', 0);
-    TuiKit.Message('Warning', lines, TuiKit.STYLE_NOTICE, 64);
-  end;
-{$ENDIF}
-  if (line = PATH_SAVE) and (full <> cfgRead.saveDir) and (full <> cfg.saveDir) then begin
-    TuiKit.ClearLines(lines);
-    TuiKit.AddLine(lines, 'Saved games stay in ' + CutPath(cfgRead.saveDir, 38), 0);
-    TuiKit.AddLine(lines, 'Setup does not move them. The settings go with', 0);
-    TuiKit.AddLine(lines, 'the new folder when you save.', 0);
-    TuiKit.Message('Note', lines, TuiKit.STYLE_NOTICE, 64);
-  end;
-  SetPath(line, full);
-end;
-
-{ The Paths page (the four games' data and save folders) until Escape, or F10 saves and leaves. }
-procedure PathsPage;
-var
-  sel: Byte;
-  ch: Char;
-  ext: Boolean;
-  done: Boolean;
-begin
-  sel := PATH_DATA;
-  DrawPaths(sel);
-  done := False;
-  repeat
-    TuiKit.GetKey(ch, ext);
-    if ext then begin
-      TuiKit.MoveInList(ch, sel, PATH_LINES);
-      case ch of
-        C_KEYS.F5: SetPath(sel, DefaultPath(sel));
-        C_KEYS.F10: begin
-                      SaveAndLeave;
-                      done := leave;
-                    end;
-      end;
-    end
-    else
-      case ch of
-        C_KEYS.ENTER: EditPath(sel, #0);
-        C_KEYS.ESCAPE: done := True;
-        '!'..'~': EditPath(sel, ch);
-      end;
-    if not done then
-      DrawPaths(sel);
-  until done;
-end;
-
 { --- starting ---------------------------------------------------------------------------------------------------- }
 
 { POOL.CFG's path line, normalized as START would: too long for DOS, kept as it is and marked (SetPath). Under DOS in
@@ -1102,7 +1053,7 @@ var
   full: string;
   ok: Boolean;
 begin
-  ok := CfgFile.NormalizePath(PathOf(cfg, opts, line), full);
+  ok := CfgFile.NormalizePath(PathOf(cfg, line), full);
 {$IFNDEF FPC}
   full := CfgFile.Tidy(full);
 {$ENDIF}
@@ -1131,12 +1082,12 @@ begin
   if cfgState in [CfgFile.CFG_MISSING, CfgFile.CFG_UNREADABLE] then
     cfg := cfgDefaults;
   { the defaults too, which in a folder too deep for DOS START would refuse }
-  NormalizeRead(PATH_DATA);
-  NormalizeRead(PATH_SAVE);
+  NormalizeRead(HW_DATA);
+  NormalizeRead(HW_SAVE);
 {$IFDEF FPC}
   { the folders as the native game takes them (GameBoot.NativeFolders) }
-  SetPath(PATH_SAVE, CfgFile.NativeSaveFolder(cfg.dataDir, cfg.saveDir, homeDir));
-  SetPath(PATH_DATA, dataHome);
+  SetPath(HW_SAVE, CfgFile.NativeSaveFolder(cfg.dataDir, cfg.saveDir, homeDir));
+  SetPath(HW_DATA, dataHome);
 {$ENDIF}
   cfgRead := cfg;
   optDir := cfg.saveDir;
@@ -1275,7 +1226,7 @@ begin
         'G': item := ITEM_SETTINGS;
         'O': item := ITEM_SOUND;
         'C': item := ITEM_CAMP;
-        'P': item := ITEM_PATHS;
+        'M': item := ITEM_COMBAT;
         'S': item := ITEM_SAVE;
         'X': item := ITEM_QUIT;
         C_KEYS.ESCAPE: AskToLeave;
@@ -1287,7 +1238,7 @@ begin
       ITEM_SETTINGS: SettingsPage(C_OPT.OPT_PAGE_GAME);
       ITEM_SOUND: SettingsPage(C_OPT.OPT_PAGE_SOUND);
       ITEM_CAMP: SettingsPage(C_OPT.OPT_PAGE_CAMP);
-      ITEM_PATHS: PathsPage;
+      ITEM_COMBAT: SettingsPage(C_OPT.OPT_PAGE_COMBAT);
       ITEM_SAVE: SaveAndLeave;
       ITEM_QUIT: begin
                    exitCode := Ord(Unsaved);

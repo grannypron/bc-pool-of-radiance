@@ -2,8 +2,8 @@
 |             SYSTEM INFO              |
 | VIDEO             EGA                |
 | SOUND DEVICE      SOUND BLASTER      |
-| VERSION           V1.3-1162 (BC)     |
-| COMMIT            879B891 MODIFIED   |
+| VERSION           V1.3-1182          |
+| COMMIT            879B891            |
 |                                      |
 | DATA              V36                |
 | MERGED FILES      14/14              |
@@ -11,17 +11,17 @@
 | FREE MEMORY       197,888            |
 | LARGEST BLOCK     133,072            |
 | EMS ACTIVE        YES                |
+| SPEED CHECK       10.0 MS            |
+| CYCLES            ABOUT 30,000       |
+| SWITCHES          NORAND             |
 |                                      |
-|                                      |
-|                                      |
-|                                      |
-|                                      |
-|                                      |
-|                                      |
-|                                      |
-|                                      |
+| THIS IS A MODIFIED VERSION OF THE    |
+| GAME. GOG, STEAM AND SNEG CAN'T HELP |
+| WITH IT. PLEASE SEND QUESTIONS AND   |
+| BUG REPORTS TO                       |
+| TALONIUS@BRAZENCROWS.COM.            |
 |======================================+
-SETTINGS: GAME PATHS SYSTEM EXIT
+GAME SOUND CAMP COMBAT SYSTEM EXIT
 
 Color Key:
     KEY:                WHITE
@@ -29,6 +29,8 @@ Color Key:
 
 Command Key:
     GAME                G
-    PATHS               P
-    SYSTEM              S
+    SOUND               S
+    CAMP                C
+    COMBAT              M
+    SYSTEM              Y
     EXIT                E / ESCAPE

@@ -24,7 +24,7 @@ procedure BuildDataFiles;
 implementation
 
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Dos, Types, C_DATA, GameVars, DataArc, DataPat, DaxIo, TextRend,
-  BldShow, StrUtil, SaveMenu{$IFDEF FPC}, NatFile{$ENDIF};
+  BldShow, StrUtil, SaveMenu, FileUtil{$IFDEF FPC}, NatFile{$ENDIF};
 
 const
   { the most directory entries a family's per-disk archives may hold between them, plus the three reserved blocks }
@@ -271,6 +271,29 @@ begin
   n := IOResult;
 end;
 
+{ The merged archive's temporary copy, written until it is whole: <archiveName>.DAX in the TMP\ folder beside where it
+  goes (FileUtil.TempName), as saves' copies are (#1084); it was <archiveName>.$$$ in the game folder (#1150). }
+function TempPath: Types.TPathStr;
+begin
+  TempPath := FileUtil.TempName(DataBld.GamePath(archiveName + '.DAX'));
+end;
+
+{ The temporary copy's name for DATABLD.LOG. }
+function TempLabel: Types.TStr20;
+begin
+  TempLabel := FileUtil.TEMP_FOLDER + archiveName + '.DAX';
+end;
+
+{ Remove the temporary copy if it is there; an error is ignored. }
+procedure RemoveTemp;
+var
+  f: file;
+begin
+  Assign(f, DataBld.TempPath);
+  Erase(f);
+  n := IOResult;
+end;
+
 { True when the family has something to build from or to remove: a per-disk archive, or a merged archive. }
 function HasFiles(fam: Byte): Boolean;
 var
@@ -310,15 +333,20 @@ begin
   HasRoom := (free < 0) or (free >= need);
 end;
 
-{ True when <archiveName>.$$$ can be created in the game folder; it is left there, empty. False, with failNote and
-  writeNote set, when it cannot, so a folder that cannot be written costs no reading. }
+{ True when the temporary copy (TempPath) can be created, its TMP\ folder made first; it is left there, empty. False,
+  with failNote and writeNote set, when it cannot, so a folder that cannot be written costs no reading. }
 function CanWrite: Boolean;
 var
   f: file;
   ok: Boolean;
 begin
   lastError := 0;
-  Assign(f, DataBld.GamePath(archiveName + '.$$$'));
+  if not FileUtil.MakeTempFolder(DataBld.GamePath(archiveName + '.DAX')) then begin
+    DataBld.FailWriting('making the ' + FileUtil.TEMP_FOLDER + ' folder');
+    CanWrite := False;
+    Exit;
+  end;
+  Assign(f, DataBld.TempPath);
   Rewrite(f, 1);
   ok := DataBld.IoOk;
   if ok then begin
@@ -326,7 +354,7 @@ begin
     ok := DataBld.IoOk;
   end;
   if not ok then
-    DataBld.FailWriting('writing ' + archiveName + '.$$$: DOS error ' + StrUtil.NumStr(lastError));
+    DataBld.FailWriting('writing ' + DataBld.TempLabel + ': DOS error ' + StrUtil.NumStr(lastError));
   CanWrite := ok;
 end;
 
@@ -643,9 +671,9 @@ begin
   CopyBlock := ok;
 end;
 
-{ Write blocks to <archiveName>.$$$: the directory, the blocks, then the version block (the last of blocks, its id and
-  sizes set) holding C_DATA.VERSION and the CRC-32 of everything before it. False, with failNote and writeNote set, on
-  an error. }
+{ Write blocks to the temporary copy (TempPath): the directory, the blocks, then the version block (the last of
+  blocks, its id and sizes set) holding C_DATA.VERSION and the CRC-32 of everything before it. False, with failNote and
+  writeNote set, on an error. }
 function WriteArchive(fam: Byte): Boolean;
 var
   dst: file;
@@ -658,7 +686,7 @@ var
   ok: Boolean;
 begin
   lastError := 0;
-  Assign(dst, DataBld.GamePath(archiveName + '.$$$'));
+  Assign(dst, DataBld.TempPath);
   Rewrite(dst, 1);
   ok := DataBld.IoOk;
   if ok then begin
@@ -696,9 +724,9 @@ begin
   end;
   if not ok then
     if lastError <> 0 then
-      DataBld.FailWriting('writing ' + archiveName + '.$$$: DOS error ' + StrUtil.NumStr(lastError))
+      DataBld.FailWriting('writing ' + DataBld.TempLabel + ': DOS error ' + StrUtil.NumStr(lastError))
     else
-      DataBld.FailWriting('writing ' + archiveName + '.$$$');
+      DataBld.FailWriting('writing ' + DataBld.TempLabel);
   WriteArchive := ok;
 end;
 
@@ -1012,7 +1040,7 @@ begin
 end;
 
 { Build the family's merged archive from sources: choose ids, apply patches, add the sources, remap and version blocks,
-  write <name>.$$$, read it back and rename it to <name>.DAX. False, with failNote set, on any failure. }
+  write TMP\<name>.DAX, read it back and rename it to <name>.DAX. False, with failNote set, on any failure. }
 function BuildArchive(fam: Byte): Boolean;
 var
   table: array[0..3 * MAX_REMAPS - 1] of Byte;
@@ -1046,18 +1074,18 @@ begin
   if ok then begin
     DataBld.Progress(archiveName + '.DAX: checking');
     BldShow.Checking;
-    ok := DataBld.ArchiveSound(DataBld.GamePath(archiveName + '.$$$'));
+    ok := DataBld.ArchiveSound(DataBld.TempPath);
     if not ok then
-      DataBld.Fail(archiveName + '.$$$ did not read back whole');
+      DataBld.Fail(DataBld.TempLabel + ' did not read back whole');
   end;
   if ok then begin
     DataBld.RemoveFile(archiveName + '.DAX');
-    Assign(f, DataBld.GamePath(archiveName + '.$$$'));
+    Assign(f, DataBld.TempPath);
     lastError := 0;
     Rename(f, DataBld.GamePath(archiveName + '.DAX'));
     ok := DataBld.IoOk;
     if not ok then
-      DataBld.FailWriting('renaming ' + archiveName + '.$$$: DOS error ' + StrUtil.NumStr(lastError));
+      DataBld.FailWriting('renaming ' + DataBld.TempLabel + ': DOS error ' + StrUtil.NumStr(lastError));
   end;
   BuildArchive := ok;
 end;
@@ -1080,7 +1108,7 @@ begin
   else if DataBld.HasRoom(fam) and DataBld.CanWrite and DataBld.ReadSources(fam) then
     if sourceCount = 0 then begin
       DataBld.LogLine(archiveName + '.DAX skipped: no per-disk archives');
-      DataBld.RemoveFile(archiveName + '.$$$');
+      DataBld.RemoveTemp;
       DataBld.RemoveFile(archiveName + '.DAX');
     end else begin
       for i := 1 to sourceCount do
@@ -1095,7 +1123,7 @@ begin
     end;
   if failNote <> '' then begin
     DataBld.LogLine(archiveName + '.DAX FAILED: ' + failNote);
-    DataBld.RemoveFile(archiveName + '.$$$');
+    DataBld.RemoveTemp;
     DataBld.RemoveFile(archiveName + '.DAX');
     Inc(failedCount);
   end;
@@ -1118,6 +1146,11 @@ begin
   SaveMenu.MoveOldQuickSave;
   { GameInit2 looked at 8X8D.DAX before this, with the game folder unset }
   DaxIo.ResetArchiveCache;
+  { the temporary copies' names before #1150, <name>.$$$ in the game folder, which a build cut short left there; to be
+    dropped a release or two on }
+  DataBld.RemoveFile('DATABLD.$$$');
+  for fam := 1 to C_DATA.FAMILIES do
+    DataBld.RemoveFile(DataArc.MergedName(fam) + '.$$$');
   anyStale := False;
   for fam := 1 to C_DATA.FAMILIES do begin
     stale[fam] := not DaxIo.FamilyUsable(fam) and DataBld.HasFiles(fam);
@@ -1134,7 +1167,7 @@ begin
     failNote := '';
     archiveName := 'DATABLD';
     if DataBld.CanWrite then
-      DataBld.RemoveFile(archiveName + '.$$$');
+      DataBld.RemoveTemp;
     BldShow.Open(stale, writeNote = '');
     DataBld.Progress('Please wait, constructing data files...');
     DataBld.LogLine('Merged data archives, version ' + StrUtil.NumStr(C_DATA.VERSION));

@@ -26,6 +26,10 @@ procedure Measure;
   N/A when it did not run. }
 function SpeedText: Types.TStr20;
 
+{ The cycles the speed check matches (AdvPlan.CyclesOf) as the System page shows them: 'about 30,000', 'under 100' for
+  a computer slower than that, N/A when the check did not run (natively) (#1178). }
+function CyclesText: Types.TStr20;
+
 { Draw s at column col of row in color in the game font, as TextRend.DisplayString does, but an '@' as AT_BITMAP, an at
   sign the font lacks: its 6-bit table has no place for one, and its glyph 64, the nearest, reads as a C (#1173). }
 procedure DisplayText(col, row, color: Byte; s: string);
@@ -147,6 +151,19 @@ begin
   end;
 end;
 
+function CyclesText: Types.TStr20;
+var
+  cycles: LongInt;
+begin
+  cycles := AdvPlan.CyclesOf(speedClocks);
+  if speedClocks = 0 then
+    CyclesText := 'N/A'
+  else if cycles = 0 then
+    CyclesText := 'under 100'
+  else
+    CyclesText := 'about ' + StrUtil.Grouped(cycles);
+end;
+
 procedure DisplayText(col, row, color: Byte; s: string);
 var
   i: Byte;
@@ -160,11 +177,11 @@ begin
         saved[r] := GameVars.gameFont^[AT_SLOT][r];
         GameVars.gameFont^[AT_SLOT][r] := AT_BITMAP[r];
       end;
-      TextRend.RenderChar(col, row, color, 1, AT_SLOT, 0);
+      TextRend.RenderChar(col, row, color, Black, 1, AT_SLOT, 0);
       for r := 0 to 7 do
         GameVars.gameFont^[AT_SLOT][r] := saved[r];
     end else
-      TextRend.RenderChar(col, row, color, 1, Ord(s[i]), 1);
+      TextRend.RenderChar(col, row, color, Black, 1, Ord(s[i]), 1);
     Inc(col);
   end;
 end;

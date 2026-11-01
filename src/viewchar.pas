@@ -24,6 +24,10 @@ procedure ViewCharMenu(var done: Boolean);
 
 procedure UseItemMenu(var done: Boolean);
 
+{ Alt-1 to Alt-8 on the map and camp menus (#1175): make creature the current character and open its items, as View's
+  Items does, or say it has none. The caller redraws its screen afterwards. }
+procedure MemberItems(creature: Types.PCharRecord);
+
 { Paladin p lays on hands on tgt: two hit points per paladin level, counted as healing given, and RECENT_HEAL on p so
   it waits a day for the next (CharHlp.PaladinCanHeal). True when tgt was healed. View's Heal and Fix use it. }
 function PaladinHeal(p, tgt: Types.PCharRecord): Boolean;
@@ -1045,6 +1049,22 @@ begin
     if creature^.numberOfItems <> itemCount then
       vmRedraw := True;
   end;
+end;
+
+procedure MemberItems(creature: Types.PCharRecord);
+var
+  done: Boolean;
+begin
+  GameVars.curChar := creature;
+  { Trade offers this character's last recipient first; it may be stale without View having run }
+  tradeTarget := creature;
+  if (creature^.numberOfItems = 0) or (creature^.itemsAddr = nil) then
+    TextRend.DisplayAndPause(Yellow, creature^.name + ' has no items.')
+  else begin
+    done := False;
+    ViewChar.UseItemMenu(done);
+  end;
+  TextRend.ClearBottomLine;
 end;
 
 { Select a trade recipient, check carrying capacity, then copy the item to the recipient and remove it from curChar. }

@@ -66,9 +66,9 @@ begin
   end;
 end;
 
-{ color is mapped to CGA's through attrTable; each pixel's 2 bits come from cgaColorPat; font rows 0, 2, 4 and 6 go to
-  the even bank, 1, 3, 5 and 7 to the odd }
-procedure DrawGlyph(col, row, color, glyph: Byte);
+{ fg and bg are mapped to CGA's through attrTable; each pixel's 2 bits come from cgaColorPat, fg's under a set font bit
+  and bg's under a clear one; font rows 0, 2, 4 and 6 go to the even bank, 1, 3, 5 and 7 to the odd }
+procedure DrawGlyph(col, row, fg, bg, glyph: Byte);
 const
   { CGA colors 0..3 repeated across eight 2-bit pixels }
   cgaColorPat: array[0..3] of Word = (
@@ -77,14 +77,19 @@ var
   bankRow: Word;
   fontRow: Byte;
   cgaWord: Word;
+  inkMask: Word;
+  inkPat: Word;
+  paperPat: Word;
   k: Byte;
 begin
-  color := GameDefs.attrTable[color];
+  inkPat := cgaColorPat[GameDefs.attrTable[fg]];
+  paperPat := cgaColorPat[GameDefs.attrTable[bg]];
   for fontRow := 0 to 7 do begin
-    cgaWord := 0;
+    inkMask := 0;
     for k := 0 to 7 do
       if (GameVars.gameFont^[glyph][fontRow] and ($80 shr k)) > 0 then
-        cgaWord := cgaWord or (GameDefs.cgaPixelMask[k] and cgaColorPat[color]);
+        inkMask := inkMask or GameDefs.cgaPixelMask[k];
+    cgaWord := (inkMask and inkPat) or ((inkMask xor $FFFF) and paperPat);
     bankRow := row * 4 + fontRow shr 1;
     if Odd(fontRow) then
       cgaBA00[bankRow][col] := Swap(cgaWord)

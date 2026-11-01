@@ -1,0 +1,22 @@
+# Tests Skullcrusher leaving the party outside City Hall (#1168). The fixture places save A on the square east of City
+# Hall in New Phlan, (5,4), event 26, with the fifth and sixth members made Skullcrusher, an NPC: the fifth standing,
+# the sixth unconscious. Look runs the square's event: the standing one says farewell and leaves as before; then the
+# fallen one, whom SSI's search passed over, is carted away by Cadorna's guard and leaves the party too.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/skullcrusher
+# Load the slot directly by pressing its letter (#652).
+press l a
+wait AREA 120
+checkpoint before
+press l
+wait RETURN
+checkpoint farewell
+press ret
+# SSI left the fallen one in the party, without a word
+candidate: wait RETURN
+checkpoint carted
+candidate: press ret
+wait AREA
+checkpoint party

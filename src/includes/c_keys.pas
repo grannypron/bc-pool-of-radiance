@@ -34,6 +34,9 @@ const
   ALT_Q = #16;
   ALT_X = #45;
   ALT_M = #50;
+  { Alt-1 to Alt-8 on the top row: open that party member's items (#1175) }
+  ALT_1 = #120;
+  ALT_8 = #127;
   { the Command Keys window (#855), on the map and camp menus }
   F1 = #59;
   { the Bestiary (#842), on the map and camp menus }

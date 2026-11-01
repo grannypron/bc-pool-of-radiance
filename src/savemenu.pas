@@ -304,8 +304,9 @@ begin
   end;
 end;
 
-{ Draw the slots from top, each letter in white, the selected slot in white and the rest in light green, with "(more)"
-  above when a slot is hidden above and below when one is hidden below. }
+{ Draw the slots from top, each letter in white, the selected slot in white with its letter and colon in inverse video
+  (black on white, #1160) and the rest in light green, with "(more)" above when a slot is hidden above and below when
+  one is hidden below. }
 procedure DrawList;
 var
   k: Byte;
@@ -324,8 +325,12 @@ begin
       else
         color := LightGreen;
       row := LIST_TOP + 1 + 3 * k;
-      TextRend.DisplayString(LEFT_COL, row, White, listed[i]);
-      TextRend.DisplayString(LEFT_COL + 1, row, color, ':');
+      if i = sel then
+        TextRend.DisplayStringOn(LEFT_COL, row, Black, White, listed[i] + ':')
+      else begin
+        TextRend.DisplayString(LEFT_COL, row, White, listed[i]);
+        TextRend.DisplayString(LEFT_COL + 1, row, color, ':');
+      end;
       if used[i] then begin
         TextRend.DisplayString(DESC_COL, row, color, Copy(descs[i], 1, DESC_SHOWN));
         TextRend.DisplayString(RIGHT_COL + 1 - Length(clocks[i]), row, color, clocks[i]);

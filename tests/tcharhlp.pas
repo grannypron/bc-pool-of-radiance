@@ -182,6 +182,8 @@ end;
 
 begin
   TestKit.Start('TCHARHLP');
+  { the racial level caps apply only with the Non-Human Level Cap setting on, its default (#1176) }
+  GameVars.nonHumanCapOn := 1;
   GetMem(c, SizeOf(Types.TCharRecord));
   ClearCreature;
   GameVars.creatureList := nil;
@@ -202,6 +204,28 @@ begin
   it.unidMask := 6;
   CharHlp.ItemLabel(@it, False);
   TestKit.CheckEqualsS('Javelin ', it.name, 'unidentified parts are left out');
+  { "X of Y" names take the plural on X (#1170); ItemName has no count, marker or trailing space }
+  NewItem(71, 185, C_ITEM.NAME_OF, 64, 2, 1);
+  TestKit.CheckEqualsS('Potion of Healing', CharHlp.ItemName(@it, 1), 'a potion of healing named for one');
+  TestKit.CheckEqualsS('Potions of Healing', CharHlp.ItemName(@it, 2), 'and for two: the potion pluralized');
+  CharHlp.ItemLabel(@it, False);
+  TestKit.CheckEqualsS('2 Potions of Healing ', it.name, 'two potions of healing, labelled');
+  it.unidMask := 6;
+  CharHlp.ItemLabel(@it, False);
+  TestKit.CheckEqualsS('2 Potions ', it.name, 'a partly identified stack of potions');
+  TestKit.CheckEqualsS('Potion', CharHlp.ItemName(@it, 0), 'and its name for none, singular');
+  NewItem(C_ITEM.FLASK_OF_OIL, 172, C_ITEM.NAME_OF, 99, 3, 1);
+  CharHlp.ItemLabel(@it, False);
+  TestKit.CheckEqualsS('3 Flasks of Oil ', it.name, 'flasks of oil, by the same rule as the potions');
+  NewItem(C_ITEM.DART, 0, C_ITEM.NAME_PLUS_BASE + 1, 9, 5, 1);
+  CharHlp.ItemLabel(@it, False);
+  TestKit.CheckEqualsS('5 Darts +1 ', it.name, 'darts +1 keep their plural');
+  NewItem(C_ITEM.DART, 0, 0, 9, 5, 1);
+  CharHlp.ItemLabel(@it, False);
+  TestKit.CheckEqualsS('5 Darts ', it.name, 'and plain darts theirs');
+  it.unidMask := 7;
+  CharHlp.ItemLabel(@it, False);
+  TestKit.CheckEqualsS('5 ', it.name, 'a stack with no part shown keeps its count alone');
   { Detect Magic on a party member marks a magic item }
   ClearCreature;
   FillChar(e, SizeOf(e), 0);
@@ -306,6 +330,20 @@ begin
   c^.race := C_RACE.HALF_ELF;
   c^.classLevels[C_LEVEL.CLERIC] := 5;
   TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'a half-elf cleric stops at 5');
+  { the Non-Human Level Cap setting off lifts them (#1176) }
+  GameVars.nonHumanCapOn := 0;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'with the setting off a half-elf cleric trains past 5');
+  c^.race := C_RACE.ELF;
+  c^.strCur := 18;
+  c^.classLevels[C_LEVEL.FIGHTER] := 7;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'and an elf fighter past 7');
+  c^.race := C_RACE.HALF_ORC;
+  c^.wisCur := 14;
+  c^.classLevels[C_LEVEL.CLERIC] := 4;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'and a half-orc cleric of Wisdom 14 past 4');
+  GameVars.nonHumanCapOn := 1;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'which stops at 4 with it on');
+  c^.race := C_RACE.HALF_ELF;
   c^.classLevels[C_LEVEL.MAGE] := 7;
   TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.MAGE), 'a half-elf magic-user trains past 7 (#1121)');
   c^.classLevels[C_LEVEL.MAGE] := 8;

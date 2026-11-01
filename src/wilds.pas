@@ -15,6 +15,27 @@ function ViewCorner(ul, last: Integer): Integer;
 { Draw the empty bordered windows of the wilderness screen: two side by side at the top and the message area. }
 procedure DrawWildWindows;
 
+const
+  { What a wilderness step meets (TileStep, StepTo): open ground; impassable terrain; the river, while its stench
+    drives the party back; a diagonal between two cells that are not open (#1159). }
+  STEP_OPEN = 0;
+  STEP_BLOCKED = 1;
+  STEP_RIVER = 2;
+  STEP_CORNER = 3;
+  { the hours a straight step takes, and a diagonal one (#1159) }
+  STEP_HOURS = 12;
+  DIAGONAL_HOURS = 18;
+
+{ What wilderness map tile (GameDefs.wildMap's 1-based id) is to a step: STEP_BLOCKED for an impassable glyph,
+  STEP_RIVER for the river's while riverShut, else STEP_OPEN. }
+function TileStep(tile: Byte; riverShut: Boolean): Byte;
+
+{ A step from (x, y) toward dir (C_DIR) in the region whose 16-column window starts at map column colOfs. nx and ny
+  get the cell it ends on, held to the region (columns 0..C_AREA.WILD_REGION_LAST_COL, rows 0..C_AREA.WILD_LAST_ROW);
+  the result is TileStep of that cell, except that a step that ends diagonally from (x, y), with both orthogonal cells
+  beside it not STEP_OPEN, is STEP_CORNER: the party can't cut that corner. One open side lets it past (#1159). }
+function StepTo(x, y: ShortInt; dir, colOfs: Byte; riverShut: Boolean; var nx, ny: ShortInt): Byte;
+
 implementation
 
 uses Types, Crt, C_AREA, C_MSG, GameDefs, GameVars, Border, MapTiles, TextRend;
@@ -120,11 +141,45 @@ begin
   end;
 end;
 
+function TileStep(tile: Byte; riverShut: Boolean): Byte;
+begin
+  case tile of
+    78, 126..128, 130..132, 168..172, 174..179, 188, 221..222, 225..233, 245: TileStep := STEP_BLOCKED;
+    102..108, 114: if riverShut then
+                     TileStep := STEP_RIVER
+                   else
+                     TileStep := STEP_OPEN;
+  else
+    TileStep := STEP_OPEN;
+  end;
+end;
+
+function StepTo(x, y: ShortInt; dir, colOfs: Byte; riverShut: Boolean; var nx, ny: ShortInt): Byte;
+var
+  meets: Byte;
+begin
+  nx := x + GameDefs.dirDX[dir];
+  ny := y + GameDefs.dirDY[dir];
+  if nx < 0 then nx := 0;
+  if nx > C_AREA.WILD_REGION_LAST_COL then nx := C_AREA.WILD_REGION_LAST_COL;
+  if ny < 0 then ny := 0;
+  if ny > C_AREA.WILD_LAST_ROW then ny := C_AREA.WILD_LAST_ROW;
+  meets := Wilds.TileStep(GameDefs.wildMap[ny, nx + colOfs], riverShut);
+  { the cells beside a diagonal step are (nx, y) and (x, ny), both on the map once nx and ny are }
+  if (meets = STEP_OPEN) and (nx <> x) and (ny <> y) and
+     (Wilds.TileStep(GameDefs.wildMap[y, nx + colOfs], riverShut) <> STEP_OPEN) and
+     (Wilds.TileStep(GameDefs.wildMap[ny, x + colOfs], riverShut) <> STEP_OPEN) then
+    meets := STEP_CORNER;
+  StepTo := meets;
+end;
+
 procedure DrawWildWindows;
 begin
+  { the message window first, as the 3D screen's (CharDisp.DrawNoncombatWindows): the map window's corner at (16,16)
+    goes over its top edge (#1172) }
+  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
   Border.DrawWindow(1, 1, 15, 15, 0, Black, '');
   Border.DrawWindow(17, 1, 38, 15, 0, Black, '');
-  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
 end;
 
 end.
