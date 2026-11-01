@@ -77,14 +77,14 @@ procedure DrawMore(leftCol, rightCol, row: Byte);
 
 { Bottom-line menu: query in qCol, then menu with its digits and capital letters (the hotkeys) in hlCol, the current
   option (GameVars.horizChoice, reset to 1 when out of range) in inverse video (black on hlCol, #1160) and the rest in
-  mCol. ',' and '.' move the current option, and so do the Left and Right arrows unless arrowsToCaller is set. A hotkey
-  (returned upper-cased, and made the current option), a key in extraKeys (returned upper-cased) or space ends the menu;
-  Enter, when mCol or hlCol is nonzero, returns the current option's hotkey (#13 for a menu without options, or while
-  enterToCaller is set); Escape returns #0. With reinterpret, any other extended key returns its scan code and digits
-  1-9 and backslash map to keypad scan codes, all with ext set; F1 returns its scan code, with ext set, only under
-  helpToCaller, and Alt-1 to Alt-8 return theirs with or without reinterpret under memberKeysToCaller. The picture
-  animates when animate is set or the GBVM menuAnimation flag is nonzero (that flag also advances a frame every pass
-  and is cleared on exit). }
+  mCol. ',' and '.' move the current option, and so do the Left and Right arrows unless arrowsToCaller is set. A
+  hotkey (returned upper-cased, and made the current option), a key in extraKeys (returned upper-cased) or space ends
+  the menu; Enter, when mCol or hlCol is nonzero, returns the current option's hotkey (#13 for a menu without options,
+  or while enterToCaller is set); Escape returns #0. With reinterpret, any other extended key returns its scan code
+  and digits 1-9 that are no hotkey and not in extraKeys, and backslash, map to keypad scan codes, all with ext set;
+  F1 returns its scan code, with ext set, only under helpToCaller, and Alt-1 to Alt-8 return theirs with or without
+  reinterpret under memberKeysToCaller. The picture animates when animate is set or the GBVM menuAnimation flag is
+  nonzero (that flag also advances a frame every pass and is cleared on exit). }
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
                         var ext: Boolean): Char;
 
@@ -387,7 +387,9 @@ begin
                   end;
             if (ch <> ' ') and (Pos(ch, extraKeys) > 0) then
               done := True;
-            if reinterpret then
+            { a digit that is an option's hotkey or in extraKeys is returned as itself: only the others are the
+              keypad's (the combat menu's 1 and 2, #1209) }
+            if reinterpret and not done then
               if ch in ['1'..'9', '\'] then
               begin
                 if ch = '\' then
