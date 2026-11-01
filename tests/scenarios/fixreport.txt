@@ -1,0 +1,21 @@
+# Fix's report (#1170, #1171): turns on Fix's Use Potions and Paladin Heals on the Settings screen's Camp page, then
+# camps in Valhingen Graveyard using save J and runs Fix, which lists what it used: "Fix: <name> laid hands on
+# <name>.", "Fix: <name> used Potion of Healing on <name>." and the like, the item named once, without its stack's count.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+press g
+wait SETTINGS|GAME
+press c
+# down past Auto Memorize and Use Scrolls to Use Potions, then to Paladin Heals
+press down down ret down down ret
+checkpoint camp-settings
+press esc
+wait RADIANCE
+press l j
+wait AREA
+press e
+wait CAMP
+press f
+wait CAMP|RETURN|CONTINUE 120
+checkpoint fix-report

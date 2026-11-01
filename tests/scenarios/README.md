@@ -61,6 +61,7 @@ the text matches (an animated picture) is only a warning.
 | `journal` | the journal list with its first item previewed, and the second selected |
 | `journalfound` | the Journal listing what the party has found (#1090), from save A in New Phlan's tavern at (10,8) with an empty `savgamA.jnl` (`saves/journal`): the empty Journal, a tavern tale overheard after declining to gamble, and the Journal listing that tale alone; the golden build lists every item, so its two journal checkpoints differ by design |
 | `camp` | Fix and Rest in Valhingen Graveyard, Scribe's message for a character without magic-user levels, and Escape leaving Alter's portrait picker with the portrait unchanged |
+| `fixreport` | Fix's report (#1170, #1171): Use Potions and Use Paladin's Heal turned on on the Camp page, then Fix in camp from save J: "FIX: TALONIA USED POTION OF HEALING ON ANNA.", the item named once without its stack's count; the golden build words the lines "... during Fix." |
 | `companion` | the Companion Tools (phase 8) turned on in Settings: the map, the character editor (levels, Modify, gear with a plus and bracers' AC, money, spells, health) and a note written on the map |
 | `shop` | walking to the arms shop, Pool, buying a hand axe, the pack, selling it back |
 | `areachange` | New Phlan's script handing over to the training hall's (NEWECL), named in the save popup |
