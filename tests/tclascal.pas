@@ -4,7 +4,7 @@
 program TClasCal;
 
 uses Types, C_LEVEL, C_RACE, C_SAVE, C_SPELL, C_CLASS, C_ALIGN, C_EQUIP, C_ITEM, C_EFFECT, GameDefs, GameVars, ClassCal,
-  AbilAdj, Dice, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
+  CharHlp, AbilAdj, Dice, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   c: Types.PCharRecord;
@@ -262,6 +262,47 @@ begin
   TestKit.Check(ClassCal.LevelOpen(C_LEVEL.CLERIC, 9) and not ClassCal.LevelOpen(C_LEVEL.CLERIC, 10),
                 'a cleric may train to 9, not past it');
   TestKit.Check(not ClassCal.LevelOpen(C_LEVEL.MONK, 2), 'nor a monk at all');
+
+  { spell slots to level 9 and spell level 5, the paladin's and the ranger's (#1121) }
+  Reset(C_RACE.HUMAN);
+  c^.classLevels[C_LEVEL.CLERIC] := 9;
+  c^.wisCur := 12;
+  ClassCal.RecalcBaseSkills(c);
+  TestKit.CheckEqualsL(2, CharHlp.SpellSlots(c, C_SPELL.CLASS_CLERIC, 4), 'a level 9 cleric: 2 fourth-level slots');
+  TestKit.CheckEqualsL(0, CharHlp.SpellSlots(c, C_SPELL.CLASS_CLERIC, 5), 'no fifth below Wisdom 17');
+  c^.wisCur := 18;
+  ClassCal.RecalcBaseSkills(c);
+  TestKit.CheckEqualsL(6, CharHlp.SpellSlots(c, C_SPELL.CLASS_CLERIC, 1), 'Wisdom 18: 4 + 2 first-level');
+  TestKit.CheckEqualsL(3, CharHlp.SpellSlots(c, C_SPELL.CLASS_CLERIC, 4), '2 + 1 fourth-level');
+  TestKit.CheckEqualsL(1, CharHlp.SpellSlots(c, C_SPELL.CLASS_CLERIC, 5), 'and a fifth-level slot');
+  Reset(C_RACE.HUMAN);
+  c^.classLevels[C_LEVEL.MAGE] := 9;
+  ClassCal.RecalcBaseSkills(c);
+  TestKit.CheckEqualsL(2, CharHlp.SpellSlots(c, C_SPELL.CLASS_MAGE, 4), 'a level 9 magic-user: 2 fourth-level');
+  TestKit.CheckEqualsL(1, CharHlp.SpellSlots(c, C_SPELL.CLASS_MAGE, 5), 'and 1 fifth-level');
+  Reset(C_RACE.HUMAN);
+  c^.classLevels[C_LEVEL.PALADIN] := 8;
+  c^.wisCur := 18;
+  ClassCal.RecalcBaseSkills(c);
+  TestKit.CheckEqualsL(0, CharHlp.SpellSlots(c, C_SPELL.CLASS_CLERIC, 1), 'a level 8 paladin casts nothing');
+  c^.classLevels[C_LEVEL.PALADIN] := 9;
+  ClassCal.RecalcBaseSkills(c);
+  ClassCal.RecalcBaseSkills(c);
+  TestKit.CheckEqualsL(1, CharHlp.SpellSlots(c, C_SPELL.CLASS_CLERIC, 1),
+                       'a level 9 paladin: one cleric slot, no Wisdom bonus');
+  TestKit.Check(CharHlp.KnowsSpell(c, C_SPELL.BLESS), 'and knows Bless');
+  Reset(C_RACE.HUMAN);
+  c^.classLevels[C_LEVEL.RANGER] := 8;
+  ClassCal.RecalcBaseSkills(c);
+  TestKit.CheckEqualsL(1, CharHlp.SpellSlots(c, C_SPELL.CLASS_DRUID, 1), 'a level 8 ranger: one druid slot');
+  TestKit.CheckEqualsL(0, CharHlp.SpellSlots(c, C_SPELL.CLASS_MAGE, 1), 'no magic-user slot yet');
+  c^.classLevels[C_LEVEL.RANGER] := 9;
+  ClassCal.RecalcBaseSkills(c);
+  TestKit.CheckEqualsL(1, CharHlp.SpellSlots(c, C_SPELL.CLASS_MAGE, 1), 'at 9 a magic-user slot');
+  c^.classLevels[C_LEVEL.RANGER] := 7;
+  ClassCal.RecalcBaseSkills(c);
+  TestKit.Check((CharHlp.SpellSlots(c, C_SPELL.CLASS_MAGE, 1) = 0) and
+                (CharHlp.SpellSlots(c, C_SPELL.CLASS_DRUID, 1) = 0), 'drained to 7, none');
 
   { saving throws }
   Reset(C_RACE.HUMAN);

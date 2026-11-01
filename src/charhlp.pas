@@ -120,6 +120,10 @@ function PaladinCanCure(p: Types.PCharRecord): Boolean;
 
 function Guard(creature: Types.PCharRecord): Boolean;
 
+{ The level curChar casts spell at: a cleric spell at its cleric level or its paladin level less PALADIN_LEVELS_BEFORE,
+  the higher; a magic-user spell at its magic-user level or its ranger level less RANGER_MAGE_LEVELS_BEFORE; a druid
+  spell at its ranger level less RANGER_DRUID_LEVELS_BEFORE (#1121); a special spell at C_SPELL.SPECIAL_CASTER_LEVEL;
+  any spell cast from an item (GameVars.usingItem) but a special one at C_SPELL.ITEM_CASTER_LEVEL. }
 function GetCasterLevel(spell: Byte): Byte;
 
 function HasRangedWeapon(creature: Types.PCharRecord): Boolean;
@@ -386,6 +390,12 @@ const
     (5, 5, 6),
     (6, 7, 8),
     (4, 5, 6));
+  { the levels a paladin's cleric spells, and a ranger's druid and magic-user spells, are cast below his class level
+    (1st-edition PHB): a paladin casts as a cleric of his level less 8, a ranger as a druid of his level less 7 and a
+    magic-user of his level less 8 (GetCasterLevel, #1121) }
+  PALADIN_LEVELS_BEFORE = 8;
+  RANGER_DRUID_LEVELS_BEFORE = 7;
+  RANGER_MAGE_LEVELS_BEFORE = 8;
   { a half-elf cleric's cap, and a half-elf magic-user's (1st-edition PHB p. 14), which the experience table's end at 6
     hid until the table ran to 9 (#1121) }
   HALFELF_CLERIC_CAP = 5;
@@ -1433,12 +1443,30 @@ end;
   (C_SPELL.SPECIAL_CASTER_LEVEL for the special class), C_SPELL.ITEM_CASTER_LEVEL when cast from an item
   (GameVars.usingItem) unless the class is the special one. }
 function GetCasterLevel(spell: Byte): Byte;
+var
+  own: Integer;
+  other: Integer;
 begin
+  own := 0;
+  other := 0;
   case GameDefs.spellTable[spell].castClass of
-    C_SPELL.CLASS_CLERIC: GetCasterLevel := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.CLERIC_BIT);
-    C_SPELL.CLASS_MAGE: GetCasterLevel := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.MAGE_BIT);
-    C_SPELL.CLASS_SPECIAL: GetCasterLevel := C_SPELL.SPECIAL_CASTER_LEVEL;
+    C_SPELL.CLASS_CLERIC: begin
+        own := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.CLERIC_BIT);
+        other := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.PALADIN_BIT) - PALADIN_LEVELS_BEFORE;
+      end;
+    C_SPELL.CLASS_MAGE: begin
+        own := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.MAGE_BIT);
+        other := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.RANGER_BIT) - RANGER_MAGE_LEVELS_BEFORE;
+      end;
+    C_SPELL.CLASS_DRUID:
+      own := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.RANGER_BIT) - RANGER_DRUID_LEVELS_BEFORE;
+    C_SPELL.CLASS_SPECIAL: own := C_SPELL.SPECIAL_CASTER_LEVEL;
   end;
+  if other > own then
+    own := other;
+  if own < 0 then
+    own := 0;
+  GetCasterLevel := own;
   if GameVars.usingItem and (GameDefs.spellTable[spell].castClass <> C_SPELL.CLASS_SPECIAL) then
     GetCasterLevel := C_SPELL.ITEM_CASTER_LEVEL;
 end;

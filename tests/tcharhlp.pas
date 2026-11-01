@@ -311,6 +311,28 @@ begin
   c^.classLevels[C_LEVEL.MAGE] := 8;
   TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.MAGE), 'and stops at 8');
 
+  { the spells past SSI's record: slots of levels 4 and 5, known spells past 56, memorized slots past 20 (#1121) }
+  ClearCreature;
+  CharHlp.SetSpellSlots(c, C_SPELL.CLASS_CLERIC, 2, 3);
+  CharHlp.SetSpellSlots(c, C_SPELL.CLASS_CLERIC, 4, 2);
+  CharHlp.SetSpellSlots(c, C_SPELL.CLASS_DRUID, 1, 1);
+  TestKit.Check((c^.clericSpells[2] = 3) and (CharHlp.SpellSlots(c, C_SPELL.CLASS_CLERIC, 4) = 2) and
+                (CharHlp.SpellSlots(c, C_SPELL.CLASS_DRUID, 1) = 1), 'slots of every kind and level');
+  TestKit.CheckEqualsL(0, CharHlp.SpellSlots(c, C_SPELL.CLASS_SPECIAL, 1), 'none of the special kind');
+  CharHlp.SetSpellKnown(c, 10, True);
+  CharHlp.SetSpellKnown(c, C_SPELL.LAST, True);
+  TestKit.Check(CharHlp.KnowsSpell(c, 10) and (c^.spellsKnown[10] = 1), 'a spell known in the record');
+  TestKit.Check(CharHlp.KnowsSpell(c, C_SPELL.LAST) and not CharHlp.KnowsSpell(c, C_SPELL.LAST - 1),
+                'and one past it, alone');
+  CharHlp.SetSpellKnown(c, C_SPELL.LAST, False);
+  TestKit.Check(not CharHlp.KnowsSpell(c, C_SPELL.LAST), 'forgotten');
+  CharHlp.SetMemorizedAt(c, Types.MEMORIZED_LAST, 15);
+  CharHlp.SetMemorizedAt(c, 3, 21);
+  TestKit.Check((CharHlp.MemorizedAt(c, Types.MEMORIZED_LAST) = 15) and (c^.memorizedSpells[3] = 21),
+                'memorized slots past the record''s');
+  CharHlp.RemoveSpell(c, 15);
+  TestKit.CheckEqualsL(0, CharHlp.MemorizedAt(c, Types.MEMORIZED_LAST), 'RemoveSpell reaches them');
+
   { training: the experience table's end, by the Game Level Cap, apart from the racial caps (#1121) }
   ClearCreature;
   c^.race := C_RACE.HUMAN;
