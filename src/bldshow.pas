@@ -289,7 +289,7 @@ begin
   for i := 1 to width do
     if (i > Length(st^.shown[field])) or (st^.shown[field][i] <> s[i]) then
       if col + i - 1 < 40 then
-        TextRend.RenderChar(col + i - 1, row, color, 1, Ord(s[i]), 1);
+        TextRend.RenderChar(col + i - 1, row, color, Black, 1, Ord(s[i]), 1);
   st^.shown[field] := s;
 end;
 

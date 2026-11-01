@@ -108,14 +108,15 @@ begin
   rows := (shown + 1) div 2;
 end;
 
-{ The names on the page from place top (of n), down the left column, then the right, the one at place sel in white and
-  the rest in green; the count under them. }
+{ The names on the page from place top (of n), down the left column, then the right, the one at place sel in inverse
+  video (black on white, #1160) and the rest in green; the count under them. }
 procedure DrawList(order: POrder; n, top, sel: Word);
 var
   shown: Word;
   rows: Word;
   k: Word;
-  colour: Byte;
+  col: Byte;
+  row: Byte;
   s: Types.TStr40;
 begin
   DrawFrame('Bestiary');
@@ -125,11 +126,12 @@ begin
   end;
   PageShape(n, top, shown, rows);
   for k := 0 to shown - 1 do begin
-    colour := LightGreen;
+    col := LIST_LEFT + (k div rows) * LIST_COL_WIDTH;
+    row := LIST_TOP + k mod rows;
     if top + k = sel then
-      colour := White;
-    TextRend.DisplayString(LIST_LEFT + (k div rows) * LIST_COL_WIDTH, LIST_TOP + k mod rows, colour,
-                           At(order, top + k)^.name);
+      TextRend.DisplayStringOn(col, row, Black, White, At(order, top + k)^.name)
+    else
+      TextRend.DisplayString(col, row, LightGreen, At(order, top + k)^.name);
   end;
   s := StrUtil.Count(n, 'Creature', 'Creatures');
   TextRend.DisplayCentered(C_MSG.TEXT_LEFT, C_MSG.TEXT_RIGHT, COUNT_ROW, LightCyan, s);

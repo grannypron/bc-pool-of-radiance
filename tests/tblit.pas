@@ -5,7 +5,7 @@
 {$I COMPILER.INC}
 program TBlit;
 
-uses Types, GameDefs, GameVars, Blit, VidOps, {$IFDEF FPC}TpRand, {$ENDIF}
+uses Types, GameDefs, GameVars, Blit, VidOps, {$IFDEF FPC}TpRand, Host, {$ENDIF}
   {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga, TestKit;
 
 const
@@ -248,9 +248,9 @@ begin
     Types.PByteArr(GameVars.gameFont)^[i] := Next(256);
   pic := MakePic(3, 1);
   Blit.ShowPic(2, 3, pic);
-  GameVars.video.DrawGlyph(5, 7, 9, 65);
-  GameVars.video.DrawGlyph(39, 24, 3, 176);
-  GameVars.video.DrawGlyph(0, 0, 14, 1);
+  GameVars.video.DrawGlyph(5, 7, 9, 0, 65);
+  GameVars.video.DrawGlyph(39, 24, 3, 0, 176);
+  GameVars.video.DrawGlyph(0, 0, 14, 0, 1);
   Blit.AllocPic(168, 21, 1, 0, GameVars.viewBuffer);
   for i := 0 to GameVars.viewBuffer^.imgSize - 1 do
     GameVars.viewBuffer^.data[i] := Next(256);
@@ -269,6 +269,68 @@ begin
 end;
 {$ENDIF}
 
+{ The hash of the screen the installed driver writes: the 32 KB from B800 (CGA, Tandy) in the DOS build, Host.screen
+  (VGA) natively. }
+function ScreenHash: LongInt;
+var
+  h: LongInt;
+begin
+  h := 0;
+{$IFDEF FPC}
+  Hash(h, Types.PByteArr(@Host.screen), SizeOf(Host.screen));
+{$ELSE}
+  Hash(h, Types.PByteArr(Ptr($B800, 0)), $8000);
+{$ENDIF}
+  ScreenHash := h;
+end;
+
+{ Clear the screen the installed driver writes. }
+procedure WipeScreen;
+begin
+{$IFDEF FPC}
+  FillChar(Host.screen, SizeOf(Host.screen), 0);
+{$ELSE}
+  FillChar(Mem[$B800:0], $8000, 0);
+{$ENDIF}
+end;
+
+{ DrawGlyph's paper colour (#1160): a glyph in black ink on yellow paper, as a menu's highlighted option is drawn,
+  leaves the same screen as the glyph whose pixels are its opposite in yellow ink on black, and ink on paper of the
+  same colour fills the cell whatever the glyph. }
+procedure CheckInverse;
+const
+  { Crt's Black and Yellow }
+  BLACK = 0;
+  YELLOW = 14;
+var
+  r: Byte;
+  first: LongInt;
+begin
+  VidOps.InitRowTables;
+  GetMem(GameVars.gameFont, SizeOf(Types.TFontArr));
+  seed := 11;
+  for r := 0 to 7 do begin
+    GameVars.gameFont^[0][r] := Next(256);
+    GameVars.gameFont^[1][r] := GameVars.gameFont^[0][r] xor $FF;
+  end;
+  WipeScreen;
+  GameVars.video.DrawGlyph(7, 9, BLACK, YELLOW, 0);
+  first := ScreenHash;
+  WipeScreen;
+  GameVars.video.DrawGlyph(7, 9, YELLOW, BLACK, 1);
+  TestKit.CheckEqualsL(ScreenHash, first, GameVars.video.name + ': inverse video is the opposite glyph on black');
+  WipeScreen;
+  GameVars.video.DrawGlyph(7, 9, YELLOW, YELLOW, 0);
+  first := ScreenHash;
+  WipeScreen;
+  GameVars.video.DrawGlyph(7, 9, YELLOW, YELLOW, 1);
+  TestKit.CheckEqualsL(first, ScreenHash, GameVars.video.name + ': ink on paper of its own colour fills the cell');
+  WipeScreen;
+  TestKit.Check(ScreenHash <> first, GameVars.video.name + ': a filled cell is not blank');
+  WipeScreen;
+  FreeMem(GameVars.gameFont, SizeOf(Types.TFontArr));
+end;
+
 begin
   TestKit.Start('TBLIT');
 {$IFNDEF FPC}
@@ -280,12 +342,17 @@ begin
             -1026930244, -1431655766);
   VidTdy.Install;
   CheckBanked(1547682727);
+  CheckInverse;
   VidCga.Install;
   CheckBanked(-1509349852);
+  CheckInverse;
   CheckMode(2013371070, -189610700, 1102751854, 1331543892, -535403827, -1306384808, -1947252339, 453298316,
             -1742296210, -663801968);
 {$ENDIF}
   VidVga.Install;
+{$IFDEF FPC}
+  CheckInverse;
+{$ENDIF}
   CheckMode(-1469357773, 1744798254, -1851751357, 828998018, -2103238238, 976113281, -1611165980, 686670744,
             -1722318564, -939524097);
   CheckGuards;

@@ -177,11 +177,11 @@ begin
         saved[r] := GameVars.gameFont^[AT_SLOT][r];
         GameVars.gameFont^[AT_SLOT][r] := AT_BITMAP[r];
       end;
-      TextRend.RenderChar(col, row, color, 1, AT_SLOT, 0);
+      TextRend.RenderChar(col, row, color, Black, 1, AT_SLOT, 0);
       for r := 0 to 7 do
         GameVars.gameFont^[AT_SLOT][r] := saved[r];
     end else
-      TextRend.RenderChar(col, row, color, 1, Ord(s[i]), 1);
+      TextRend.RenderChar(col, row, color, Black, 1, Ord(s[i]), 1);
     Inc(col);
   end;
 end;

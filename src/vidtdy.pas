@@ -24,8 +24,8 @@ procedure Start;
 begin
 end;
 
-{ two pixels a byte, each font row a scanline through the row segments }
-procedure DrawGlyph(col, row, color, glyph: Byte);
+{ two pixels a byte, a set font bit in fg and a clear one in bg, each font row a scanline through the row segments }
+procedure DrawGlyph(col, row, fg, bg, glyph: Byte);
 var
   fontRow: Byte;
   bits: Byte;
@@ -37,11 +37,14 @@ begin
     bits := GameVars.gameFont^[glyph][fontRow];
     seg := GameVars.bankRowSeg[row * 8 + fontRow];
     for k := 0 to 3 do begin
-      tandyPx := 0;
       if (bits and ($80 shr (2 * k))) <> 0 then
-        tandyPx := color shl 4;
+        tandyPx := fg shl 4
+      else
+        tandyPx := bg shl 4;
       if (bits and ($40 shr (2 * k))) <> 0 then
-        tandyPx := tandyPx or color;
+        tandyPx := tandyPx or fg
+      else
+        tandyPx := tandyPx or bg;
       Mem[seg:col * 4 + k] := tandyPx;
     end;
   end;
