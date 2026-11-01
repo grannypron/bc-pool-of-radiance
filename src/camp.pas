@@ -821,7 +821,8 @@ end;
   interruption. After a completed rest, or with nothing for the clerics to cast, the scrolls, potions and paladin's
   powers the Fix settings allow treat what is left (FixPlan.NextUse). What Fix used, and each level-drained cleric who
   lacks a cure it would cast undrained, are then listed in the message window, which waits for a key between pages and
-  keeps the last. With nothing done at all, a party with no cleric, or with none conscious, is told so, as is a party
+  keeps the last; the party list and the time are redrawn first, so they show the result while the report is up
+  (#1190). With nothing done at all, a party with no cleric, or with none conscious, is told so, as is a party
   with nothing Fix can treat or no slot to treat it with; the message stays in the message window, without waiting for
   a key (#681). Fix's healing is magic, so in an anti-magic area (CharHlp.AntiMagicArea) it says "Spells cannot be cast
   in this area." and nobody rests (#877). }
@@ -1013,6 +1014,10 @@ begin
       report[1] := msg;
     end;
   end;
+  { the list and clock show the healing and the rest before the report, which may wait for a key between pages
+    (#1190) }
+  CharDisp.DisplayParty(GameVars.curChar);
+  CharDisp.PrintMiscInfo;
   ShowReport;
   { a member that joined through Animate Dead and was raised slips away, when the clerics' rest passed any time }
   if rested then
