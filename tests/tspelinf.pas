@@ -79,6 +79,11 @@ begin
   SetLevel(4);
   TestKit.CheckEqualsS('RNG 3 AREA 2x2 DUR 4 RD SAVE PART CBT', SpellInf.Summary(C_SPELL.STINKING_CLOUD),
                        'Stinking Cloud');
+  SetLevel(9);
+  TestKit.CheckEqualsS('RNG 2 AREA 3x3 DUR 9 RD SAVE NEG CBT', SpellInf.Summary(C_SPELL.CLOUDKILL),
+                       'Cloudkill (#1193)');
+  TestKit.CheckEqualsS('3x3 SQUARES', SpellInf.AreaText(C_SPELL.CLOUDKILL, True), 'Cloudkill''s block');
+  TestKit.CheckEqualsS('2x2 SQUARES', SpellInf.AreaText(C_SPELL.STINKING_CLOUD, True), 'Stinking Cloud''s block');
   SetLevel(5);
   TestKit.CheckEqualsS('RNG 9 AREA BOLT DUR INST SAVE 1/2 CBT', SpellInf.Summary(C_SPELL.LIGHTNING_BOLT),
                        'Lightning Bolt');
@@ -129,6 +134,9 @@ begin
   TestKit.CheckEqualsL(C_SPELL.AREA_BOLT, CharHlp.SpellArea(C_SPELL.LIGHTNING_BOLT, size), 'Lightning Bolt: a bolt');
   TestKit.CheckEqualsL(C_SPELL.LIGHTNING_BOLT_CELLS, size, 'the bolt''s length');
   TestKit.CheckEqualsL(C_SPELL.AREA_CLOUD, CharHlp.SpellArea(C_SPELL.STINKING_CLOUD, size), 'Stinking Cloud: a cloud');
+  TestKit.CheckEqualsL(C_SPELL.STINKING_CLOUD_SIDE, size, 'two squares a side');
+  TestKit.CheckEqualsL(C_SPELL.AREA_CLOUD, CharHlp.SpellArea(C_SPELL.CLOUDKILL, size), 'Cloudkill: a cloud');
+  TestKit.CheckEqualsL(C_SPELL.CLOUDKILL_SIDE, size, 'three squares a side');
   TestKit.CheckEqualsL(C_SPELL.AREA_TARGETS, CharHlp.SpellArea(49, size), 'Hold Person (magic-user): targets');
   TestKit.CheckEqualsL(4, size, 'up to 4');
   TestKit.CheckEqualsL(C_SPELL.AREA_SPOT, CharHlp.SpellArea(25, size), 'Silence: one creature or square');
@@ -153,8 +161,8 @@ begin
   SetItem(WAND_TYPE, C_SPELL.FIREBALL, 0, 0);
   TestKit.CheckEqualsL(C_SPELL.FIREBALL, CharHlp.ItemSpell(it), 'the Wand of Fireballs casts Fireball');
   TestKit.Check(SpellInf.HasItemPage(it), 'and has its page');
-  SetItem(WAND_TYPE, 114, 0, 0);
-  TestKit.CheckEqualsL(91, CharHlp.ItemSpell(it), 'effect 114: spell 91, which holds no spell here');
+  SetItem(WAND_TYPE, 118, 0, 0);
+  TestKit.CheckEqualsL(95, CharHlp.ItemSpell(it), 'effect 118: spell 95, which holds no spell here');
   TestKit.Check(not SpellInf.HasItemPage(it), 'which has no page');
   SetItem(WAND_TYPE, 150, 0, 0);
   TestKit.CheckEqualsL(C_SPELL.ITEM_OINTMENT, CharHlp.ItemSpell(it), 'effect 150: Keoghtom''s Ointment, 127 (#1121)');
@@ -250,7 +258,7 @@ begin
   TestKit.Check(texts, 'every description within 9 lines of 36 columns');
   TestKit.CheckEqualsS('A CLOUD FILLS FOUR SQUARES. A', SpellInf.TextLine(C_SPELL.STINKING_CLOUD, 1),
                        'Stinking Cloud''s first line');
-  TestKit.CheckEqualsL(0, SpellTxt.LineCount(91), 'no text for an id that holds no spell');
+  TestKit.CheckEqualsL(0, SpellTxt.LineCount(95), 'no text for an id that holds no spell');
   TestKit.CheckEqualsS('THE DRINKER MOVES AND ATTACKS AT', SpellInf.TextLine(57, 1),
                        'the Potion of Speed''s first line');
   { Bless reaches only allies and Curse only foes (#1027) }

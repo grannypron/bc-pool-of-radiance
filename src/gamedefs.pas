@@ -5,7 +5,8 @@ unit GameDefs;
 
 interface
 
-uses C_GENDER, C_CLASS, C_LEVEL, C_MONEY, Types, Crt, C_EFFECT, C_DIR, C_RACE, C_STATUS, C_ALIGN, C_STAT, C_SPELL;
+uses C_GENDER, C_CLASS, C_LEVEL, C_MONEY, Types, Crt, C_EFFECT, C_DIR, C_RACE, C_STATUS, C_ALIGN, C_STAT, C_SPELL,
+  C_TERR;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -245,8 +246,9 @@ const
   dirDY: array[C_DIR.NORTH..C_DIR.CENTER] of ShortInt = (
     -1, -1, 0, 1, 1, 1, 0, -1, 0);
   { Combat terrain by arena cell value: movement cost (255 = impassable), what it blocks of a line walk, and the combat
-    tile graphic }
-  terrainInfo: array[1..65] of Types.TTerrainRec = (
+    tile graphic; 66, Cloudkill's cloud (C_TERR.CLOUDKILL), names the stinking cloud's tile, drawn recoloured
+    (CbtMap.DrawTerrain) }
+  terrainInfo: array[1..C_TERR.CLOUDKILL] of Types.TTerrainRec = (
     (cost: 255; blocking: 2; tileId: 0),
     (cost: 255; blocking: 2; tileId: 1),
     (cost: 255; blocking: 2; tileId: 2),
@@ -311,7 +313,8 @@ const
     (cost: 255; blocking: 2; tileId: 30),
     (cost: 255; blocking: 2; tileId: 31),
     (cost: 1; blocking: 0; tileId: 32),
-    (cost: 255; blocking: 2; tileId: 33));
+    (cost: 255; blocking: 2; tileId: 33),
+    (cost: 1; blocking: 0; tileId: 38));
   { Effects that leave a creature helpless }
   HELPLESS_FX_COUNT = 4;
   helplessFx: array[1..HELPLESS_FX_COUNT] of Byte = (C_EFFECT.SNAKE_CHARM, C_EFFECT.PARALYZED, C_EFFECT.SLEEP,
@@ -334,9 +337,12 @@ const
     32, 34,  5,  6, 13, 25, 30
   );
   { Cloud directions, spell names and spell table }
-  { direction indices: center, E, SE, S }
+  { Stinking Cloud's cells as directions from its aim cell, the block's upper left: center, E, SE, S }
   cloudDir: array[1..4] of Byte = (
     8, 2, 3, 4);
+  { Cloudkill's cells as directions from its aim cell, the block's middle: center, then N round to NW (Curse's) }
+  cloudkillDir: array[1..9] of Byte = (
+    8, 0, 1, 2, 3, 4, 5, 6, 7);
   { spell IDs 1..C_SPELL.LAST: the item spells' 57 and 59..65 and the empty ids have no name }
   spellNames: array[1..C_SPELL.LAST] of string[32] = (
     'Bless',
@@ -429,7 +435,7 @@ const
     'Minor Globe of Invulnerability',
     'Remove Curse',
     'Animate Dead',
-    '',
+    'Cloudkill',
     'Cone of Cold',
     'Feeblemind',
     'Hold Monsters',
@@ -441,7 +447,7 @@ const
     'Bestow Curse');
   { IDs 57, 59..65 and 127..128 are item spells; 58, 66..90, 92..94 and 100 are the spells of levels 4 and 5 and the
     druid's first, from Curse's table with its castClass remapped (Curse's druid 1 and magic-user 2 are 2 and 1 here);
-    91, 95..99 and 101..126 hold no spell (#1121) }
+    95..99 and 101..126 hold no spell (#1121) }
   spellTable: array[1..C_SPELL.TABLE_LAST] of Types.TSpellRec = (
     { Spell 1: Bless }
     (castClass: 0; level: 1; rangeFixed: 6; rangeVar: 0;
@@ -896,11 +902,13 @@ const
      durFixed: 0; durVar: 0; area: 240; target: 4;
      saveResult: 0; saveType: 4; effect: 32; whenCast: 2;
      castTime: 5; aiPriority: 2; offensive: 0; aiRadius: 0),
-    { Spell 91: Curse's Cloudkill, not cast here: the arena has no Cloudkill cloud (#1121) }
-    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
-     durFixed: 0; durVar: 0; area: 0; target: 1;
-     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
-     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 91: Cloudkill (#1193): a 3x3 cloud round the aim cell for a round per level (Magic.SpellCloudkill). Curse's
+      range of 2, not the PHB's 1", as the cloud does not roll away from its caster here; the handler rolls the saves
+      vs. poison }
+    (castClass: 1; level: 5; rangeFixed: 2; rangeVar: 0;
+     durFixed: 0; durVar: 1; area: 9; target: 0;
+     saveResult: 3; saveType: 0; effect: 0; whenCast: 1;
+     castTime: 5; aiPriority: 5; offensive: 1; aiRadius: 1),
     { Spell 92: Cone of Cold }
     (castClass: 1; level: 5; rangeFixed: 6; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 8; target: 0;

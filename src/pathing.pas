@@ -12,6 +12,8 @@ type
   TOccupant = function(x, y: ShortInt): Byte;
   { Arena slots (GameVars.arenaLoc): RouteStep's goals, and the bodies it may plan a walk through. }
   TSlotSet = set of Byte;
+  { combat terrains, for the ones a walker keeps out of (RouteStep) }
+  TTerrSet = set of Byte;
 
 { Return the sign of an Integer: -1, 0 or 1. }
 function SignOf(v: Integer): Integer;
@@ -68,11 +70,11 @@ procedure TargetArea(x, y: ShortInt; radius: Byte);
 
 { Uses breadth-first search to find the first step of the shortest route from
   slot to any creature in goals (#668). The moving body must remain on the
-  arena and avoid walls, the requested terrain type, and occupied cells unless
+  arena and avoid walls, the requested terrain types, and occupied cells unless
   their occupants are in open (#769). goal receives the destination slot and
   dir receives the first step. Returns False without changing them when already
   adjacent to a goal or when no route exists. }
-function RouteStep(slot: Byte; goals, open: TSlotSet; avoid: Byte; occupant: TOccupant;
+function RouteStep(slot: Byte; goals, open: TSlotSet; avoid: TTerrSet; occupant: TOccupant;
                    var dir, goal: Byte): Boolean;
 
 implementation
@@ -418,8 +420,8 @@ type
   TRouteQueue = array[0..(Types.ARENA_LAST_X + 1) * (Types.ARENA_LAST_Y + 1) - 1] of Word;
 
 { True when a body of size, its upper-left cell at (x, y), fits there: every cell on the arena, not terrain 0, no wall,
-  not terrain avoid, and nobody on it but slot itself and the creatures in open. }
-function CanStand(x, y: ShortInt; size, slot: Byte; open: TSlotSet; avoid: Byte; occupant: TOccupant): Boolean;
+  no terrain in avoid, and nobody on it but slot itself and the creatures in open. }
+function CanStand(x, y: ShortInt; size, slot: Byte; open: TSlotSet; avoid: TTerrSet; occupant: TOccupant): Boolean;
 var
   i: Byte;
   dx: ShortInt;
@@ -437,7 +439,7 @@ begin
       if not Pathing.OnArena(cx, cy) then
         Exit;
       t := GameVars.arenaPtr^.cells[cy, cx];
-      if (t = 0) or (t = avoid) or (GameDefs.terrainInfo[t].cost = WALL_COST) then
+      if (t = 0) or (t in avoid) or (GameDefs.terrainInfo[t].cost = WALL_COST) then
         Exit;
       c := occupant(cx, cy);
       if (c <> 0) and (c <> slot) and not (c in open) then
@@ -506,7 +508,7 @@ begin
       heading := d;
 end;
 
-function RouteStep(slot: Byte; goals, open: TSlotSet; avoid: Byte; occupant: TOccupant;
+function RouteStep(slot: Byte; goals, open: TSlotSet; avoid: TTerrSet; occupant: TOccupant;
                    var dir, goal: Byte): Boolean;
 var
   marks: ^TRouteMarks;

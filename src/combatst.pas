@@ -533,7 +533,8 @@ begin
     MapTiles.Load24x24Set('DungCom', 0)
   else
     MapTiles.Load24x24Set('WildCom', 0);
-  MapTiles.Load24x24Set('RandCom', 34);
+  MapTiles.Load24x24Set('RandCom', MapTiles.FEATURE_SLOT);
+  MapTiles.LoadCloudkillArt;
   GetMem(GameVars.arenaPtr, SizeOf(Types.TArena));
   GameVars.arenaPtr^.cursorOn := False;
   GameVars.arenaPtr^.cursorSize := 1;
@@ -871,7 +872,7 @@ begin
   GameVars.roundCounter := 0;
   GameVars.gAttackRoll := 0;
   GameVars.downedCount := 0;
-  GameVars.stinkHead := nil;
+  GameVars.cloudHead := nil;
   GameVars.lastMissileItem := nil;
   { no thrown weapon noted for Retrieve Thrown yet (#1118) }
   CbtActs.thrownCount := 0;

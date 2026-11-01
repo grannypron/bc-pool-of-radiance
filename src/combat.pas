@@ -16,7 +16,7 @@ implementation
 
 uses Types, C_TIME, C_COND, GameDefs, GameVars, Crt, CombatAi, CombatSt, Magic, C_KEYS,
   C_STATUS, C_IFC, C_GBVM, C_DIR, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
-  TextRend, StrUtil, CharDisp, Dice, CbtLog, LogView, ClassCal;
+  TextRend, StrUtil, CharDisp, Dice, CbtLog, LogView, ClassCal, MapTiles;
 
 const
   { CombatMenu's answer for F7, the combat log (#841): F7's scan code is the character code of 'A', which is Aim }
@@ -42,20 +42,21 @@ procedure SpeedMenu; forward;
 
 procedure TurnOnAuto(creature: Types.PCharRecord); forward;
 
-{ Free the stinking-cloud list, the arena and the move-icon sheet, restore the noncombat palette and point the
+{ Free the cloud list, the arena, the move-icon sheet and Cloudkill's art, restore the noncombat palette and point the
   cast-target menu (GameVars.castTargetMenu) back at the noncombat menu. }
 procedure CombatDoneCleanup;
 var
-  p: Types.PStinkRec;
+  p: Types.PCloudRec;
 begin
-  while GameVars.stinkHead <> nil do begin
-    p := GameVars.stinkHead^.next;
-    FreeMem(GameVars.stinkHead, SizeOf(Types.TStinkRec));
-    GameVars.stinkHead := p;
+  while GameVars.cloudHead <> nil do begin
+    p := GameVars.cloudHead^.next;
+    FreeMem(GameVars.cloudHead, SizeOf(Types.TCloudRec));
+    GameVars.cloudHead := p;
   end;
   FreeMem(GameVars.arenaPtr, SizeOf(Types.TArena));
   GameVars.arenaPtr := nil;
   Blit.FreePic(GameVars.moveIconSheet);
+  MapTiles.FreeCloudkillArt;
   CbtMap.SetNoncombatPalette;
   GameVars.castTargetMenu := Magic.NoncombatCastTargetMenu;
 end;
@@ -278,9 +279,9 @@ begin
   until ch in [C_KEYS.ALT_Q, ' ', C_KEYS.ALT_X, C_KEYS.ALT_M, SHOW_LOG, 'A', 'C', 'D', 'M', 'Q', 'T', 'U', 'V'];
 end;
 
-{ Advance the clock one minute, fire round-end effects and stinking-cloud checks, bleed dying creatures (dead at
-  overkill 10), warn when a party member is dying, then end combat when a side is empty, unless the party won and the
-  player answers yes to Continue Battle. }
+{ Advance the clock one minute, fire round-end effects and the clouds' checks (Stinking Cloud's, Cloudkill's), bleed
+  dying creatures (dead at overkill 10), warn when a party member is dying, then end combat when a side is empty, unless
+  the party won and the player answers yes to Continue Battle. }
 procedure EndOfRound(var done: Boolean);
 var
   p: Types.PCharRecord;
@@ -293,6 +294,7 @@ begin
   while p <> nil do begin
     FxEngine.TriggerEffectsWithCondition(C_COND.ROUND_END, p);
     FxEngine.ConsiderStinkingCloud(p);
+    Magic.ConsiderCloudkill(p);
     if p^.status = C_STATUS.DYING then begin
       Inc(p^.combatAddr^.overkill);
       if p^.combatAddr^.overkill > 9 then begin

@@ -78,14 +78,40 @@ function CombatSlot(creature: Types.PCharRecord): Byte;
 
 { Probe the cells one step in dir from each of the creature's icon tiles. crIdx returns an adjacent creature (0 = none;
   the creature itself is ignored and the last one found wins). terrIdx returns the dominant terrain: 0 (off the arena)
-  beats everything, then C_TERR.STINKING_CLOUD, otherwise the highest cost wins (the later tile on a tie). The preset
-  pair is terrIdx 23 / best 1: terrainInfo[23] is a cost-1 passable entry, so any real terrain of cost >= 1 replaces it.
+  beats everything, then C_TERR.STINKING_CLOUD, then C_TERR.CLOUDKILL, otherwise the highest cost wins (the later tile
+  on a tie); ProbeTerrain tells whether a given terrain is among the cells, whichever wins here. The preset pair is
+  terrIdx 23 / best 1: terrainInfo[23] is a cost-1 passable entry, so any real terrain of cost >= 1 replaces it.
   Combat.MoveMenu uses it for bump attacks and terrain cost; IsValidCreatureLoc probes dir 8, the creature's own
   cells. }
 procedure ProbeDirection(creature: Types.PCharRecord; dir: Byte; var crIdx, terrIdx: Byte);
 
+{ True when terrain terr lies on any cell one step in dir from the creature's icon tiles (dir 8: its own cells); False
+  for a creature not on the map. }
+function ProbeTerrain(creature: Types.PCharRecord; dir, terr: Byte): Boolean;
+
+{ Cell i, 1..side * side, of a cloud of side side aimed at (x, y) (#1193): of Stinking Cloud's 2x2 block, the aim cell
+  its upper left, GameDefs.cloudDir's; of Cloudkill's 3x3 block round the aim cell, GameDefs.cloudkillDir's. }
+procedure CloudCell(side, i: Byte; x, y: ShortInt; var cx, cy: ShortInt);
+
+{ The terrain the cloud spell lays: C_TERR.CLOUDKILL for Cloudkill, C_TERR.STINKING_CLOUD for Stinking Cloud. }
+function CloudTerrain(spell: Byte): Byte;
+
+{ A new cloud node, zeroed, appended to the GameVars.cloudHead list. }
+function AppendCloud: Types.PCloudRec;
+
+{ Spread cloud node over the arena, from its aim cell, side and terrain: each of its cells (CloudCell) records the
+  terrain underneath (a cell already under another cloud takes that cloud's saved terrain, a corpse cell the corpse's),
+  a passable one (terrain cost below 255) is marked in exists and stamped with the cloud's terrain, and crIdx receives
+  the creature slot on each cell (0 for none). }
+procedure SpreadCloud(node: Types.PCloudRec; var crIdx: Types.TCloudCells);
+
+{ Take cloud node off the arena: its cells get back the terrain under them, or a corpse where a downed party member
+  lies; the node is unlinked from GameVars.cloudHead and freed, and every remaining cloud is stamped again with its own
+  terrain, over the cells they share. }
+procedure LiftCloud(node: Types.PCloudRec);
+
 { Record a downed party member's corpse at (x, y): the cell's terrain is kept and the cell becomes C_TERR.CORPSE (a
-  stinking cloud is left as it is). A creature already in GameVars.downed is not added again, and a slot cleared when
+  cloud's cell is left as it is). A creature already in GameVars.downed is not added again, and a slot cleared when
   its creature got up is reused, so the eight slots are never overrun; with all eight in use the corpse is not
   recorded. }
 procedure RegisterDowned(creature: Types.PCharRecord; x, y: Byte);
@@ -108,12 +134,12 @@ procedure DisplayMapViewCentered(creature: Types.PCharRecord; delta: Byte; curso
   the cycle repeats. AimBlast reaches every cell within radius of the cursor cell by the Pathing.WalkLine test
   Pathing.BuildTargetList applies, so walls cut it the same way; radius 0 is the cursor cell alone. AimBolt follows
   spell's bolt (Lightning Bolt's, or the Javelin of Lightning's) from the cursor cell, or covers its cone from the
-  caster toward the cursor cell (Fear, Cone of Cold), as boltTracer gives them. AimCloud covers the
-  passable cells of Magic.SpellStinkingCloud's 2x2 block and draws them with the stinking-cloud terrain tile instead
-  of areaCell. The frames are drawn from MenuCore.MenuHorizontal's idle hook. With report set, each restart also hands
-  aimReport the creatures the spell will catch there (#840): for a blast everyone Pathing.BuildAreaList gathers at
-  radius, over the whole arena and not just the view, as the spell gathers them; for a bolt or cloud the creatures on
-  its cells. }
+  caster toward the cursor cell (Fear, Cone of Cold), as boltTracer gives them. AimCloud covers the passable cells of
+  the cloud spell lays, radius its side (CloudCell: Stinking Cloud's 2x2 block, Cloudkill's 3x3), and draws them with
+  the cloud's terrain tile (CloudTerrain) instead of areaCell. The frames are drawn from MenuCore.MenuHorizontal's idle
+  hook. With report set, each restart also hands aimReport the creatures the spell will catch there (#840): for a blast
+  everyone Pathing.BuildAreaList gathers at radius, over the whole arena and not just the view, as the spell gathers
+  them; for a bolt or cloud the creatures on its cells. }
 procedure StartSpellPreview(shape: Types.TAimShape; spell, radius, areaCell: Byte; report: Boolean);
 
 { Advance the spell-aim preview by one frame once enough time has passed since the last one. }
@@ -134,7 +160,7 @@ function CalcDistance(creature, other: Types.PCharRecord): Byte;
 
 implementation
 
-uses Crt, C_TERR, GameDefs, GameVars, MapTiles, TextRend, SoundDrv, C_IFC, C_DIR, C_SOUND, Pathing, MenuCore,
+uses Crt, C_TERR, C_SPELL, GameDefs, GameVars, MapTiles, TextRend, SoundDrv, C_IFC, C_DIR, C_SOUND, Pathing, MenuCore,
   Blit, CharHlp, Border;
 
 var
@@ -223,7 +249,7 @@ begin
   relX := x - GameVars.arenaPtr^.ox;
   relY := y - GameVars.arenaPtr^.oy;
   if CbtMap.ViewCoordsValid(relX, relY) then begin
-    MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[y, x]].tileId);
+    MapTiles.DrawTerrain(relX * 3, relY * 3, GameVars.arenaPtr^.cells[y, x]);
     DrawCellTop(x, y, relX, relY);
   end;
 end;
@@ -244,7 +270,7 @@ begin
   end;
 end;
 
-{ Light area cell i in frame half of the area art, or, for Stinking Cloud, as the cloud terrain it will become. }
+{ Light area cell i in frame half of the area art, or, for a cloud, as the cloud terrain it will become. }
 procedure DrawAreaCell(i, half: Byte);
 var
   relX: ShortInt;
@@ -254,7 +280,7 @@ begin
     relX := areaX[i] - GameVars.arenaPtr^.ox;
     relY := areaY[i] - GameVars.arenaPtr^.oy;
     if CbtMap.ViewCoordsValid(relX, relY) then begin
-      MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[C_TERR.STINKING_CLOUD].tileId);
+      MapTiles.DrawTerrain(relX * 3, relY * 3, CbtMap.CloudTerrain(previewSpell));
       DrawCellTop(areaX[i], areaY[i], relX, relY);
     end;
   end else
@@ -355,11 +381,10 @@ begin
           AddAreaCell(bolt.x[i], bolt.y[i], (i + 1) div 2);
       end;
     Types.AimCloud:
-      for i := 1 to 4 do begin
-        tx := x + GameDefs.dirDX[GameDefs.cloudDir[i]];
-        ty := y + GameDefs.dirDY[GameDefs.cloudDir[i]];
+      for i := 1 to previewRadius * previewRadius do begin
+        CbtMap.CloudCell(previewRadius, i, x, y, tx, ty);
         CbtMap.GetArenaContents(tx, ty, c, t);
-        { the aim cell first, then the other three }
+        { the aim cell first, then the others }
         if t > 0 then
           if GameDefs.terrainInfo[t].cost < 255 then
             AddAreaCell(tx, ty, Ord(i > 1));
@@ -485,8 +510,7 @@ begin
   for i := 0 to 3 do begin
     if Pathing.GetIconTileDelta(GameVars.arenaPtr^.cursorSize, i, tdx, tdy) then
       if CbtMap.ViewCoordsValid(relX + tdx, relY + tdy) then begin
-        MapTiles.Copy2DTile((relX + tdx) * 3, (relY + tdy) * 3,
-                            GameDefs.terrainInfo[GameVars.arenaPtr^.cells[y + tdy, x + tdx]].tileId);
+        MapTiles.DrawTerrain((relX + tdx) * 3, (relY + tdy) * 3, GameVars.arenaPtr^.cells[y + tdy, x + tdx]);
         if GameVars.arenaPtr^.cursorOn then
           MapTiles.DrawIconAnimSprite(relX + tdx, relY + tdy, 0, 0, CURSOR_CELL);
       end;
@@ -567,10 +591,9 @@ begin
     for i := 0 to 3 do
       if Pathing.GetIconTileDelta(size, i, tdx, tdy) then
         if CbtMap.ViewCoordsValid(x + tdx, y + tdy) then
-          MapTiles.Copy2DTile((x + tdx) * 3, (y + tdy) * 3,
-                              GameDefs.terrainInfo[GameVars.arenaPtr^.cells[absY + tdy, absX + tdx]].tileId);
+          MapTiles.DrawTerrain((x + tdx) * 3, (y + tdy) * 3, GameVars.arenaPtr^.cells[absY + tdy, absX + tdx]);
   end else if CbtMap.ViewCoordsValid(x, y) then
-    MapTiles.Copy2DTile(x * 3, y * 3, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[absY, absX]].tileId);
+    MapTiles.DrawTerrain(x * 3, y * 3, GameVars.arenaPtr^.cells[absY, absX]);
 end;
 
 function ViewCoordsValid(x, y: ShortInt): Boolean;
@@ -651,7 +674,7 @@ begin
     pixX := 0;
     cX := GameVars.arenaPtr^.ox;
     for i := 0 to 6 do begin
-      MapTiles.Copy2DTile(pixX, pixY, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[cY, cX]].tileId);
+      MapTiles.DrawTerrain(pixX, pixY, GameVars.arenaPtr^.cells[cY, cX]);
       Inc(pixX, 3);
       Inc(cX);
     end;
@@ -802,11 +825,154 @@ begin
         terrIdx := 0
       else if (t = C_TERR.STINKING_CLOUD) or (terrIdx = C_TERR.STINKING_CLOUD) then
         terrIdx := C_TERR.STINKING_CLOUD
+      else if (t = C_TERR.CLOUDKILL) or (terrIdx = C_TERR.CLOUDKILL) then
+        terrIdx := C_TERR.CLOUDKILL
       else if GameDefs.terrainInfo[t].cost >= best then begin
         best := GameDefs.terrainInfo[t].cost;
         terrIdx := t;
       end;
     end;
+  end;
+end;
+
+function ProbeTerrain(creature: Types.PCharRecord; dir, terr: Byte): Boolean;
+var
+  i: Byte;
+  slot: Byte;
+  c: Byte;
+  t: Byte;
+  tdx: ShortInt;
+  tdy: ShortInt;
+begin
+  ProbeTerrain := False;
+  slot := CbtMap.CombatSlot(creature);
+  if slot = 0 then Exit;
+  for i := 0 to 3 do
+    if Pathing.GetIconTileDelta(GameVars.arenaLoc[slot].size, i, tdx, tdy) then begin
+      CbtMap.GetArenaContents(GameVars.arenaLoc[slot].x + tdx + GameDefs.dirDX[dir],
+                              GameVars.arenaLoc[slot].y + tdy + GameDefs.dirDY[dir], c, t);
+      if t = terr then
+        ProbeTerrain := True;
+    end;
+end;
+
+procedure CloudCell(side, i: Byte; x, y: ShortInt; var cx, cy: ShortInt);
+var
+  d: Byte;
+begin
+  if side = C_SPELL.CLOUDKILL_SIDE then
+    d := GameDefs.cloudkillDir[i]
+  else
+    d := GameDefs.cloudDir[i];
+  cx := x + GameDefs.dirDX[d];
+  cy := y + GameDefs.dirDY[d];
+end;
+
+function CloudTerrain(spell: Byte): Byte;
+begin
+  if spell = C_SPELL.CLOUDKILL then
+    CloudTerrain := C_TERR.CLOUDKILL
+  else
+    CloudTerrain := C_TERR.STINKING_CLOUD;
+end;
+
+function AppendCloud: Types.PCloudRec;
+var
+  node: Types.PCloudRec;
+begin
+  node := GameVars.cloudHead;
+  if GameVars.cloudHead = nil then begin
+    GetMem(GameVars.cloudHead, SizeOf(Types.TCloudRec));
+    node := GameVars.cloudHead;
+  end else begin
+    while node^.next <> nil do
+      node := node^.next;
+    GetMem(node^.next, SizeOf(Types.TCloudRec));
+    node := node^.next;
+  end;
+  FillChar(node^, SizeOf(Types.TCloudRec), 0);
+  AppendCloud := node;
+end;
+
+procedure SpreadCloud(node: Types.PCloudRec; var crIdx: Types.TCloudCells);
+var
+  p2: Types.PCloudRec;
+  j: Byte;
+  k: Byte;
+  terr: Byte;
+  cx: ShortInt;
+  cy: ShortInt;
+  px: ShortInt;
+  py: ShortInt;
+begin
+  for k := 1 to node^.side * node^.side do begin
+    CbtMap.CloudCell(node^.side, k, node^.ulX, node^.ulY, cx, cy);
+    CbtMap.GetArenaContents(cx, cy, crIdx[k], terr);
+    if (terr > 0) and (GameDefs.terrainInfo[terr].cost < 255) then
+      node^.exists[k] := 1
+    else
+      node^.exists[k] := 0;
+    if terr in C_TERR.CLOUDS then begin
+      p2 := GameVars.cloudHead;
+      while p2 <> nil do begin
+        if p2 <> node then
+          for j := 1 to p2^.side * p2^.side do begin
+            CbtMap.CloudCell(p2^.side, j, p2^.ulX, p2^.ulY, px, py);
+            if (p2^.exists[j] <> 0) and (px = cx) and (py = cy) then
+              if not (p2^.under[j] in C_TERR.CLOUDS) then
+                terr := p2^.under[j];
+          end;
+        p2 := p2^.next;
+      end;
+    end else if terr = C_TERR.CORPSE then begin
+      for j := 1 to GameVars.downedCount do
+        if (GameVars.downed[j].x = cx) and (GameVars.downed[j].y = cy) then
+          terr := GameVars.downed[j].terrain;
+    end;
+    node^.under[k] := terr;
+    if node^.exists[k] <> 0 then
+      GameVars.arenaPtr^.cells[cy, cx] := node^.terrain;
+  end;
+end;
+
+procedure LiftCloud(node: Types.PCloudRec);
+var
+  q: Types.PCloudRec;
+  corpse: Boolean;
+  d: Byte;
+  i: Byte;
+  xx: ShortInt;
+  yy: ShortInt;
+begin
+  for i := 1 to node^.side * node^.side do
+    if node^.exists[i] <> 0 then begin
+      CbtMap.CloudCell(node^.side, i, node^.ulX, node^.ulY, xx, yy);
+      corpse := False;
+      for d := 1 to GameVars.downedCount do
+        if (GameVars.downed[d].cr <> nil) and (GameVars.downed[d].x = xx) and (GameVars.downed[d].y = yy) then
+          corpse := True;
+      if corpse then
+        GameVars.arenaPtr^.cells[yy, xx] := C_TERR.CORPSE
+      else
+        GameVars.arenaPtr^.cells[yy, xx] := node^.under[i];
+    end;
+  if GameVars.cloudHead = node then
+    GameVars.cloudHead := node^.next
+  else begin
+    q := GameVars.cloudHead;
+    while q^.next <> node do
+      q := q^.next;
+    q^.next := node^.next;
+  end;
+  FreeMem(node, SizeOf(Types.TCloudRec));
+  q := GameVars.cloudHead;
+  while q <> nil do begin
+    for i := 1 to q^.side * q^.side do
+      if q^.exists[i] <> 0 then begin
+        CbtMap.CloudCell(q^.side, i, q^.ulX, q^.ulY, xx, yy);
+        GameVars.arenaPtr^.cells[yy, xx] := q^.terrain;
+      end;
+    q := q^.next;
   end;
 end;
 
@@ -827,7 +993,7 @@ begin
     free := GameVars.downedCount;
   end;
   GameVars.downed[free].terrain := GameVars.arenaPtr^.cells[y, x];
-  if GameVars.arenaPtr^.cells[y, x] <> C_TERR.STINKING_CLOUD then
+  if not (GameVars.arenaPtr^.cells[y, x] in C_TERR.CLOUDS) then
     GameVars.arenaPtr^.cells[y, x] := C_TERR.CORPSE;
   GameVars.downed[free].cr := creature;
   GameVars.downed[free].x := x;

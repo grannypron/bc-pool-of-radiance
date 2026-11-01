@@ -3,7 +3,8 @@
   the sleeping and those with too many hit dice for any roll; a spell passes over a creature already under its effect,
   and one already helpless for a spell that leaves it so; Silence takes only a creature seen casting this fight; Snake
   Charm only the snake; Cause Disease no undead. Stinking Cloud passes over one nauseated already or standing in a
-  cloud, and counts only who its own 2x2 block catches (CloudCatch, #1087). }
+  cloud, and counts only who its own 2x2 block catches (CloudCatch, #1087); Cloudkill its 3x3 block, passing over one
+  immune to poison or in a Cloudkill already (#1193). }
 {$I COMPILER.INC}
 program TSpcAff;
 
@@ -116,20 +117,41 @@ begin
   GameVars.arenaPtr^.cells[20, 20] := GROUND;
 
   { the cloud's own block: the aim cell, E, SE and S, not the cells round the aim }
-  TestKit.CheckEqualsL(2, CbtActs.CloudCatch(10, 10), 'the cloud catches the enemies at the aim and SE, not NW');
-  TestKit.CheckEqualsL(2, CbtActs.CloudCatch(9, 9), 'aimed at the NW one: him and the one SE of him');
+  TestKit.CheckEqualsL(2, CbtActs.CloudCatch(C_SPELL.STINKING_CLOUD, 10, 10),
+                       'the cloud catches the enemies at the aim and SE, not NW');
+  TestKit.CheckEqualsL(2, CbtActs.CloudCatch(C_SPELL.STINKING_CLOUD, 9, 9),
+                       'aimed at the NW one: him and the one SE of him');
   Place(5, 10, 9);
-  TestKit.CheckEqualsL(3, CbtActs.CloudCatch(9, 9), 'and a third on the block''s east cell');
+  TestKit.CheckEqualsL(3, CbtActs.CloudCatch(C_SPELL.STINKING_CLOUD, 9, 9), 'and a third on the block''s east cell');
   Place(5, 11, 11);
   FxEngine.AddEffect(@southEast, C_EFFECT.HELPLESS, 0, 0, False);
-  TestKit.CheckEqualsL(1, CbtActs.CloudCatch(10, 10), 'a nauseated one is not counted');
+  TestKit.CheckEqualsL(1, CbtActs.CloudCatch(C_SPELL.STINKING_CLOUD, 10, 10), 'a nauseated one is not counted');
   FxEngine.RemoveEffect(@southEast, C_EFFECT.HELPLESS, nil);
   Place(3, 10, 11);
-  TestKit.CheckEqualsL(0, CbtActs.CloudCatch(10, 10), 'none where the block holds the caster''s own side');
+  TestKit.CheckEqualsL(0, CbtActs.CloudCatch(C_SPELL.STINKING_CLOUD, 10, 10),
+                       'none where the block holds the caster''s own side');
   Place(3, 2, 2);
   GameVars.arenaPtr^.cells[11, 11] := 1;
-  TestKit.CheckEqualsL(1, CbtActs.CloudCatch(10, 10), 'nor one on a cell the cloud cannot fill');
+  TestKit.CheckEqualsL(1, CbtActs.CloudCatch(C_SPELL.STINKING_CLOUD, 10, 10),
+                       'nor one on a cell the cloud cannot fill');
   GameVars.arenaPtr^.cells[11, 11] := GROUND;
+
+  { Cloudkill (#1193): its 3x3 block round the aim cell; not on one immune to poison, nor one in a Cloudkill already }
+  TestKit.CheckEqualsL(3, CbtActs.CloudCatch(C_SPELL.CLOUDKILL, 10, 10), 'a Cloudkill catches all three round the aim');
+  TestKit.CheckEqualsL(2, CbtActs.CloudCatch(C_SPELL.CLOUDKILL, 11, 11), 'aimed SE: the aim''s and SE''s, not NW''s');
+  FxEngine.AddEffect(@southEast, C_EFFECT.NO_PARA_POISON, 0, 0, False);
+  TestKit.CheckEqualsL(2, CbtActs.CloudCatch(C_SPELL.CLOUDKILL, 10, 10), 'not one immune to poison');
+  FxEngine.RemoveEffect(@southEast, C_EFFECT.NO_PARA_POISON, nil);
+  GameVars.arenaPtr^.cells[9, 9] := C_TERR.CLOUDKILL;
+  TestKit.Check(not CbtActs.SpellCanAffect(C_SPELL.CLOUDKILL, @northWest, nil), 'nor one in a Cloudkill already');
+  TestKit.Check(CbtActs.SpellCanAffect(C_SPELL.STINKING_CLOUD, @northWest, nil), 'whom a Stinking Cloud still takes');
+  GameVars.arenaPtr^.cells[9, 9] := C_TERR.STINKING_CLOUD;
+  TestKit.Check(CbtActs.SpellCanAffect(C_SPELL.CLOUDKILL, @northWest, nil),
+                'and a stinking cloud keeps no Cloudkill off');
+  GameVars.arenaPtr^.cells[9, 9] := GROUND;
+  Place(3, 9, 10);
+  TestKit.CheckEqualsL(0, CbtActs.CloudCatch(C_SPELL.CLOUDKILL, 10, 10), 'none with the caster in the block');
+  Place(3, 2, 2);
   GameVars.curChar := nil;
   GameVars.arenaCount := 2;
   FreeMem(GameVars.arenaPtr, SizeOf(Types.TArena));

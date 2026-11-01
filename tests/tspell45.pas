@@ -103,7 +103,7 @@ begin
     CheckRow(id, C_SPELL.CLASS_MAGE, 4);
   CheckRow(C_SPELL.BESTOW_CURSE_MU, C_SPELL.CLASS_MAGE, 4);
   CheckRow(C_SPELL.ANIMATE_DEAD_MU, C_SPELL.CLASS_MAGE, 5);
-  for id := C_SPELL.CONE_OF_COLD to C_SPELL.HOLD_MONSTERS do
+  for id := C_SPELL.CLOUDKILL to C_SPELL.HOLD_MONSTERS do
     CheckRow(id, C_SPELL.CLASS_MAGE, 5);
   TestKit.CheckEqualsL(C_EFFECT.PROT_EVIL_10FT, GameDefs.spellTable[69].effect, 'the cleric''s 10'' protection');
   TestKit.CheckEqualsL(C_EFFECT.CHARM, GameDefs.spellTable[C_SPELL.CHARM_MONSTERS].effect, 'Charm Monsters charms');
@@ -129,7 +129,8 @@ begin
   end;
   TestKit.Check(ok, 'the named spells, the item spells and the empty ids account for every id');
   TestKit.Check(CharHlp.IsSpell(C_SPELL.LAST) and not (C_SPELL.LAST in C_SPELL.EMPTY_IDS), 'LAST is a spell');
-  TestKit.Check(not CharHlp.IsSpell(91) and (91 in C_SPELL.EMPTY_IDS), 'Cloudkill''s id holds no spell');
+  TestKit.Check(CharHlp.IsSpell(C_SPELL.CLOUDKILL) and not (C_SPELL.CLOUDKILL in C_SPELL.EMPTY_IDS),
+                'Cloudkill is a spell (#1193)');
   TestKit.Check(not CharHlp.IsSpell(C_SPELL.ITEM_SPEED), 'an item spell inside 1..LAST is no spell');
 
   { the shapes }

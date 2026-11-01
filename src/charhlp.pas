@@ -326,7 +326,8 @@ function CalcSpellRange(spell: Byte): Byte;
 
 { The shape of the cells spell reaches in combat (a C_SPELL.AREA_* kind), from spellTable's area mode and the shapes
   the handlers use in its place, which the aim preview and the spell page both show: Lightning Bolt's path
-  (C_SPELL.AREA_BOLT, size the C_SPELL.LIGHTNING_BOLT_CELLS it runs past the aim), Stinking Cloud's 2x2 block (size 2),
+  (C_SPELL.AREA_BOLT, size the C_SPELL.LIGHTNING_BOLT_CELLS it runs past the aim), a cloud's block (C_SPELL.AREA_CLOUD,
+  size its side: Stinking Cloud's 2, Cloudkill's 3),
   a fireball's radius of 2 where zone0's view3dFlag is clear (outdoors) and the table's 3 elsewhere, Fear's and Cone of
   Cold's cones from the caster (C_SPELL.AREA_CONE, size the reach Magic.WalkCone takes), and the pool spells' targets
   (area mode 5, C_SPELL.AREA_POOL). size is the radius for C_SPELL.AREA_RADIUS, the most creatures for
@@ -2052,7 +2053,10 @@ begin
         size := C_SPELL.LIGHTNING_BOLT_CELLS;
         SpellArea := C_SPELL.AREA_BOLT;
       end else if spell = C_SPELL.STINKING_CLOUD then begin
-        size := 2;
+        size := C_SPELL.STINKING_CLOUD_SIDE;
+        SpellArea := C_SPELL.AREA_CLOUD;
+      end else if spell = C_SPELL.CLOUDKILL then begin
+        size := C_SPELL.CLOUDKILL_SIDE;
         SpellArea := C_SPELL.AREA_CLOUD;
       end else begin
         size := mode and 7;

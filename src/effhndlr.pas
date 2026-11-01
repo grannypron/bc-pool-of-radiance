@@ -74,7 +74,7 @@ procedure EffBlinking(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 
 procedure EffHasted(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffCastStink(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffCastCloud(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffProtNormalMissiles(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
@@ -1004,57 +1004,20 @@ begin
   GameVars.currentAttackCurrent := CharHlp.HasteSlowRate(creature, GameVars.currentAttackCurrent);
 end;
 
-{ Cast Stinking Cloud (eff 40). Removes the cloud this caster is responsible for (strength upper nibble = its idx),
-  restores or corpse-marks its cells, unlinks and frees the node, then repaints every remaining cloud }
-procedure EffCastStink(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+{ Cast Stinking Cloud (eff 40) and Cast Cloudkill (C_EFFECT.CAST_CLOUDKILL, #1193). Removes the cloud this caster is
+  responsible for (strength upper nibble = its idx): CbtMap.LiftCloud }
+procedure EffCastCloud(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
-  q: Types.PStinkRec;
-  node: Types.PStinkRec;
+  node: Types.PCloudRec;
   cloudNum: Byte;
-  corpse: Boolean;
-  d: Byte;
-  i: Byte;
-  xx: Byte;
-  yy: Byte;
 begin
   cloudNum := Types.PEffectRec(p)^.strength div 16;
-  node := GameVars.stinkHead;
+  node := GameVars.cloudHead;
   while (node <> nil) and not ((node^.caster = creature) and (node^.idx = cloudNum)) do
     node := node^.next;
   if node = nil then Exit;
   CharDisp.PrintBottomLine('The air clears a little...');
-  { 4 = High(TStinkRec.exists) }
-  for i := 1 to 4 do
-    if node^.exists[i] <> 0 then begin
-      xx := node^.ulX + GameDefs.dirDX[GameDefs.cloudDir[i]];
-      yy := node^.ulY + GameDefs.dirDY[GameDefs.cloudDir[i]];
-      corpse := False;
-      for d := 1 to GameVars.downedCount do
-        if (GameVars.downed[d].cr <> nil) and (GameVars.downed[d].x = xx) and (GameVars.downed[d].y = yy) then
-          corpse := True;
-      if corpse then
-        GameVars.arenaPtr^.cells[yy, xx] := C_TERR.CORPSE
-      else
-        GameVars.arenaPtr^.cells[yy, xx] := node^.under[i];
-    end;
-  if GameVars.stinkHead = node then
-    GameVars.stinkHead := node^.next
-  else begin
-    q := GameVars.stinkHead;
-    while q^.next <> node do
-      q := q^.next;
-    q^.next := node^.next;
-  end;
-  FreeMem(node, SizeOf(Types.TStinkRec));
-  q := GameVars.stinkHead;
-  while q <> nil do begin
-    { 4 = High(TStinkRec.exists) }
-    for i := 1 to 4 do
-      if q^.exists[i] <> 0 then
-        GameVars.arenaPtr^.cells[q^.ulY + GameDefs.dirDY[GameDefs.cloudDir[i]],
-                                 q^.ulX + GameDefs.dirDX[GameDefs.cloudDir[i]]] := C_TERR.STINKING_CLOUD;
-    q := q^.next;
-  end;
+  CbtMap.LiftCloud(node);
 end;
 
 { Avoid the attack with pct% chance, only when the attacker (GameVars.curChar) has a weapon equipped and is more than

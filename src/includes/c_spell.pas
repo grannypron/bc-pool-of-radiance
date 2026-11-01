@@ -24,8 +24,7 @@ const
   ID_MASK = $7F;
   { Spell IDs, Curse's numbers (#1121): 1..56 are SSI's spells; 57 and 59..65 and 127..128 are item spells; 58 and
     66..94 are the cleric's spells of levels 4 and 5, the druid's first level (a ranger's) and the magic-user's of
-    levels 4 and 5, and 100 the magic-user's Bestow Curse; 95..99 are Curse's monster powers, not cast here, and 91 is
-    Curse's Cloudkill, which this arena has no cloud for. }
+    levels 4 and 5, and 100 the magic-user's Bestow Curse; 95..99 are Curse's monster powers, not cast here. }
   { no spell selected (SpellMenu exit/cancel) }
   NONE = 0;
   { the last spell: GameDefs.spellNames runs 1..LAST, and the spell lists and spell books read 1..LAST through
@@ -33,7 +32,7 @@ const
   LAST = 100;
   { the ids below TABLE_LAST whose spellTable rows hold no spell: no handler but Magic.UnusedSpellHandler, no name, no
     description }
-  EMPTY_IDS = [91, 95..99, 101..126];
+  EMPTY_IDS = [95..99, 101..126];
   { GameDefs.spellTable's last entry: the last item spell, past every game's spell table (Pools' runs to 126) }
   TABLE_LAST = 128;
   { an item effect 1..ITEM_EFFECT_DIRECT_LAST is that spell; one above it is the spell effect - ITEM_EFFECT_SHIFT (SSI's
@@ -162,6 +161,7 @@ const
   ICE_STORM = 87;
   MINOR_GLOBE = 88;
   ANIMATE_DEAD_MU = 90;
+  CLOUDKILL = 91;
   CONE_OF_COLD = 92;
   FEEBLEMIND = 93;
   HOLD_MONSTERS = 94;
@@ -179,11 +179,27 @@ const
   FEAR_CONE_RAYS = 3;
   FEAR_CONE_CELLS = 6;
   COLD_CONE_RAYS = 2;
+  { the clouds' sides (CharHlp.SpellArea, CbtMap.CloudCell): Stinking Cloud's 2x2 block, its aim cell the upper left,
+    and Cloudkill's 3x3 block round its aim cell (#1193) }
+  STINKING_CLOUD_SIDE = 2;
+  CLOUDKILL_SIDE = 3;
+  { Cloudkill's rules (1st-edition PHB): a creature of up to CLOUDKILL_DIES_LAST levels or hit dice dies; one of
+    CLOUDKILL_HARD_SAVE saves vs. poison at CLOUDKILL_HARD_MOD or dies; one up to CLOUDKILL_SAVE_LAST saves vs. poison
+    or dies; one above takes 1d CLOUDKILL_DAMAGE_DIE poison damage each round it stays (FxEngine.CloudkillFate) }
+  CLOUDKILL_DIES_LAST = 4;
+  CLOUDKILL_HARD_SAVE = 5;
+  CLOUDKILL_HARD_MOD = -4;
+  CLOUDKILL_SAVE_LAST = 6;
+  CLOUDKILL_DAMAGE_DIE = 10;
+  { what a Cloudkill does to a creature (FxEngine.CloudkillFate): kills it, kills it unless it saves, or hurts it }
+  CLOUDKILL_KILLS = 0;
+  CLOUDKILL_SAVE = 1;
+  CLOUDKILL_HURTS = 2;
   { the shape of the cells a spell reaches, as CharHlp.SpellArea gives it from spellTable's area mode and the handlers'
-    own shapes: the caster alone (area mode 0); some creatures picked one at a time (modes 1..4, 6, 7); creatures
-    picked against a pool (mode 5: Faerie Fire's caster level by size, Charm Monsters' 2d4 by level); one creature, or
-    a bare square (mode 15); everything within a radius of the aim (modes 8..14); Stinking Cloud's 2x2 block;
-    Lightning Bolt's path; or a cone from the caster (Fear, Cone of Cold) }
+    own shapes: the caster alone (area mode 0); some creatures picked one at a time (modes 1..4, 6, 7); creatures picked
+    against a pool (mode 5: Faerie Fire's caster level by size, Charm Monsters' 2d4 by level); one creature, or a bare
+    square (mode 15); everything within a radius of the aim (modes 8..14); a cloud's block (Stinking Cloud's,
+    Cloudkill's); Lightning Bolt's path; or a cone from the caster (Fear, Cone of Cold) }
   AREA_SELF = 0;
   AREA_TARGETS = 1;
   AREA_SPOT = 2;

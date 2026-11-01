@@ -92,7 +92,7 @@ end;
 { Walk WALKER to one of goals a RouteStep at a time, through the bodies in open and keeping off terrain avoid; the steps
   taken until it arrives or its next step is onto a body (where the AI waits), or -1 when it takes more than limit or
   lands on a wall or on avoid. }
-function WalkSteps(goals, open: Pathing.TSlotSet; avoid: Byte; limit: Integer): Integer;
+function WalkSteps(goals, open: Pathing.TSlotSet; avoid: Pathing.TTerrSet; limit: Integer): Integer;
 var
   n: Integer;
   x: ShortInt;
@@ -102,7 +102,7 @@ begin
   while Pathing.RouteStep(WALKER, goals, open, avoid, TestOccupant, dir, goal) and (n <= limit) do begin
     x := GameVars.arenaLoc[WALKER].x + GameDefs.dirDX[dir];
     y := GameVars.arenaLoc[WALKER].y + GameDefs.dirDY[dir];
-    if (GameVars.arenaPtr^.cells[y, x] = WALL) or (GameVars.arenaPtr^.cells[y, x] = avoid) then begin
+    if (GameVars.arenaPtr^.cells[y, x] = WALL) or (GameVars.arenaPtr^.cells[y, x] in avoid) then begin
       WalkSteps := -1;
       Exit;
     end;
@@ -121,7 +121,7 @@ end;
 { RouteStep from WALKER to TARGET alone, past every body and on any terrain. }
 function RouteToTarget: Boolean;
 begin
-  RouteToTarget := Pathing.RouteStep(WALKER, [TARGET], [], 0, TestOccupant, dir, goal);
+  RouteToTarget := Pathing.RouteStep(WALKER, [TARGET], [], [], TestOccupant, dir, goal);
 end;
 
 { A wall from (x1, y) across to (x2, y). }
@@ -155,34 +155,34 @@ begin
   TestKit.Check(not RouteToTarget,
                 'a target shut in behind its own side cannot be walked to');
   goal := 0;
-  TestKit.Check(Pathing.RouteStep(WALKER, [TARGET, FRONT], [], 0, TestOccupant, dir, goal) and (goal = FRONT) and
+  TestKit.Check(Pathing.RouteStep(WALKER, [TARGET, FRONT], [], [], TestOccupant, dir, goal) and (goal = FRONT) and
                 (dir = C_DIR.EAST), 'but the one in front of it can');
-  TestKit.CheckEqualsL(23, WalkSteps([TARGET, FRONT], [], 0, 60), 'and 23 steps bring the walker to it');
+  TestKit.CheckEqualsL(23, WalkSteps([TARGET, FRONT], [], [], 60), 'and 23 steps bring the walker to it');
   TestKit.Check(GameVars.arenaLoc[WALKER].x = 28, 'beside the front one');
   { of two goals the nearer one is reached }
   ClearArena;
   Place(WALKER, 10, 10, 1);
   Place(TARGET, 30, 10, 1);
   Place(FRONT, 4, 10, 1);
-  TestKit.Check(Pathing.RouteStep(WALKER, [TARGET, FRONT], [], 0, TestOccupant, dir, goal) and (goal = FRONT) and
+  TestKit.Check(Pathing.RouteStep(WALKER, [TARGET, FRONT], [], [], TestOccupant, dir, goal) and (goal = FRONT) and
                 (dir = C_DIR.WEST), 'of two goals the walk is to the nearer');
   { next to one goal already: no step }
   Place(FRONT, 11, 11, 1);
-  TestKit.Check(not Pathing.RouteStep(WALKER, [TARGET, FRONT], [], 0, TestOccupant, dir, goal),
+  TestKit.Check(not Pathing.RouteStep(WALKER, [TARGET, FRONT], [], [], TestOccupant, dir, goal),
                 'next to a goal there is no step to take');
   { one of the walker's own side in the corridor: no walk past it, but a walk through it closes up behind it }
   CorridorArena;
   Place(BLOCKER, 25, 10, 1);
-  TestKit.Check(not Pathing.RouteStep(WALKER, [TARGET, FRONT], [], 0, TestOccupant, dir, goal),
+  TestKit.Check(not Pathing.RouteStep(WALKER, [TARGET, FRONT], [], [], TestOccupant, dir, goal),
                 'its own side in the corridor shuts the walk');
-  TestKit.Check(Pathing.RouteStep(WALKER, [TARGET, FRONT], [BLOCKER], 0, TestOccupant, dir, goal) and
+  TestKit.Check(Pathing.RouteStep(WALKER, [TARGET, FRONT], [BLOCKER], [], TestOccupant, dir, goal) and
                 (goal = FRONT) and (dir = C_DIR.EAST), 'a walk through its own side heads up the corridor');
-  TestKit.CheckEqualsL(19, WalkSteps([TARGET, FRONT], [BLOCKER], 0, 60), 'and 19 steps close up behind it');
+  TestKit.CheckEqualsL(19, WalkSteps([TARGET, FRONT], [BLOCKER], [], 60), 'and 19 steps close up behind it');
   TestKit.Check((GameVars.arenaLoc[WALKER].x = 24) and (dir = C_DIR.EAST), 'where the next step is onto it: it waits');
   { the ally moves on (here it is gone): the walk goes on to FRONT }
   Place(BLOCKER, 0, 0, 0);
   occ[0, 0] := 0;
-  TestKit.CheckEqualsL(4, WalkSteps([TARGET, FRONT], [], 0, 60), 'once it has gone the walk goes on');
+  TestKit.CheckEqualsL(4, WalkSteps([TARGET, FRONT], [], [], 60), 'once it has gone the walk goes on');
   { a Stinking Cloud in the near gap of a wall: through it for a walker that does not mind it, round by the far gap for
     one that keeps out }
   ClearArena;
@@ -194,9 +194,21 @@ begin
   Place(TARGET, 11, 5, 1);
   TestKit.Check(RouteToTarget and (dir = C_DIR.EAST),
                 'a walker that does not mind the cloud goes through it');
-  TestKit.Check(Pathing.RouteStep(WALKER, [TARGET], [], C_TERR.STINKING_CLOUD, TestOccupant, dir, goal) and
+  TestKit.Check(Pathing.RouteStep(WALKER, [TARGET], [], [C_TERR.STINKING_CLOUD], TestOccupant, dir, goal) and
                 (dir in [C_DIR.SOUTHWEST, C_DIR.SOUTH, C_DIR.SOUTHEAST]), 'one that keeps out heads for the far gap');
-  TestKit.CheckEqualsL(29, WalkSteps([TARGET], [], C_TERR.STINKING_CLOUD, 60), 'and goes round by it');
+  TestKit.CheckEqualsL(29, WalkSteps([TARGET], [], [C_TERR.STINKING_CLOUD], 60), 'and goes round by it');
+  { a Cloudkill in the far gap as well (#1193): a walker that keeps out of the stinking cloud alone walks into it, one
+    that keeps out of both clouds has no way through }
+  GameVars.arenaPtr^.cells[20, 8] := C_TERR.CLOUDKILL;
+  Place(WALKER, 5, 5, 1);
+  TestKit.CheckEqualsL(5, WalkSteps([TARGET], [], [C_TERR.CLOUDKILL], 60),
+                       'one that minds only the Cloudkill goes through the stinking cloud');
+  Place(WALKER, 5, 5, 1);
+  TestKit.CheckEqualsL(29, WalkSteps([TARGET], [], [C_TERR.STINKING_CLOUD], 60),
+                       'one that minds only the stinking cloud goes through the Cloudkill''s gap');
+  Place(WALKER, 5, 5, 1);
+  TestKit.Check(not Pathing.RouteStep(WALKER, [TARGET], [], [C_TERR.STINKING_CLOUD, C_TERR.CLOUDKILL], TestOccupant,
+                                      dir, goal), 'one that keeps out of both finds no way');
 end;
 
 { BuildTargetList from WALKER's cell: every creature it sees, nearest first, with the doubled distance and the facing
@@ -263,7 +275,7 @@ begin
   Place(TARGET, 10, 5, 1);
   TestKit.Check(RouteToTarget and (dir = C_DIR.EAST),
                 'on open ground the first step is straight at the target');
-  TestKit.CheckEqualsL(4, WalkSteps([TARGET], [], 0, 50), 'and four steps bring it alongside');
+  TestKit.CheckEqualsL(4, WalkSteps([TARGET], [], [], 50), 'and four steps bring it alongside');
   TestKit.Check(not RouteToTarget, 'alongside, there is no step to take');
   { a wall between them, open only at its foot: the walk goes round }
   ClearArena;
@@ -273,7 +285,7 @@ begin
   TestKit.Check(RouteToTarget and (dir in [C_DIR.SOUTH, C_DIR.SOUTHEAST]),
                 'a wall in the way: the first step heads for the gap');
   { 11 steps down to the gap at (8, 16) and 10 back up beside the target }
-  TestKit.CheckEqualsL(21, WalkSteps([TARGET], [], 0, 60), 'and the walk goes round the wall''s foot');
+  TestKit.CheckEqualsL(21, WalkSteps([TARGET], [], [], 60), 'and the walk goes round the wall''s foot');
   { a dead end: a pocket walled north, south and east (the long wall), open to the west, away from the target; the walk
     backs out of it, where heading at the target would only push into the wall }
   ClearArena;
@@ -288,7 +300,7 @@ begin
   Place(TARGET, 11, 5, 1);
   TestKit.Check(RouteToTarget and (dir in [C_DIR.SOUTHWEST, C_DIR.WEST,
                 C_DIR.NORTHWEST]), 'in a dead end the first step is back out of it');
-  TestKit.Check(WalkSteps([TARGET], [], 0, 60) > 0, 'out of a dead end and round the wall');
+  TestKit.Check(WalkSteps([TARGET], [], [], 60) > 0, 'out of a dead end and round the wall');
   { walled in: no walk }
   ClearArena;
   WallColumn(9, 0, 24);
