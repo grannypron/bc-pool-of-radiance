@@ -56,39 +56,42 @@ const
   OPT_CONSOLIDATE = 6;
   { the Journal lists only what the party has found (ON, shown as FOUND) or every item (OFF, shown as ALL) (#1090) }
   OPT_JOURNAL = 7;
-  OPT_MUSIC = 8;
-  OPT_TITLE_MUSIC = 9;
-  OPT_BATTLE_MUSIC = 10;
-  OPT_SOUND = 11;
-  OPT_FOOTSTEPS = 12;
-  OPT_RANGED = 13;
-  OPT_MELEE = 14;
-  OPT_DEATH = 15;
-  OPT_WALL = 16;
-  OPT_SPELLS = 17;
+  { the racial level limits of dwarves, elves, gnomes, half-elves, halflings and half-orcs apply (ON), or they train as
+    far as the experience table goes, as humans do (OFF) (#1176) }
+  OPT_NONHUMAN_CAP = 8;
+  OPT_MUSIC = 9;
+  OPT_TITLE_MUSIC = 10;
+  OPT_BATTLE_MUSIC = 11;
+  OPT_SOUND = 12;
+  OPT_FOOTSTEPS = 13;
+  OPT_RANGED = 14;
+  OPT_MELEE = 15;
+  OPT_DEATH = 16;
+  OPT_WALL = 17;
+  OPT_SPELLS = 18;
   { the first setting under the Quick Mode heading }
-  OPT_QUICK = 18;
-  OPT_MAGIC = 19;
+  OPT_QUICK = 19;
+  OPT_MAGIC = 20;
   { quick mode re-equips the party's weapons and shields (#1127) }
-  OPT_GEAR = 20;
+  OPT_GEAR = 21;
   { the aim menu's Next and Prev reach one side only, ENEMIES, or every creature, ALL (#1137) }
-  OPT_AIM = 21;
+  OPT_AIM = 22;
   { a single thrown weapon goes back to its thrower after the fight (#1118) }
-  OPT_RETRIEVE = 22;
-  OPT_COMPANION = 23;
-  OPT_CLUES = 24;
+  OPT_RETRIEVE = 23;
+  OPT_COMPANION = 24;
+  OPT_CLUES = 25;
   { the Camp page's settings (OPT_FIRST_CAMP to OPT_LAST_CAMP): Rest memorizes each caster's usual spells when none
     is pending (#1119), and under the Fix heading (#1129) what Fix may use besides the clerics' spells: scrolls,
     potions, and a paladin's weekly cure and daily laying on of hands }
-  OPT_AUTO_MEMORIZE = 25;
-  OPT_FIX_SCROLLS = 26;
-  OPT_FIX_POTIONS = 27;
-  OPT_FIX_CURE = 28;
-  OPT_FIX_HEAL = 29;
+  OPT_AUTO_MEMORIZE = 26;
+  OPT_FIX_SCROLLS = 27;
+  OPT_FIX_POTIONS = 28;
+  OPT_FIX_CURE = 29;
+  OPT_FIX_HEAL = 30;
   { the combat log (#841), and how many messages it keeps }
-  OPT_COMBAT_LOG = 30;
-  OPT_LOG_LINES = 31;
-  OPT_COUNT = 31;
+  OPT_COMBAT_LOG = 31;
+  OPT_LOG_LINES = 32;
+  OPT_COUNT = 32;
   { the Sound page's settings, from the music to the sound effects, and the Camp page's; every other setting is the
     Game page's }
   OPT_FIRST_SOUND = OPT_MUSIC;

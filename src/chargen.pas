@@ -240,7 +240,8 @@ const
   LAST_COL = 38;
   { The rule book's racial level maximums (Character Race Limits), by race and classLevels index: 0 is no maximum (U)
     and -1 a class the race cannot take. A fighter's or ranger's is the best case, with Strength 18. Half-orcs are not
-    offered at creation, so their row is empty. }
+    offered at creation, so their row is empty. With the Non-Human Level Cap setting off every class a race can take
+    shows U. }
   raceMaxLevel: array[C_RACE.DWARF..C_RACE.HUMAN] of Types.TRuleClassLevels = (
     { dwarf }
     (cleric: -1; druid: -1; fighter: 9; paladin: -1; ranger: -1; mage: -1; thief: 0; monk: -1),
@@ -321,6 +322,9 @@ begin
   for part := C_LEVEL.CLERIC to C_LEVEL.MONK do
     if isSingle[part] and (row <= LAST_ROW) then begin
       lvl := raceMaxLevel[race].values[part];
+      { with the Non-Human Level Cap setting off no race has a maximum (#1176) }
+      if (lvl > 0) and (GameVars.nonHumanCapOn = 0) then
+        lvl := 0;
       if lvl = 0 then
         s := 'U'
       else if lvl > 0 then

@@ -818,6 +818,9 @@ begin
     C_OPT.OPT_JOURNAL: AboutText := 'FOUND: the Journal lists the|entries, tavern tales and|' +
                                     'proclamations the party has|come across. ALL: the whole|' +
                                     'printed Journal.||A game saved before this|version counts them all|found.';
+    C_OPT.OPT_NONHUMAN_CAP: AboutText := 'Dwarves, elves, gnomes,|half-elves, halflings and|' +
+                                         'half-orcs stop at their|race''s level limits.||' +
+                                         'Off: they train as far as|the experience table goes,|as humans do.';
     C_OPT.OPT_MUSIC: AboutText := 'Every tune at once.';
     C_OPT.OPT_TITLE_MUSIC: AboutText := 'The title theme.';
     C_OPT.OPT_BATTLE_MUSIC: AboutText := 'The music as a fight starts.';

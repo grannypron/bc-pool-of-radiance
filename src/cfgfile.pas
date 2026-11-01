@@ -104,7 +104,7 @@ function Tidy(s: string): string;
 function KeyOf(line: string): Byte;
 
 { Every setting's default: speed 1, every portrait, Auto Join, music and sound setting on, Consolidate Coin off, the
-  Journal FOUND, Auto End
+  Journal FOUND, Non-Human Level Cap on, Auto End
   Quick Mode on, Use Magic off, Allow Gear Changes on, Aim Cycles at ENEMIES, Retrieve Thrown on, the Companion Tools
   off with their Clue Book notes on, Auto Memorize on, the four Fix settings off, the combat log on with 50 lines, and
   no version advised. }
@@ -211,6 +211,7 @@ begin
     C_OPT.OPT_AUTO_JOIN: KeyName := 'AUTOJOIN';
     C_OPT.OPT_CONSOLIDATE: KeyName := 'CONSOLIDATECOIN';
     C_OPT.OPT_JOURNAL: KeyName := 'JOURNAL';
+    C_OPT.OPT_NONHUMAN_CAP: KeyName := 'NONHUMANCAP';
     C_OPT.OPT_MUSIC: KeyName := 'MUSIC';
     C_OPT.OPT_TITLE_MUSIC: KeyName := 'TITLEMUSIC';
     C_OPT.OPT_BATTLE_MUSIC: KeyName := 'BATTLEMUSIC';
@@ -251,6 +252,7 @@ begin
     C_OPT.OPT_AUTO_JOIN: SettingName := 'Auto Join';
     C_OPT.OPT_CONSOLIDATE: SettingName := 'Consolidate Coin';
     C_OPT.OPT_JOURNAL: SettingName := 'Journal';
+    C_OPT.OPT_NONHUMAN_CAP: SettingName := 'Non-Human Level Cap';
     C_OPT.OPT_MUSIC: SettingName := 'Music';
     C_OPT.OPT_TITLE_MUSIC: SettingName := '  Title Music';
     C_OPT.OPT_BATTLE_MUSIC: SettingName := '  Battle Music';
