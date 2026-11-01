@@ -63,12 +63,18 @@ case "${SOUND:-}" in
     none) letter=S ;;
     *) echo "regress.sh: SOUND is adlib, sb or none" >&2; exit 2 ;;
 esac
-if [ -n "${SOUND:-}" ]; then
-    # staged under its own name, which must be POOL.CFG for the game to read it
-    mkdir -p "$root/obj/regress-$SOUND"
-    sed "2s/.*/$letter\r/" "$config" > "$root/obj/regress-$SOUND/POOL.CFG"
-    config="$root/obj/regress-$SOUND/POOL.CFG"
-    record="${record%.json}-$SOUND.json"
+# goldbox-player stages the config under its own name, which must be POOL.CFG for the game to read it, so a video
+# mode's config or a changed sound letter is copied to obj/regress-<mode>/POOL.CFG first
+if [ "${VIDEO:-ega}" != ega ] || [ -n "${SOUND:-}" ]; then
+    stage="$root/obj/regress-${VIDEO:-ega}${SOUND:+-$SOUND}"
+    mkdir -p "$stage"
+    if [ -n "${SOUND:-}" ]; then
+        sed "2s/.*/$letter\r/" "$config" > "$stage/POOL.CFG"
+        record="${record%.json}-$SOUND.json"
+    else
+        cp "$config" "$stage/POOL.CFG"
+    fi
+    config="$stage/POOL.CFG"
 fi
 # the Sound Blaster's samples: scripts/sbsfx.py writes them into the play install, and a build without them (the golden)
 # runs without them
