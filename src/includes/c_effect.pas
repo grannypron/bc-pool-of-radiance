@@ -115,6 +115,8 @@ const
   ROT_TOUCH = 87;
   DRAGON_BREATH = 88;
   DISPLACED = 89;
+  { a Displaced effect's strength bit: it has made an attack miss this combat (FxEngine.SpendDisplacement) }
+  DISPLACED_SPENT = $10;
   CON_PSN_SAVE = 90;
   IMMUNE_MM = 91;
   { 92 is EffNone's (GameInit), and nothing in the game's data or code adds it }

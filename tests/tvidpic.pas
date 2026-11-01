@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TVidPic;
 
-uses Types, GameDefs, GameVars, Blit, VidOps, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga, TestKit;
+uses Types, GameDefs, GameVars, Blit, VidOps, {$IFNDEF FPC}Crt, VidCga, VidEga, VidTdy, {$ENDIF}VidVga, TestKit;
 
 const
   { the DAX frame: row 0 is colours 0..7, row 1 is 7..0, two pixels a byte, high nibble first }
@@ -160,6 +160,13 @@ begin
   { CGA: four 2-bit pixels a byte, colour c drawn as c mod 4; a mask byte for each data byte, 2 bits a pixel }
   VidCga.Install;
   CheckMode('CGA', 4, 4, '1B1BE4E4', 'C0000003', 'E4E41B1B', '0003C000', '0B0BE0E0', '5555', 'DB1BE4E7');
+  { CGA text: dark grey in magenta, since attrTable draws it white, as bright as what it greys out (#1185); the other
+    colours through attrTable }
+  TestKit.Check(VidCga.TextColour(DarkGray) = 2, 'CGA draws dark grey text in magenta');
+  TestKit.Check((VidCga.TextColour(White) = 3) and (VidCga.TextColour(LightGray) = 3)
+                and (VidCga.TextColour(LightGreen) = 1) and (VidCga.TextColour(Black) = 0),
+                'and the other colours as attrTable maps them');
+  TestKit.Check(GameDefs.attrTable[DarkGray] = 3, 'which still draws dark grey pictures white');
 {$ENDIF}
   { VGA: a byte a pixel, a transparent pixel holding PIC_KEY ($FF); the mask kept a bit a pixel, a byte a cell row }
   VidVga.Install;
