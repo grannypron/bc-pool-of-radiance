@@ -75,6 +75,7 @@ Most of these changes are small on their own, but together they make the game ea
 - On the menu after the title screen, Add Character to Party with no characters to add now says "No characters found to add." on the bottom line, and Load Saved Game with no saved games says "No saved games found to load.", until a key or for two seconds. Before, nothing happened.
 - The training hall's party menu has a blank line above and below the Name, AC and HP headings, and its Party, Character and Game headings are now magenta, so the highlighted command, in white, stands out.
 - The summary line under the spell lists shows its labels (RNG, AREA, TGT, DUR, SAVE, CAMP, CBT) in white and their values in green.
+- At the magic shop, a scroll's spells are listed as the Scribe screen lists them: indented under a heading for their level, with a + before each spell the highlighted character could learn but doesn't know yet.
 - With no sound device (None in POOL.CFG, under DOS), the Settings screen's Sound page shows Music and Sound as OFF and greys out every line on it, and the cursor no longer stops there; POOLCFG's Sound Settings do the same until you pick a device on its Hardware page. Your Music and Sound choices are kept and come back when you choose a device. The native releases always have sound, so their pages are unchanged.
 - Alt-1 to Alt-8 open the first to eighth party member's items straight from the map, the wilderness or camp, making that member the current character as View does; Escape returns to where you were. A member with no items says so. F1's command keys list them.
 
@@ -82,10 +83,12 @@ Most of these changes are small on their own, but together they make the game ea
 
 The fixes below cover both visible bugs and rare failures that could damage a save, hang combat, or behave differently across platforms.
 
+- The spell lists of a magic-user who knows Bestow Curse no longer show it under a second "4th Level" heading after the 5th-level spells; every spell list now shows each level once, in order.
 - A Potion of Extra Healing found in random treasure is now named "Potion Extra Healing", as every other one is, instead of "Potion of Extra".
 - A stack of Darts +1 now reads "5 Darts +1" instead of "5 Dart +1s".
 - A stack of potions now reads "2 Potions of Healing" instead of "2 Potion of Healings", and rings and other "X of Y" items the same way. Fix's report names the item it used once, without the stack's count or extra spaces.
 - Fix's report lines now begin with "Fix:" ("FIX: MORRIGAN LAID HANDS ON SHADOW.") instead of ending "during Fix.", which leaves more room on each line.
+- While Fix's report is up, the party list and the clock already show what Fix did: a member healed by a potion or by the clerics no longer shows the old hit points until the report is dismissed.
 - The gold corner where the map window meets the message window, missing in the wilderness and after resting in camp, is back.
 - The temple's Repair no longer quotes a healthy party a fortune. A non-player character who joined the party (Genheeris, for one) was counted as having lost 255 levels, and Repair priced a Restoration for each: 1,785,000 gold pieces. Such a character no longer counts as drained anywhere, and a party that needs nothing is told so and the message waits for a key.
 - The combat AI, the party's in Quick mode and the monsters' alike, casts a spell only where it obviously does something: no Hold Person or Charm Person on scorpions and skeletons, no Sleep on the undead, no Silence on creatures it hasn't seen cast, no second Bless. It favours the spell that does the most, still now and then not the best, and saves its area spells for two or more.

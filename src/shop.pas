@@ -19,7 +19,7 @@ procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
 implementation
 
 uses Crt, C_MSG, C_SPELL, GameDefs, GameVars, EclMenu, ViewChar, Money, C_KEYS, C_IFC, Border, CharHlp, MenuCore,
-  TextRend, CharDisp, MoneyCal, Party;
+  TextRend, CharDisp, MoneyCal, Party, Magic;
 
 { Temporarily formats each item name as a 30-column menu row with a right-aligned
   price, runs the Buy menu, then restores the normal labels. cursor and idx
@@ -80,30 +80,61 @@ begin
 end;
 
 { True when the player buys item after seeing it. A scroll whose spells can be read (identified, as the magic shop's
-  are, #1091) lists its spells in the message window, one a line, and asks; anything else is bought without asking. }
+  are, #1091) lists its spells under "The scroll holds:" in the message window and asks; anything else is bought
+  without asking. The spells are listed as the scribe list shows them (#1196): each a line indented under a light
+  magenta heading for its level (Magic.LevelHeading), the heading given again only when the level changes, and with
+  '+' before a spell the current character could learn but doesn't know (Magic.SpellLine, MARK_NOT_KNOWN). When the
+  headings would not fit in the window below the title, the spells are listed without them. Each line is drawn at its
+  row, so the message window's word wrap can't take away the indent. }
 function WantsItem(item: Types.PItemRec): Boolean;
 var
   i: Byte;
   id: Byte;
-  first: Boolean;
+  { how many spells the scroll holds, and how many lines they take with their level headings }
+  spells: Byte;
+  lines: Byte;
+  lastLevel: ShortInt;
+  headings: Boolean;
+  row: Byte;
 begin
   WantsItem := True;
   if CharHlp.ItemReadable(item) and (item^.unidMask = 0) then begin
-    first := True;
+    spells := 0;
+    lines := 0;
+    lastLevel := 0;
     for i := 1 to SizeOf(item^.spells) do begin
       id := CharHlp.ScrollSpellAt(item, i);
       if id <> C_SPELL.NONE then begin
-        if first then
-          CharDisp.MessageText('The scroll holds:', LightGreen, True);
-        first := False;
-        { each spell from the start of the next line, as CharDisp.PrintTwoLines starts its second }
-        GameVars.curCol := C_MSG.TEXT_LEFT;
-        Inc(GameVars.curRow);
-        CharDisp.MessageText(GameDefs.spellNames[id], White, False);
+        Inc(spells);
+        Inc(lines);
+        if GameDefs.spellTable[id].levelSp <> lastLevel then begin
+          lastLevel := GameDefs.spellTable[id].levelSp;
+          Inc(lines);
+        end;
       end;
     end;
-    if not first then
+    if spells > 0 then begin
+      CharDisp.MessageText('The scroll holds:', LightGreen, True);
+      { MessageText leaves the cursor on the title's row: the window holds the rows below it to TEXT_BOTTOM }
+      row := GameVars.curRow;
+      headings := row + lines <= C_MSG.TEXT_BOTTOM;
+      lastLevel := 0;
+      for i := 1 to SizeOf(item^.spells) do begin
+        id := CharHlp.ScrollSpellAt(item, i);
+        if id <> C_SPELL.NONE then begin
+          if headings and (GameDefs.spellTable[id].levelSp <> lastLevel) then begin
+            lastLevel := GameDefs.spellTable[id].levelSp;
+            Inc(row);
+            TextRend.DisplayString(C_MSG.TEXT_LEFT, row, LightMagenta, Magic.LevelHeading(lastLevel));
+          end;
+          Inc(row);
+          if row <= C_MSG.TEXT_BOTTOM then
+            TextRend.DisplayString(C_MSG.TEXT_LEFT, row, White,
+                                   Magic.SpellLine(GameVars.curChar, id, Magic.MARK_NOT_KNOWN));
+        end;
+      end;
       WantsItem := MenuCore.YesNoMenu('Buy it? ', LightMagenta, LightGreen, White) = 'Y';
+    end;
   end;
 end;
 
