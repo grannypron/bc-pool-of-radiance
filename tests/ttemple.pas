@@ -7,7 +7,7 @@
 {$I COMPILER.INC}
 program TTemple;
 
-uses TownCore, Temple, C_RACE, MoneyCal, TestKit;
+uses TownCore, Temple, C_RACE, MoneyCal, Types, DiskRec, GameVars, C_STATUS, C_LEVEL, TestKit;
 
 var
   gold, steel, gratis, por, tenth: TTempleRules;
@@ -28,6 +28,10 @@ var
   i: Byte;
   { the stand-in game's own words: TM_SEES and TM_GONE }
   ownWords: Boolean;
+  { a party member's record, as Temple.Look reads it, and its disk form }
+  rec: Types.TCharRecord;
+  recDisk: DiskRec.TCharDisk;
+  total: LongInt;
 
 function NumStr(n: LongInt): String;
 var
@@ -589,6 +593,35 @@ begin
   RepairPlan(por, ch, plan);
   undone := TempleRepair(por, plan, io);
   Check((acted = 0) and (said = ''), 'an empty plan does and says nothing');
+
+  { a healthy party quotes nothing (#1155): a whole member, and an NPC whose record SSI's MONxCHA gave $FF drained
+    levels, which Repair priced at 255 Restorations (1,785,000 gold) before DiskRec read them as none }
+  FillChar(rec, SizeOf(rec), 0);
+  rec.name := 'GENHEERIS';
+  rec.status := C_STATUS.OKAY;
+  rec.hpMax := 22;
+  rec.hpCur := 22;
+  rec.conCur := 10;
+  rec.race := C_RACE.HUMAN;
+  rec.classLevels[C_LEVEL.CLERIC] := 7;
+  GameVars.curChar := @rec;
+  Temple.Look(ch);
+  RepairPlan(por, ch, plan);
+  total := RepairCost(por, plan);
+  DiskRec.CharToDisk(rec, recDisk);
+  recDisk[116] := $FF;
+  recDisk[117] := $FF;
+  DiskRec.CharFromDisk(recDisk, rec);
+  Temple.Look(ch);
+  CheckEqualsL(0, ch.drained, 'an NPC''s $FF drained levels are none');
+  RepairPlan(por, ch, plan);
+  Inc(total, RepairCost(por, plan));
+  CheckEqualsL(0, total, 'a healthy party needs no Repair');
+  rec.drainedLevels := 1;
+  rec.drainedHps := 3;
+  Temple.Look(ch);
+  RepairPlan(por, ch, plan);
+  CheckEqualsL(7000, RepairCost(por, plan), 'one drained level is one Restoration');
 
   steel.price[TS_HEAL] := TP_NONE;
   Fresh(TC_OKAY, 0);

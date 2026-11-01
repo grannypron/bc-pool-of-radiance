@@ -88,6 +88,16 @@ begin
   chDisk[0] := Types.NAME_LEN + 1;
   DiskRec.CharFromDisk(chDisk, back);
   TestKit.CheckEqualsL(Types.NAME_LEN, Length(back.name), 'and one of NAME_LEN + 1');
+  { SSI's monster records hold $FF in drainedLevels and drainedHps (116 and 117), which is no drain (#1155) }
+  chDisk[0] := 4;
+  chDisk[116] := $FF;
+  chDisk[117] := $FF;
+  DiskRec.CharFromDisk(chDisk, back);
+  TestKit.Check((back.drainedLevels = 0) and (back.drainedHps = 0), 'a monster record''s $FF drained levels are none');
+  chDisk[116] := 2;
+  chDisk[117] := 14;
+  DiskRec.CharFromDisk(chDisk, back);
+  TestKit.Check((back.drainedLevels = 2) and (back.drainedHps = 14), 'a real drain is kept');
   itDisk[0] := 41;
   DiskRec.ItemFromDisk(itDisk, itBack);
   TestKit.CheckEqualsL(40, Length(itBack.name), 'an item''s name of length 41 is cut to 40');

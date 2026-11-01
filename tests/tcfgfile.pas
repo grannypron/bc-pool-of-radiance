@@ -30,6 +30,7 @@ var
   notes: CfgFile.TCfgNotes;
   bad: Byte;
   opt: Byte;
+  skip: CfgFile.TOptSet;
   i: Byte;
   cur: string;
   full: string;
@@ -196,6 +197,37 @@ begin
   TestKit.CheckEqualsL(5, CfgFile.SettingLine(C_OPT.OPT_FIX_HEAL), 'four of them');
   TestKit.CheckEqualsL(0, CfgFile.SettingLine(C_OPT.OPT_MUSIC), 'the Sound page starts with the music');
   TestKit.CheckEqualsL(9, CfgFile.SettingLine(C_OPT.OPT_SPELLS), 'and ends with the spell effects');
+
+  { no sound device (#1156): Music and Sound show OFF, the Sound page is passed by, POOLOPT.CFG's values kept }
+  TestKit.Check(CfgFile.NoSoundDevice(C_OPT.SOUND_SILENT) and CfgFile.NoSoundDevice(C_OPT.SOUND_NONE) and
+                CfgFile.NoSoundDevice('q'), 'S, N and an unknown letter are no sound device');
+  TestKit.Check(not CfgFile.NoSoundDevice(C_OPT.SOUND_SPEAKER) and not CfgFile.NoSoundDevice(C_OPT.SOUND_TANDY) and
+                not CfgFile.NoSoundDevice('a') and not CfgFile.NoSoundDevice(C_OPT.SOUND_BLASTER),
+                'the speaker, the Tandy, the AdLib (in either case) and the Sound Blaster are');
+  CfgFile.Defaults(s);
+  TestKit.CheckEqualsS('ON', CfgFile.ShownValue(s, C_OPT.OPT_MUSIC, False), 'Music shows ON with a device');
+  TestKit.CheckEqualsS('OFF', CfgFile.ShownValue(s, C_OPT.OPT_MUSIC, True), 'and OFF without one');
+  TestKit.CheckEqualsS('OFF', CfgFile.ShownValue(s, C_OPT.OPT_SOUND, True), 'Sound too');
+  TestKit.CheckEqualsS('ON', CfgFile.ShownValue(s, C_OPT.OPT_FOOTSTEPS, True), 'a sub-setting shows what it keeps');
+  TestKit.CheckEqualsS('FOUND', CfgFile.ShownValue(s, C_OPT.OPT_JOURNAL, True), 'other settings are as stored');
+  TestKit.Check((CfgFile.Flag(s, C_OPT.OPT_MUSIC) = 1) and (CfgFile.Flag(s, C_OPT.OPT_SOUND) = 1),
+                'and what POOLOPT.CFG keeps for Music and Sound is left ON');
+  skip := [C_OPT.OPT_LOG_LINES];
+  CfgFile.Silenced(False, skip);
+  TestKit.Check(skip = [C_OPT.OPT_LOG_LINES], 'with a device nothing more is passed by');
+  CfgFile.Silenced(True, skip);
+  TestKit.Check(skip = [C_OPT.OPT_FIRST_SOUND..C_OPT.OPT_LAST_SOUND, C_OPT.OPT_LOG_LINES],
+                'without one every Sound page setting is, Music and Sound among them');
+  TestKit.CheckEqualsL(C_OPT.OPT_QUICK, CfgFile.NextSetting(C_OPT.OPT_JOURNAL, True, skip),
+                       'Down from the Journal passes them by');
+  skip := [];
+  for opt := 1 to C_OPT.OPT_COUNT do
+    if CfgFile.SettingPage(opt) <> C_OPT.OPT_PAGE_SOUND then
+      skip := skip + [opt];
+  CfgFile.Silenced(True, skip);
+  TestKit.CheckEqualsL(C_OPT.OPT_MUSIC, CfgFile.NextSetting(C_OPT.OPT_MUSIC, True, skip),
+                       'on the Sound page with nothing to change Down stays on Music');
+  TestKit.CheckEqualsL(C_OPT.OPT_MUSIC, CfgFile.NextSetting(C_OPT.OPT_MUSIC, False, skip), 'and so does Up');
 
   { POOLOPT.CFG read as the game reads it }
   TestKit.Check(ReadText('speed = 0' + CRLF + ' Monsters'#9'=off' + CRLF + 'COMPANION=1' + CRLF + 'CLUENOTES=0' + CRLF +

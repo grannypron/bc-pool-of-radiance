@@ -22,6 +22,8 @@ const
   CHAR_POINTERS = 4 + C_EQUIP.BOLT - C_EQUIP.WEAPON + 1;
   ITEM_POINTERS = 1;
   EFFECT_POINTERS = 1;
+  { drainedLevels in SSI's monster records: no drain (CharFromDisk) }
+  DRAINED_FILLER = $FF;
 
 type
   TCharDisk = array[0..CHAR_DISK_BYTES - 1] of Byte;
@@ -36,7 +38,8 @@ procedure EffectToDisk(var ef: Types.TEffectRec; var disk);
 { A record from its disk form: a file's or a DAX block's bytes. Its pointers are nil natively; under Turbo Pascal they
   are the bytes the file held, which the callers clear. A character's port fields (portExt) are cleared. A name whose
   length byte is past its field is cut to the field (StrUtil.FitLength, #917): a damaged save or DAX record is read
-  whatever it holds. }
+  whatever it holds. A character's drainedLevels of DRAINED_FILLER, SSI's monster records' filler, is read as no drain
+  (#1155). }
 procedure CharFromDisk(var disk; var c: Types.TCharRecord);
 procedure ItemFromDisk(var disk; var it: Types.TItemRec);
 procedure EffectFromDisk(var disk; var ef: Types.TEffectRec);
@@ -183,6 +186,13 @@ begin
 {$ENDIF}
   FillChar(c.portExt, SizeOf(c.portExt), 0);
   ok := StrUtil.FitLength(c.name, SizeOf(c.name) - 1);
+  { SSI's monster records (every MONxCHA.DAX block) hold $FF in drainedLevels and drainedHps, filler, not 255 lost
+    levels; an NPC joins the party with them, and a save keeps them. No character loses 255 levels, so $FF is read as
+    none: the temple's Repair quoted a Restoration for each (#1155), and Restoration gave such an NPC a hit point. }
+  if c.drainedLevels = DRAINED_FILLER then begin
+    c.drainedLevels := 0;
+    c.drainedHps := 0;
+  end;
 end;
 
 procedure ItemFromDisk(var disk; var it: Types.TItemRec);

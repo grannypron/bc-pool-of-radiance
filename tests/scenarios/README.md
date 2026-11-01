@@ -51,7 +51,7 @@ the text matches (an animated picture) is only a warning.
 
 | scenario | covers |
 | --- | --- |
-| `boot` | the main menu, the settings screen and its Camp page |
+| `boot` | the main menu, the settings screen and its Camp and Sound pages; with `SOUND=none` (no sound device, #1156) the Sound page reads Music and Sound OFF, every line grey |
 | `chargen` | creating a paladin with fixed dice, the portrait picker (Escape doing nothing there) and the icon picker, the `.CHA` file written, adding him |
 | `loadsave` | the Load/Save menu, loading A, View and More Info (its saves, statistics and a thief's skills), the save popup, the files a save writes (the `.MAP` with them) |
 | `combat` | resting in Podal Plaza until orcs come, a Quick fight, the loot, Take, the statistics |
@@ -76,4 +76,5 @@ the text matches (an animated picture) is only a warning.
 | `coffinbare` | the vampire's coffin with nothing holy (#1096, `saves/coffinbare`): SANCTIFY refused, and the coffin as it was |
 | `outpost` | the Zhentil Keep Outpost before the mission (#1116), save A in the western wilderness at (3,33) (`saves/outpost`): a step north, the riders' warning, LEAVE, the map back |
 | `magicshop` | New Phlan's magic shop (#1091, #1158), save A on its square, (11,12) (`saves/magicshop`): the greeting, the counter, the stock (the wares, then the twelve scrolls), Buy on the first scroll listing its spells and asking, No; the golden build has the arms shop there, so its greeting and stock differ by design |
+| `repair` | Repair for a healthy party (#1155), from the save on the issue, its slot A put in slot H (`saves/repair`) on the Temple of Tyr's square in New Phlan, (8,4): the temple, "The party needs nothing the temple can give." held until a key (this build only), the view restored |
 | `ssiformat` | against SSI's own v1.3 (`tests/regress.sh drive_c/POOLRAD/SSI obj tests/scenarios/ssiformat.txt`): the `.CHA` file Remove writes and the files saving A into D writes are SSI's (`CHARLIST.TXT` is left out: a party member stays on the roster, #754), with SSI's heap pointers, the unused name bytes and the saved script masked |

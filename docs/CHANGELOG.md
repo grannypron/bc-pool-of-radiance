@@ -64,6 +64,7 @@ Most of these changes are small on their own, but together they make the game ea
 - On the menu after the title screen, Add Character to Party with no characters to add now says "No characters found to add." on the bottom line, and Load Saved Game with no saved games says "No saved games found to load.", until a key or for two seconds. Before, nothing happened.
 - The training hall's party menu has a blank line above and below the Name, AC and HP headings, and its Party, Character and Game headings are now magenta, so the highlighted command, in white, stands out.
 - The summary line under the spell lists shows its labels (RNG, AREA, TGT, DUR, SAVE, CAMP, CBT) in white and their values in green.
+- With no sound device (None in POOL.CFG, under DOS), the Settings screen's Sound page shows Music and Sound as OFF and greys out every line on it, and the cursor no longer stops there; POOLCFG's Sound Settings do the same until you pick a device on its Hardware page. Your Music and Sound choices are kept and come back when you choose a device. The native releases always have sound, so their pages are unchanged.
 
 ### Fixes
 
@@ -71,6 +72,7 @@ The fixes below cover both visible bugs and rare failures that could damage a sa
 
 - A Potion of Extra Healing found in random treasure is now named "Potion Extra Healing", as every other one is, instead of "Potion of Extra".
 - A stack of Darts +1 now reads "5 Darts +1" instead of "5 Dart +1s".
+- The temple's Repair no longer quotes a healthy party a fortune. A non-player character who joined the party (Genheeris, for one) was counted as having lost 255 levels, and Repair priced a Restoration for each: 1,785,000 gold pieces. Such a character no longer counts as drained anywhere, and a party that needs nothing is told so and the message waits for a key.
 - The combat AI, the party's in Quick mode and the monsters' alike, casts a spell only where it obviously does something: no Hold Person or Charm Person on scorpions and skeletons, no Sleep on the undead, no Silence on creatures it hasn't seen cast, no second Bless. It favours the spell that does the most, still now and then not the best, and saves its area spells for two or more.
 - The combat AI casts Silence at a single enemy it has seen cast, no longer drops a Stinking Cloud on creatures already in one or already retching, and casts Resist Fire or Resist Cold only once an enemy has done fire or cold damage in the fight, and Protection From Normal Missiles only while an enemy holds a bow or other missile weapon.
 - In Quick mode your characters no longer pick out magic weapons and shields you haven't identified: an unidentified +2 sword looks like any other sword to them, as it does to you, and they don't use an unidentified wand or other magic item.

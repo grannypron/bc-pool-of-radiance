@@ -30,8 +30,9 @@ procedure Apply(var s: CfgFile.TSettings);
   wrapping at either end, past its headings (Quick Mode, Fix); Enter, Left or Right turn the highlighted one over, at
   once. On the Game Speed and Log Lines lines Left and Right pick Slower or Faster (Less or More) instead, and Enter
   applies the one picked. Without a store for the combat log (CbtLog.Usable) its two lines are grey, Combat Log says it
-  needs EMS, and the highlight passes them by. The Paths and System pages only show. Leaving writes POOLOPT.CFG when
-  something changed. The caller redraws its own screen afterwards. }
+  needs EMS, and the highlight passes them by. Without a sound device (POOL.CFG's None under DOS) Music and Sound show
+  OFF and every Sound page line is grey and passed by, POOLOPT.CFG keeping their values (#1156). The Paths and System
+  pages only show. Leaving writes POOLOPT.CFG when something changed. The caller redraws its own screen afterwards. }
 procedure OptionsMenu;
 
 implementation
@@ -79,9 +80,12 @@ var
   { the settings as POOLOPT.CFG keeps them: the later games' paths, which only POOLCFG sets, and the rest as Collect
     last copied them from GameVars }
   cur: CfgFile.TSettings;
-  { the settings the Game page passes by, while the screen is up: the combat log's two without a store for it
-    (CbtLog.Usable) }
+  { the settings the screen greys and passes by, while it is up: the combat log's two without a store for it
+    (CbtLog.Usable), and the Sound page's without a sound device (noDevice, CfgFile.Silenced) }
   unchangeable: CfgFile.TOptSet;
+  { POOL.CFG gave the game no sound device (SndNone): Music and Sound show OFF and the Sound page is grey (#1156). The
+    native game always has Digital Audio. }
+  noDevice: Boolean;
 
 { The GameVars.soundGroups bit of a sound setting, or musicGroups bit of a music setting; 0 for any other setting. }
 function GroupBit(opt: Byte): Byte;
@@ -195,15 +199,16 @@ begin
 end;
 
 { The value of setting opt as the screen shows it, from cur as DrawSetting has just collected it: Sound shows whether
-  sound is on now, and Combat Log that it needs EMS when it has no store. }
+  sound is on now, Combat Log that it needs EMS when it has no store, and without a sound device Music and Sound OFF
+  (CfgFile.ShownValue). }
 function ShownValue(opt: Byte): Types.TStr20;
 begin
-  if opt = C_OPT.OPT_SOUND then
+  if (opt = C_OPT.OPT_SOUND) and not noDevice then
     ShownValue := CfgFile.OnOff(Ord(GameVars.soundMode <> C_SOUND.MODE_DISABLED))
   else if (opt = C_OPT.OPT_COMBAT_LOG) and not CbtLog.Usable then
     ShownValue := 'Needs EMS'
   else
-    ShownValue := CfgFile.StoredValue(cur, opt);
+    ShownValue := CfgFile.ShownValue(cur, opt, noDevice);
 end;
 
 procedure LoadOptions;
@@ -298,8 +303,9 @@ begin
     end;
 end;
 
-{ Settings page page (PAGE_GAME or PAGE_SOUND): its settings, setting sel highlighted, each heading (CfgFile.Heading)
-  on the row above the setting it comes before. }
+{ Settings page page (PAGE_GAME, PAGE_SOUND or PAGE_CAMP): its settings, setting sel highlighted, each heading
+  (CfgFile.Heading) on the row above the setting it comes before; the Sound page without a sound device says so two
+  rows under its last setting. }
 procedure DrawSettingsPage(page, sel: Byte);
 var
   opt: Byte;
@@ -313,6 +319,9 @@ begin
       if CfgFile.Heading(opt) <> '' then
         TextRend.DisplayString(LABEL_COL, Options.SettingRow(opt) - 1, LINE_COLOR, CfgFile.Heading(opt));
     end;
+  if (page = PAGE_SOUND) and noDevice then
+    TextRend.DisplayString(LABEL_COL, Options.SettingRow(C_OPT.OPT_LAST_SOUND) + 2, LINE_COLOR,
+                           'No sound device in POOL.CFG');
 end;
 
 { The Paths page: each game's name, then its data and save paths. Pool of Radiance's are the ones POOL.CFG gives this
@@ -454,12 +463,15 @@ var
     Options.DrawSetting(sel, TITLE_COLOR);
   end;
 
-  { Turn setting sel over, or on a stepping line pick choice. }
+  { Turn setting sel over, or on a stepping line pick choice; nothing for a setting the screen cannot change (without
+    a sound device the whole Sound page is grey, its highlight left on Music). }
   procedure Arrow(choice: Byte);
   var
     left: CfgFile.TName;
     right: CfgFile.TName;
   begin
+    if sel in unchangeable then
+      Exit;
     if CfgFile.StepNames(sel, left, right) then begin
       stepChoice := choice;
       Options.DrawSetting(sel, TITLE_COLOR);
@@ -489,6 +501,8 @@ begin
     unchangeable := []
   else
     unchangeable := [C_OPT.OPT_COMBAT_LOG, C_OPT.OPT_LOG_LINES];
+  noDevice := GameVars.sound.mode = C_SOUND.MODE_DISABLED;
+  CfgFile.Silenced(noDevice, unchangeable);
   sel := 1;
   stepChoice := CHOICE_LEFT;
   changed := False;
@@ -516,7 +530,7 @@ begin
       end;
     end else
       case ch of
-        C_KEYS.ENTER: if page in SETTINGS_PAGES then begin
+        C_KEYS.ENTER: if (page in SETTINGS_PAGES) and not (sel in unchangeable) then begin
                         Options.ChangeSetting(sel);
                         touched := True;
                       end;
