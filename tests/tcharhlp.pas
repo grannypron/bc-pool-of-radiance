@@ -182,6 +182,8 @@ end;
 
 begin
   TestKit.Start('TCHARHLP');
+  { the racial level caps apply only with the Non-Human Level Cap setting on, its default (#1176) }
+  GameVars.nonHumanCapOn := 1;
   GetMem(c, SizeOf(Types.TCharRecord));
   ClearCreature;
   GameVars.creatureList := nil;
@@ -306,6 +308,20 @@ begin
   c^.race := C_RACE.HALF_ELF;
   c^.classLevels[C_LEVEL.CLERIC] := 5;
   TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'a half-elf cleric stops at 5');
+  { the Non-Human Level Cap setting off lifts them (#1176) }
+  GameVars.nonHumanCapOn := 0;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'with the setting off a half-elf cleric trains past 5');
+  c^.race := C_RACE.ELF;
+  c^.strCur := 18;
+  c^.classLevels[C_LEVEL.FIGHTER] := 7;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'and an elf fighter past 7');
+  c^.race := C_RACE.HALF_ORC;
+  c^.wisCur := 14;
+  c^.classLevels[C_LEVEL.CLERIC] := 4;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'and a half-orc cleric of Wisdom 14 past 4');
+  GameVars.nonHumanCapOn := 1;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'which stops at 4 with it on');
+  c^.race := C_RACE.HALF_ELF;
 
   { a half-orc's cleric and thief caps by Wisdom and Dexterity (PHB pp. 14-15, #956) }
   ClearCreature;

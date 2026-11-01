@@ -1,6 +1,6 @@
 { Reads and writes the configuration files (#876). POOL.CFG contains the video,
   sound, introduction, data path, and save path used at startup. POOLOPT.CFG
-  contains the Settings screen values and paths for the later games.
+  contains the Settings screen values.
 
   Both the game and POOLCFG use this unit, so they parse the files identically.
   The routines operate on TSettings rather than global game state and report
@@ -40,13 +40,12 @@ type
     items: array[1..C_OPT.CFG_LINES] of TCfgNote;
   end;
   { POOLOPT.CFG's values: the speed (0..C_OPT.SLOWEST), the log lines, each ON/OFF setting as 1 or 0 by its OPT_
-    number, the later games' paths by key - KEY_PATHS, and the version the startup advisory's support part was last
-    shown for (KEY_ADVISED, tidied; '' before it ever was, #1173) }
+    number, and the version the startup advisory's support part was last shown for (KEY_ADVISED, tidied; '' before it
+    ever was, #1173) }
   TSettings = record
     speed: Byte;
     logLines: Byte;
     flags: array[C_OPT.OPT_FIRST_FLAG..C_OPT.OPT_LAST_FLAG] of Byte;
-    paths: array[1..C_OPT.LATER_PATHS] of FileUtil.TPathName;
     advised: TName;
   end;
   { settings to pass by }
@@ -57,16 +56,16 @@ type
   { a path checked (CheckPath): good, empty, holding a character no DOS path may, too long, or not an existing folder }
   TPathCheck = (PATH_OK, PATH_EMPTY, PATH_BAD_CHAR, PATH_TOO_LONG, PATH_MISSING);
 
-{ The POOLOPT.CFG key of setting or path key: SPEED, ALLPORTRAITS ... LOGLINES, CURSEDATA ... POOLSSAVE, then ADVISED
-  (C_OPT.KEY_ADVISED); '' for none. }
+{ The POOLOPT.CFG key of setting key: SPEED, ALLPORTRAITS ... LOGLINES, then ADVISED (C_OPT.KEY_ADVISED); '' for none. }
 function KeyName(key: Byte): TName;
 
 { The label of setting opt on the Settings screen, a sub-setting's indented two spaces under its setting. }
 function SettingName(opt: Byte): TName;
 
 { The page setting opt is on: C_OPT.OPT_PAGE_SOUND for the music and the sound (OPT_FIRST_SOUND to OPT_LAST_SOUND,
-  #1088), OPT_PAGE_CAMP for Auto Memorize and Fix's settings (OPT_FIRST_CAMP to OPT_LAST_CAMP, #1119, #1129), and
-  OPT_PAGE_GAME for the rest; the game's Settings screen and POOLCFG split them so. }
+  #1088), OPT_PAGE_CAMP for Auto Memorize and Fix's settings (OPT_FIRST_CAMP to OPT_LAST_CAMP, #1119, #1129),
+  OPT_PAGE_COMBAT for Quick Mode's, Aim Cycles, Retrieve Thrown and the combat log's (OPT_FIRST_COMBAT to
+  OPT_LAST_COMBAT, #1180), and OPT_PAGE_GAME for the rest; the game's Settings screen and POOLCFG split them so. }
 function SettingPage(opt: Byte): Byte;
 
 { The heading on the line above setting opt on its page, for a setting that starts a group: Quick Mode above
@@ -102,13 +101,14 @@ function Trim(s: string): string;
 { s trimmed (Trim) and upper-cased. }
 function Tidy(s: string): string;
 
-{ The setting or path key whose key line names before its '=' (in any case, spaces around it), or 0 for none. }
+{ The setting or key whose key line names before its '=' (in any case, spaces around it), or 0 for none. }
 function KeyOf(line: string): Byte;
 
-{ Every setting's default: speed 1, every portrait, Auto Join, music and sound setting on, the Journal FOUND, Auto End
+{ Every setting's default: speed 1, every portrait, Auto Join, music and sound setting on, Consolidate Coin off, the
+  Journal FOUND, Non-Human Level Cap on, Auto End
   Quick Mode on, Use Magic off, Allow Gear Changes on, Aim Cycles at ENEMIES, Retrieve Thrown on, the Companion Tools
   off with their Clue Book notes on, Auto Memorize on, the four Fix settings off, the combat log on with 50 lines, and
-  the later games' paths C:\CURSE\, C:\CURSE\SAVE\ and so on, and no version advised. }
+  no version advised. }
 procedure Defaults(var s: TSettings);
 
 { Setting opt (an ON/OFF one) as 1 for on and 0 for off; 0 for any other. }
@@ -122,8 +122,8 @@ procedure SetFlag(var s: TSettings; opt, value: Byte);
   setting turns over. }
 procedure ChangeSetting(var s: TSettings; opt: Byte; right: Boolean);
 
-{ The value of setting or path key as POOLOPT.CFG keeps it: the speed's digit, the log lines' number, a path, the
-  version advised, ON or OFF (FlagValue: ENEMIES or ALL for Aim Cycles, FOUND or ALL for the Journal). }
+{ The value of key as POOLOPT.CFG keeps it: the speed's digit, the log lines' number, the version advised, ON or OFF
+  (FlagValue: ENEMIES or ALL for Aim Cycles, FOUND or ALL for the Journal). }
 function StoredValue(var s: TSettings; key: Byte): FileUtil.TPathName;
 
 { True when POOL.CFG's sound letter sound gives the DOS game no sound device: START installs a driver only for the
@@ -140,10 +140,9 @@ procedure Silenced(silent: Boolean; var skip: TOptSet);
   it back. }
 function ShownValue(var s: TSettings; opt: Byte; silent: Boolean): FileUtil.TPathName;
 
-{ Set setting or path key from value (tidied): a digit 0..9 for the speed, a number from C_OPT.LOG_MIN to LOG_MAX for
-  the log lines, a path or the version advised as it is, ON or OFF (or 1 or 0) for the others, and the names FlagValue
-  gives them too. False when the value was refused, which leaves the setting as it is; a blank path is passed over,
-  not refused. }
+{ Set key from value (tidied): a digit 0..9 for the speed, a number from C_OPT.LOG_MIN to LOG_MAX for the log lines,
+  the version advised as it is, ON or OFF (or 1 or 0) for the others, and the names FlagValue gives them too. False
+  when the value was refused, which leaves the setting as it is. }
 function ReadValue(var s: TSettings; key: Byte; value: string): Boolean;
 
 { Read POOLOPT.CFG in folder dir (with its trailing backslash) over what s holds (the caller sets the defaults first).
@@ -211,7 +210,9 @@ begin
     C_OPT.OPT_MONSTERS: KeyName := 'MONSTERS';
     C_OPT.OPT_PORTRAITS: KeyName := 'PORTRAITS';
     C_OPT.OPT_AUTO_JOIN: KeyName := 'AUTOJOIN';
+    C_OPT.OPT_CONSOLIDATE: KeyName := 'CONSOLIDATECOIN';
     C_OPT.OPT_JOURNAL: KeyName := 'JOURNAL';
+    C_OPT.OPT_NONHUMAN_CAP: KeyName := 'NONHUMANCAP';
     C_OPT.OPT_MUSIC: KeyName := 'MUSIC';
     C_OPT.OPT_TITLE_MUSIC: KeyName := 'TITLEMUSIC';
     C_OPT.OPT_BATTLE_MUSIC: KeyName := 'BATTLEMUSIC';
@@ -236,12 +237,6 @@ begin
     C_OPT.OPT_FIX_HEAL: KeyName := 'FIXPALADINHEAL';
     C_OPT.OPT_COMBAT_LOG: KeyName := 'COMBATLOG';
     C_OPT.OPT_LOG_LINES: KeyName := 'LOGLINES';
-    C_OPT.KEY_PATHS + 1: KeyName := 'CURSEDATA';
-    C_OPT.KEY_PATHS + 2: KeyName := 'CURSESAVE';
-    C_OPT.KEY_PATHS + 3: KeyName := 'SECRETDATA';
-    C_OPT.KEY_PATHS + 4: KeyName := 'SECRETSAVE';
-    C_OPT.KEY_PATHS + 5: KeyName := 'POOLSDATA';
-    C_OPT.KEY_PATHS + 6: KeyName := 'POOLSSAVE';
     C_OPT.KEY_ADVISED: KeyName := 'ADVISED';
   else
     KeyName := '';
@@ -256,7 +251,9 @@ begin
     C_OPT.OPT_MONSTERS: SettingName := '  Monster Portraits';
     C_OPT.OPT_PORTRAITS: SettingName := '  Character Portraits';
     C_OPT.OPT_AUTO_JOIN: SettingName := 'Auto Join';
+    C_OPT.OPT_CONSOLIDATE: SettingName := 'Consolidate Coin';
     C_OPT.OPT_JOURNAL: SettingName := 'Journal';
+    C_OPT.OPT_NONHUMAN_CAP: SettingName := 'Non-Human Level Cap';
     C_OPT.OPT_MUSIC: SettingName := 'Music';
     C_OPT.OPT_TITLE_MUSIC: SettingName := '  Title Music';
     C_OPT.OPT_BATTLE_MUSIC: SettingName := '  Battle Music';
@@ -392,6 +389,8 @@ begin
     SettingPage := C_OPT.OPT_PAGE_SOUND
   else if (opt >= C_OPT.OPT_FIRST_CAMP) and (opt <= C_OPT.OPT_LAST_CAMP) then
     SettingPage := C_OPT.OPT_PAGE_CAMP
+  else if (opt >= C_OPT.OPT_FIRST_COMBAT) and (opt <= C_OPT.OPT_LAST_COMBAT) then
+    SettingPage := C_OPT.OPT_PAGE_COMBAT
   else
     SettingPage := C_OPT.OPT_PAGE_GAME;
 end;
@@ -426,13 +425,8 @@ begin
   s.speed := C_OPT.SPEED_DEFAULT;
   s.logLines := C_OPT.LOG_DEFAULT;
   for opt := C_OPT.OPT_FIRST_FLAG to C_OPT.OPT_LAST_FLAG do
-    s.flags[opt] := Ord(not (opt in [C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION, C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL]));
-  s.paths[1] := 'C:\CURSE\';
-  s.paths[2] := 'C:\CURSE\SAVE\';
-  s.paths[3] := 'C:\SECRET\';
-  s.paths[4] := 'C:\SECRET\SAVE\';
-  s.paths[5] := 'C:\POOLS\';
-  s.paths[6] := 'C:\POOLS\SAVE\';
+    s.flags[opt] := Ord(not (opt in [C_OPT.OPT_CONSOLIDATE, C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION,
+                                     C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL]));
   s.advised := '';
 end;
 
@@ -483,8 +477,6 @@ begin
     StoredValue := n;
   end else if key = C_OPT.KEY_ADVISED then
     StoredValue := s.advised
-  else if key > C_OPT.KEY_PATHS then
-    StoredValue := s.paths[key - C_OPT.KEY_PATHS]
   else
     StoredValue := CfgFile.FlagValue(key, CfgFile.Flag(s, key));
 end;
@@ -508,10 +500,7 @@ begin
       ReadValue := False;
   end else if key = C_OPT.KEY_ADVISED then
     s.advised := value
-  else if key > C_OPT.KEY_PATHS then begin
-    if value <> '' then
-      s.paths[key - C_OPT.KEY_PATHS] := value;
-  end else if (value = 'ON') or (value = '1') or (value = CfgFile.FlagValue(key, 1)) then
+  else if (value = 'ON') or (value = '1') or (value = CfgFile.FlagValue(key, 1)) then
     CfgFile.SetFlag(s, key, 1)
   else if (value = 'OFF') or (value = '0') or (value = CfgFile.FlagValue(key, 0)) then
     CfgFile.SetFlag(s, key, 0)

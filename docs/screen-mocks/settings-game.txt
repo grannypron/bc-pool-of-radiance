@@ -1,36 +1,71 @@
 +======================================+
-|             GAME SETTINGS            |
+|            GAME SETTINGS             |
 | GAME SPEED (1)        SLOWER FASTER  |
 | PORTRAITS             ON             |
-|   MONSTERS            ON             |
-|   CHARACTER           ON             |
-| MUSIC                 ON             |
-|   TITLE MUSIC         ON             |
-|   BATTLE MUSIC        ON             |
-| SOUND                 ON             |
-|   FOOTSTEPS           ON             |
-|   RANGED WEAPON USAGE ON             |
-|   MELEE ATTACKS       ON             |
-|   DEATH SCREAM        ON             |
-|   WALL HIT            ON             |
-|   SPELL EFFECTS       ON             |
-| QUICK MODE: AUTO END  ON             |
-| QUICK MODE: MAGIC ON  ON             |
-| COMPANION TOOLS       ON             |
+|   MONSTER PORTRAITS   ON             |
+|   CHARACTER PORTRAITS ON             |
+| AUTO JOIN             ON             |
+| CONSOLIDATE COIN      OFF            |
+| JOURNAL               FOUND          |
+| NON-HUMAN LEVEL CAP   ON             |
+| COMPANION TOOLS       OFF            |
 |   CLUE BOOK NOTES     ON             |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|======================================+
+GAME SOUND CAMP COMBAT SYSTEM EXIT
+
+The Game page has 10 of the box's 20 rows. Quick Mode, Aim Cycles, Retrieve Thrown and the combat log have a
+page of their own, Combat (#1180), with the Quick Mode heading on its first row:
+
++======================================+
+|           COMBAT SETTINGS            |
+| QUICK MODE                           |
+|   AUTO END QUICK MODE ON             |
+|   USE MAGIC           OFF            |
+|   ALLOW GEAR CHANGES  ON             |
+| AIM CYCLES            ENEMIES        |
+| RETRIEVE THROWN       ON             |
 | COMBAT LOG            ON             |
 |   LOG LINES (50)      LESS MORE      |
 |                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
 |======================================+
-SETTINGS: GAME PATHS SYSTEM EXIT
+GAME SOUND CAMP COMBAT SYSTEM EXIT
+
+Without EMS (DOS) Combat Log reads NEEDS EMS and its two lines are dark grey and passed by.
 
 Color Key:
     SETTING NAME        GREEN
     SETTING VALUE       GREEN
+    HEADING             GREEN
     CURRENT SETTING     WHITE
 
 Command Key:
     GAME                G
-    PATHS               P
-    SYSTEM              S
+    SOUND               S
+    CAMP                C
+    COMBAT              M
+    SYSTEM              Y
     EXIT                E / ESCAPE
+    UP / DOWN           UP, DOWN (WRAP, PASSING THE HEADINGS), HOME, END
+    CHANGE              ENTER, LEFT, RIGHT TURN A SETTING OVER; ON GAME SPEED AND LOG LINES LEFT/RIGHT PICK
+                        SLOWER/FASTER (LESS/MORE) AND ENTER APPLIES IT

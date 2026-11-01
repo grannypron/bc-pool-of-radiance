@@ -101,6 +101,22 @@ begin
   Takable := n;
 end;
 
+{ With Consolidate Coin on (GameVars.consolidateOn, #1179), change the creature's purse into the fewest coins of its
+  value (MoneyCal.Consolidate) and recalculate its stats, the coins weighing less; else nothing. Called after it picks
+  coins up: a take, a share or a sale. }
+procedure Consolidate(creature: Types.PCharRecord);
+var
+  m: Types.TMoney;
+  i: ShortInt;
+begin
+  if GameVars.consolidateOn = 0 then Exit;
+  MoneyCal.CoinsOf(creature, m);
+  MoneyCal.Consolidate(m);
+  for i := C_MONEY.COPPER to C_MONEY.PLATINUM do
+    creature^.coins[i] := m[i];
+  CharHlp.RecalcStats(creature);
+end;
+
 { Pay gp gold pieces from the creature's coins, worked out in copper, with the change given back in the largest coins.
   The caller has checked the creature can pay (CreatureGold); if not, every coin goes. The coins' weight changes, so the
   creature's stats are recalculated. }
@@ -144,6 +160,7 @@ begin
     Inc(GameVars.treasureMoney[C_MONEY.GOLD], gp - gpTaken);
   end;
   CharHlp.RecalcStats(creature);
+  Money.Consolidate(creature);
 end;
 
 { Read an amount from the bottom line. Accept digits, Backspace, Return and Escape; clamp to max as digits are entered.
@@ -282,6 +299,9 @@ begin
           rem[i] := rem[i] + share[i] - takable;
           CharHlp.RecalcStats(p);
         end;
+    { a consolidated purse has room for more of the leftovers }
+    if not CharHlp.IsNpc(p) then
+      Money.Consolidate(p);
     p := p^.nextCharAddr;
   end;
   { pass 2: leftovers }
@@ -290,16 +310,14 @@ begin
       p := GameVars.creatureList;
       while p <> nil do begin
         takable := Money.Takable(p, i);
-        if takable > 0 then
-          if rem[i] > takable then begin
-            p^.coins[i] := p^.coins[i] + takable;
-            CharHlp.RecalcStats(p);
-            rem[i] := rem[i] - takable;
-          end else begin
-            p^.coins[i] := p^.coins[i] + rem[i];
-            CharHlp.RecalcStats(p);
-            rem[i] := 0;
-          end;
+        if takable > rem[i] then
+          takable := rem[i];
+        if takable > 0 then begin
+          p^.coins[i] := p^.coins[i] + takable;
+          CharHlp.RecalcStats(p);
+          rem[i] := rem[i] - takable;
+          Money.Consolidate(p);
+        end;
         p := p^.nextCharAddr;
       end;
     end;
@@ -331,6 +349,7 @@ begin
     GameVars.treasureMoney[mType] := GameVars.treasureMoney[mType] - qty;
     p^.coins[mType] := p^.coins[mType] + qty;
     CharHlp.RecalcStats(p);
+    Money.Consolidate(p);
   end;
 end;
 
