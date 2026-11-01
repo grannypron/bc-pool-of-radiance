@@ -18,8 +18,8 @@ uses C_DATA;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 112;
-  BYTE_COUNT = 3943;
+  PART_COUNT = 113;
+  BYTE_COUNT = 3953;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -280,6 +280,12 @@ begin
   { #792: the ogre leader (MON1CHA block 9), size L, gets the Large bit its one-tile icon lacked, as the bugbear has:
     weapons do their large damage to it, and it is no person for Charm Person and Hold Person }
   DataPat.Part(792, C_DATA.FAMILY_MONCHA, 1, 9, 285, 108, 1, 1);
+  { #1183: the displacer beast (MON7CHA block 68) saves as a 12th-level fighter +2 on the die (Monster Manual),
+    5/6/7/6/8 for paralysis, petrification, wand, breath and spell; SSI's record held 9/10/11/11/12, a 5th-6th-level
+    fighter's +2. Its AC 2 (acBase 58) stays: the Monster Manual's AC 4 and -2 on its opponents' attack dice give the
+    same odds on every attack roll, so it is not to be "fixed" to 4. It has no displacement of its own (#1136
+    reversed) }
+  DataPat.Part(1183, C_DATA.FAMILY_MONCHA, 7, 68, 285, 109, 5, 5);
   { #864 (POR-0209): outside City Hall the posted proclamations (script $AC58) follow the major rewards paid
     ([$4AC1], C_GBVM.COUNCIL_REWARDS); the ninth arm ($AD21) named CXIV again, the fifth's, where CCXIV, the one
     left, is meant. The packed "CCXIV." is a byte longer than the arm's room, so its ON GOSUB entry goes to new code
@@ -1050,6 +1056,10 @@ begin
   DataPat.Put(#$01);
   { fixed: one tile and Large }
   DataPat.Put(#$81);
+  { #1183, MON7CHA displacer beast's saves, original }
+  DataPat.Put(#$09#$0A#$0B#$0B#$0C);
+  { fixed: a 12th-level fighter's 7/8/9/8/10, less 2 }
+  DataPat.Put(#$05#$06#$07#$06#$08);
   { #864 part 1, original }
   DataPat.Put(#$21#$AD);                                     { $AC8B ON GOSUB [$4A18] entry 9: LAD21 }
   { fixed: the ninth proclamation goes to new code at the end of the script }

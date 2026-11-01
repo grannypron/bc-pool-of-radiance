@@ -163,11 +163,39 @@ function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
   of a count: the creature counts as any other would. }
 procedure ReportAreaCatch(var caught: Types.TSlotList);
 
+{ Paladin leadership (#1124), as Death Knights of Krynn and Pools of Darkness have it. The base chance in 100 that a
+  paladin of paladin level lvl leads an NPC: 20 at levels 1 to 3, 40 at 4 to 7, 80 from 8; 0 below level 1. }
+function LeadershipBase(lvl: ShortInt): Byte;
+
+{ The chance in 100 that paladin leads an NPC: LeadershipBase of its paladin level (CharHlp.GetClassLevel, so a
+  dual-classed human's old paladin levels count once they are usable) plus 5 for each point of Charisma above 13. }
+function LeadershipChance(paladin: Types.PCharRecord): Byte;
+
+{ True when p can lead: one of the player's own characters (not an NPC) on the party's side, with a paladin level it
+  can use, Okay and in action (enabled). }
+function CanLead(p: Types.PCharRecord): Boolean;
+
+{ True when p can be led: an NPC on the party's side, under the computer's control (quickfight), Okay and in action
+  (enabled), with Intelligence above 3. An NPC a script gave the player (quickfight 0) is not, and stays as it is. }
+function CanBeLed(p: Types.PCharRecord): Boolean;
+
+{ paladin tries to lead npc with roll, a d100 roll: it does when roll is under LeadershipChance, and then npc comes
+  under the player's control (quickfight 0) for this fight, marked in its combat record (led) so that
+  PostCbt.PostCombatCreatureCleanup gives it back to the computer after it. Returns whether it led. The caller checks
+  CanLead and CanBeLed. }
+function TryLead(paladin, npc: Types.PCharRecord; roll: Byte): Boolean;
+
+{ At the start of a fight, once the creatures have combat records (CombatSt.CombatStart): each paladin who CanLead
+  tries to lead each NPC who CanBeLed and is not led yet, with a d100 roll. The first success opens a window titled
+  "Using leadership ability", each success adds "<paladin> leads <NPC>." and the window waits for Enter; nothing is
+  shown when none succeeds. In the demo (#1109) no one leads: a led NPC comes under the player, and no one plays. }
+procedure UseLeadership;
+
 implementation
 
 uses C_ITEM, C_TERR, C_COND, GameDefs, GameVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
   C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, C_SPRITE, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend,
-  StrUtil, CharDisp, AbilAdj, Dice, Blit, ClassCal, Bestiary, CbtLog, C_BEAST, Party, ViewChar;
+  StrUtil, CharDisp, AbilAdj, Dice, Blit, ClassCal, Bestiary, CbtLog, C_BEAST, Party, ViewChar, C_MSG;
 
 type
   { A spell's rule for the spell-aim count (#840): how it tells who the spell cannot affect, whatever the dice }
@@ -2507,6 +2535,93 @@ begin
   for i := 1 to GameVars.targetCount do
     if CharHlp.Team(GameVars.creatureArr[GameVars.targetList[i].idx]) <> CharHlp.EnemyTeam(GameVars.curChar) then
       AreaHitsNonEnemy := True;
+end;
+
+function LeadershipBase(lvl: ShortInt): Byte;
+begin
+  if lvl >= 8 then
+    LeadershipBase := 80
+  else if lvl >= 4 then
+    LeadershipBase := 40
+  else if lvl >= 1 then
+    LeadershipBase := 20
+  else
+    LeadershipBase := 0;
+end;
+
+function LeadershipChance(paladin: Types.PCharRecord): Byte;
+var
+  chance: Byte;
+begin
+  chance := CbtActs.LeadershipBase(CharHlp.GetClassLevel(paladin, C_LEVEL.PALADIN_BIT));
+  if paladin^.chaCur > 13 then
+    Inc(chance, (paladin^.chaCur - 13) * 5);
+  LeadershipChance := chance;
+end;
+
+function CanLead(p: Types.PCharRecord): Boolean;
+begin
+  CanLead := not CharHlp.IsNpc(p) and (CharHlp.Team(p) = 0) and
+    (CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) > 0) and (p^.status = C_STATUS.OKAY) and (p^.enabled <> 0);
+end;
+
+function CanBeLed(p: Types.PCharRecord): Boolean;
+begin
+  CanBeLed := CharHlp.IsNpc(p) and (CharHlp.Team(p) = 0) and (p^.quickfight <> 0) and
+    (p^.status = C_STATUS.OKAY) and (p^.enabled <> 0) and (p^.intCur > 3);
+end;
+
+function TryLead(paladin, npc: Types.PCharRecord; roll: Byte): Boolean;
+var
+  leads: Boolean;
+begin
+  leads := roll < CbtActs.LeadershipChance(paladin);
+  if leads then begin
+    npc^.quickfight := 0;
+    npc^.combatAddr^.led := 1;
+  end;
+  TryLead := leads;
+end;
+
+procedure UseLeadership;
+const
+  { the window's row for the first "leads" line, and the last row one may start on }
+  FIRST_ROW = 3;
+  LAST_ROW = 19;
+var
+  paladin: Types.PCharRecord;
+  npc: Types.PCharRecord;
+  row: Byte;
+  c: Char;
+  ext: Boolean;
+begin
+  if GameVars.demoMode then Exit;
+  row := 0;
+  paladin := GameVars.creatureList;
+  while paladin <> nil do begin
+    if CbtActs.CanLead(paladin) then begin
+      npc := GameVars.creatureList;
+      while npc <> nil do begin
+        if CbtActs.CanBeLed(npc) then
+          if CbtActs.TryLead(paladin, npc, Dice.RollDice(1, 100)) then begin
+            if (row = 0) or (row > LAST_ROW) then begin
+              if row > LAST_ROW then
+                c := MenuCore.MenuHorizontal('', C_MSG.CONTINUE_PROMPT, White, White, White, True, False, ext);
+              Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, LightMagenta,
+                                'Using leadership ability');
+              row := FIRST_ROW;
+            end;
+            TextRend.DisplayMessageWindow(C_MSG.TEXT_LEFT, row, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, White, True,
+                                          paladin^.name + ' leads ' + npc^.name + '.');
+            Inc(row, 2);
+          end;
+        npc := npc^.nextCharAddr;
+      end;
+    end;
+    paladin := paladin^.nextCharAddr;
+  end;
+  if row > 0 then
+    c := MenuCore.MenuHorizontal('', C_MSG.CONTINUE_PROMPT, White, White, White, True, False, ext);
 end;
 
 begin

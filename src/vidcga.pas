@@ -18,9 +18,19 @@ procedure Install;
 procedure FlushSpans;
 procedure ShowPic(screenX, screenY: Integer; pic: Types.PImgBuf);
 
+{ The CGA colour, 0..3, DrawGlyph draws text colour fg in: fg mapped through attrTable, but for DarkGray. CGA's four
+  colours have no grey, and attrTable draws DarkGray as white, as bright as the text it greys out (#1185), so greyed
+  text is drawn in magenta. A checkerboard of white at half density was tried first and left letters such as E, L and
+  S unreadable. attrTable is SSI's and stays as it is, since pictures go through it too. }
+function TextColour(fg: Byte): Byte;
+
 implementation
 
-uses C_VIDEO, GameDefs, GameVars, DaxIo, Blit, PicCga;
+uses Crt, C_VIDEO, GameDefs, GameVars, DaxIo, Blit, PicCga;
+
+const
+  { CGA's magenta in palette 1 }
+  CGA_MAGENTA = 2;
 
 var
   { the two banks: even scanlines at $B800, odd at $BA00, 80 bytes a scanline and 4 scanlines of each to a text row }
@@ -66,8 +76,17 @@ begin
   end;
 end;
 
-{ fg and bg are mapped to CGA's through attrTable; each pixel's 2 bits come from cgaColorPat, fg's under a set font bit
-  and bg's under a clear one; font rows 0, 2, 4 and 6 go to the even bank, 1, 3, 5 and 7 to the odd }
+function TextColour(fg: Byte): Byte;
+begin
+  if fg = DarkGray then
+    TextColour := CGA_MAGENTA
+  else
+    TextColour := GameDefs.attrTable[fg];
+end;
+
+{ fg is mapped to CGA's by TextColour and bg through attrTable (no text is drawn on DarkGray); each pixel's 2 bits come
+  from cgaColorPat, fg's under a set font bit and bg's under a clear one; font rows 0, 2, 4 and 6 go to the even bank,
+  1, 3, 5 and 7 to the odd }
 procedure DrawGlyph(col, row, fg, bg, glyph: Byte);
 const
   { CGA colors 0..3 repeated across eight 2-bit pixels }
@@ -82,7 +101,7 @@ var
   paperPat: Word;
   k: Byte;
 begin
-  inkPat := cgaColorPat[GameDefs.attrTable[fg]];
+  inkPat := cgaColorPat[VidCga.TextColour(fg)];
   paperPat := cgaColorPat[GameDefs.attrTable[bg]];
   for fontRow := 0 to 7 do begin
     inkMask := 0;

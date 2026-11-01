@@ -1,14 +1,71 @@
 { Tests the demo's hooks into the game (#1109): GameIo.DemoEnding; the C64 cells its script reads and writes (the key
   count it ends on, the game speed that is its text delay); the Bestiary learning nothing from it; and its battle's end
   in PostCbt.PostCombat, which takes the monsters away and keeps the result for the script, with no experience and
-  without taking the party of NPCs for a destroyed one. }
+  without taking the party of NPCs for a destroyed one; and the check of DEMO.DAX before the demo starts
+  (DataArc.BlockRawSize, Demo.Complete), on archives written here, whole, short of a block or cut short. }
 {$I COMPILER.INC}
 program TDemo;
 
-uses Types, GameVars, GameIo, C_GBVM, C_STATUS, C_NPC, C_MONEY, EclVars, Bestiary, PostCbt, TestKit;
+uses Types, GameVars, GameIo, C_GBVM, C_STATUS, C_NPC, C_MONEY, C_DEMO, EclVars, Bestiary, PostCbt, DataArc,
+  Demo, TestKit;
+
+const
+  ARC = 'TDEMO.DAX';
+  { the demo's blocks: the script, the four records, their items }
+  BLOCKS = 9;
 
 var
   pc1, pc2, orc: Types.PCharRecord;
+  ids: array[1..BLOCKS] of Byte;
+  sizes: array[1..BLOCKS] of Word;
+  i: Byte;
+  f: file;
+
+{ Write ARC with the first count of ids and sizes as blocks of zeros, stored unpacked (a run of 127 bytes a control
+  byte), and cut lastShort bytes off its end. }
+procedure WriteArchive(count: Byte; lastShort: Word);
+var
+  f: file;
+  e: DataArc.TDirEntry;
+  dirSize: Word;
+  offset: LongInt;
+  k: Byte;
+  w: Word;
+  n: Word;
+  chunk: Word;
+  buf: array[0..127] of Byte;
+  packedSize: Word;
+begin
+  FillChar(buf, SizeOf(buf), 0);
+  Assign(f, ARC);
+  Rewrite(f, 1);
+  dirSize := count * SizeOf(DataArc.TDirEntry);
+  BlockWrite(f, dirSize, SizeOf(dirSize));
+  offset := 0;
+  for k := 1 to count do begin
+    packedSize := sizes[k] + (sizes[k] + 126) div 127;
+    e.id := ids[k];
+    e.offset := offset;
+    e.rawSize := sizes[k];
+    e.packedSize := packedSize;
+    BlockWrite(f, e, SizeOf(e));
+    Inc(offset, packedSize);
+  end;
+  for k := 1 to count do begin
+    w := sizes[k];
+    while w > 0 do begin
+      chunk := w;
+      if chunk > 127 then chunk := 127;
+      buf[0] := chunk - 1;
+      n := chunk + 1;
+      if (k = count) and (w = chunk) and (lastShort > 0) then
+        n := n - lastShort;
+      BlockWrite(f, buf, n);
+      Dec(w, chunk);
+    end;
+  end;
+  Close(f);
+end;
 
 function NewCreature(name: String; monster: Boolean): Types.PCharRecord;
 var
@@ -128,5 +185,31 @@ begin
   PostCbt.PostCombat;
   TestKit.CheckEqualsL(2, ListLength, 'the standing orc is taken away too');
   TestKit.CheckEqualsL(1, GameVars.zone1^[C_GBVM.COMBAT_RESULT], 'COMBAT_RESULT 1: the party did not win');
+
+  { DEMO.DAX checked before the demo starts }
+  ids[1] := C_DEMO.SCRIPT_BLOCK;
+  sizes[1] := 1300;
+  for i := 0 to 3 do begin
+    ids[2 + i] := C_DEMO.FIRST_NPC + i;
+    sizes[2 + i] := 285;
+    ids[6 + i] := C_DEMO.FIRST_NPC + i + C_DEMO.ITEMS_OFFSET;
+    sizes[6 + i] := 63;
+  end;
+  WriteArchive(BLOCKS, 0);
+  TestKit.CheckEqualsL(1300, DataArc.BlockRawSize(ARC, C_DEMO.SCRIPT_BLOCK), 'the script''s size');
+  TestKit.CheckEqualsL(-1, DataArc.BlockRawSize(ARC, 7), 'a block not listed');
+  TestKit.Check(Demo.Complete(ARC), 'a whole archive is complete');
+  WriteArchive(BLOCKS - 1, 0);
+  TestKit.Check(not Demo.Complete(ARC), 'one without the last character''s items is not');
+  sizes[3] := 200;
+  WriteArchive(BLOCKS, 0);
+  TestKit.Check(not Demo.Complete(ARC), 'nor one with a record too short');
+  sizes[3] := 285;
+  WriteArchive(BLOCKS, 10);
+  TestKit.CheckEqualsL(-1, DataArc.BlockRawSize(ARC, C_DEMO.SCRIPT_BLOCK), 'a file cut short reads as no archive');
+  TestKit.Check(not Demo.Complete(ARC), 'and is not complete');
+  TestKit.Check(not Demo.Complete('NOSUCH.DAX'), 'nor is a file that is not there');
+  Assign(f, ARC);
+  Erase(f);
   TestKit.Done;
 end.

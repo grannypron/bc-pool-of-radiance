@@ -5,8 +5,8 @@
 # sits on its main menu and fails at the first wait.
 boot NORAND DEMO
 ignore POOL OF RADIANCE V
-wait RADIANCE
-checkpoint main-menu
+# the boot itself waits for the main menu, and the demo starts three seconds after it: no checkpoint there, which a
+# slow run would miss
 saves before
 wait-text WELCOME.TO.POOL 30
 checkpoint title

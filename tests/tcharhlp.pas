@@ -504,6 +504,33 @@ begin
   TestKit.CheckEqualsL(0, CharHlp.EnemyTeam(@crs[3]), 'hostile 3 is on team 1, so its enemy is team 0');
   TestKit.CheckEqualsL(1, CharHlp.EnemyTeam(@crs[4]), 'hostile 2 is on team 0, so its enemy is team 1');
 
+  { SideEmpty, the end of a fight (#1194): no side is empty while each has a creature in action; one is once its last
+    creature is out of action (enabled 0), or charmed onto the other side (hostile 0); an asleep one, its effect on it
+    and still enabled, keeps its side in the fight }
+  CharHlp.CountTeams;
+  TestKit.Check(not CharHlp.SideEmpty, 'both sides in action: not over');
+  crs[2].enabled := 0;
+  CharHlp.CountTeams;
+  TestKit.Check(not CharHlp.SideEmpty, 'one of team 1 down, the other standing: not over');
+  crs[3].enabled := 0;
+  CharHlp.CountTeams;
+  TestKit.Check(CharHlp.SideEmpty, 'the last of team 1 down: over');
+  crs[3].enabled := 1;
+  crs[3].hostile := 0;
+  CharHlp.CountTeams;
+  TestKit.Check(CharHlp.SideEmpty, 'the last of team 1 charmed onto team 0: over');
+  FillChar(e, SizeOf(e), 0);
+  e.id := C_EFFECT.SLEEP;
+  crs[3].hostile := 1;
+  crs[3].effectsAddr := @e;
+  CharHlp.CountTeams;
+  TestKit.Check(not CharHlp.SideEmpty, 'the last of team 1 asleep: not over');
+  crs[3].effectsAddr := nil;
+  crs[1].enabled := 0;
+  crs[4].enabled := 0;
+  CharHlp.CountTeams;
+  TestKit.Check(CharHlp.SideEmpty, 'all of team 0 down: over');
+
   { InflictDamage on a dying creature in combat adds to its overkill (POR-0222, #954) }
   GetMem(GameVars.zone1, SizeOf(Types.TGbvmZone1));
   FillChar(GameVars.zone1^, SizeOf(Types.TGbvmZone1), 0);

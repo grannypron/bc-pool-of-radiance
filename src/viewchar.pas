@@ -24,9 +24,15 @@ procedure ViewCharMenu(var done: Boolean);
 
 procedure UseItemMenu(var done: Boolean);
 
-{ Alt-1 to Alt-8 on the map and camp menus (#1175): make creature the current character and open its items, as View's
+{ Alt-1 to Alt-8 outside combat (#1175, AltItems): make creature the current character and open its items, as View's
   Items does, or say it has none. The caller redraws its screen afterwards. }
 procedure MemberItems(creature: Types.PCharRecord);
+
+{ Alt-1 to Alt-8 on a menu outside combat (#1195): when c is Alt-n (Party.AltMember) and the party has a member n, open
+  that member's items (MemberItems) and return True, for the caller to redraw its screen. Otherwise, in combat among
+  them, do nothing and return False. A list menu reached from those items switches to member n's in place instead
+  (UseItemMenu). }
+function AltItems(c: Char): Boolean;
 
 { Paladin p lays on hands on tgt: two hit points per paladin level, counted as healing given, and RECENT_HEAL on p so
   it waits a day for the next (CharHlp.PaladinCanHeal). True when tgt was healed. View's Heal and Fix use it. }
@@ -50,7 +56,7 @@ implementation
 
 uses Crt, GameDefs, GameVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
   C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL, C_STATUS, C_IFC, C_STAT, C_MONEY, C_SAVE, Vault, Stats, StrUtil, CharDisp,
-  MoneyCal, C_MSG, ClassCal, C_ITEM, C_SPELL, SpellInf;
+  MoneyCal, C_MSG, ClassCal, C_ITEM, C_SPELL, SpellInf, Party;
 
 var
   { the last character traded to, offered first by the next trade; ViewCharMenu starts it at curChar }
@@ -758,8 +764,19 @@ begin
       s := s + 'Cure ';
     s := s + 'Exit';
     MenuCore.extraKeys := 'M';
+    { Alt-n opens member n's items, outside combat (AltItems) }
+    MenuCore.memberKeysToCaller := GameVars.ifcState <> C_IFC.IN_COMBAT;
     ch := MenuCore.MenuHorizontal('', s, LightMagenta, LightGreen, White, False, False, ext);
     idx := -1;
+    if ext then begin
+      { the sheet shows the member whose items were opened, as after Items }
+      if ViewChar.AltItems(ch) then begin
+        shown := GameVars.curChar;
+        ViewChar.DisplayChar(shown);
+        ViewChar.DrawMoreInfoLabel;
+      end;
+      ch := ' ';
+    end;
     case ch of
       'I': ViewChar.UseItemMenu(done);
       'S': i := Magic.SpellMenu(0, 0, idx, hasSpells);
@@ -926,7 +943,10 @@ end;
 
 { Run curChar's inventory menu, offering actions according to the character's state, the current interface state and
   the highlighted item (ItemMenuLine), until Escape, done, or no items remain. The line is rebuilt as the highlight
-  moves. }
+  moves. Outside combat Alt-n switches the menu to member n's items in place (#1195): member n becomes the current
+  character and the one Trade offers first, and the highlight goes to its first item. It does not open a second menu,
+  so Escape still leaves to whatever opened the first. Alt-n for the member shown, or for no member, does nothing; for
+  a member with no items it says so and stays. }
 procedure UseItemMenu(var done: Boolean);
 var
   ch: Char;
@@ -937,6 +957,7 @@ var
   sel: Types.PItemRec;
   idx: Integer;
   creature: Types.PCharRecord;
+  member: Types.PCharRecord;
   itemCount: Byte;
 begin
   creature := GameVars.curChar;
@@ -978,12 +999,27 @@ begin
       MenuCore.extraKeys := 'V';
     { a move returns, so that the line follows the highlighted item }
     MenuCore.movesToCaller := True;
+    MenuCore.memberKeysToCaller := GameVars.ifcState <> C_IFC.IN_COMBAT;
     ch := MenuCore.MenuVertical('', s, LightMagenta, LightGreen, White, 1, 5, 38, 22,
                                 creature^.itemsAddr, True, vmRedraw, idx, sel);
     if MenuCore.moved then
       { Page Up's scan code is 'I': a move is no choice }
       ch := ' '
-    else if sel <> nil then
+    else if Party.AltMember(ch) > 0 then begin
+      member := Party.MemberAt(Party.AltMember(ch));
+      if (member <> nil) and (member <> creature) then
+        if (member^.numberOfItems = 0) or (member^.itemsAddr = nil) then begin
+          TextRend.DisplayAndPause(Yellow, member^.name + ' has no items.');
+          TextRend.ClearBottomLine;
+        end else begin
+          creature := member;
+          GameVars.curChar := member;
+          tradeTarget := member;
+          idx := 0;
+          needRedraw := True;
+        end;
+      ch := ' ';
+    end else if sel <> nil then
       case ch of
         'V': if GameVars.stingArg then begin
                ViewChar.ViewItemDetail(sel);
@@ -1065,6 +1101,18 @@ begin
     ViewChar.UseItemMenu(done);
   end;
   TextRend.ClearBottomLine;
+end;
+
+function AltItems(c: Char): Boolean;
+var
+  member: Types.PCharRecord;
+begin
+  member := nil;
+  if (GameVars.ifcState <> C_IFC.IN_COMBAT) and (Party.AltMember(c) > 0) then
+    member := Party.MemberAt(Party.AltMember(c));
+  if member <> nil then
+    ViewChar.MemberItems(member);
+  AltItems := member <> nil;
 end;
 
 { Select a trade recipient, check carrying capacity, then copy the item to the recipient and remove it from curChar. }

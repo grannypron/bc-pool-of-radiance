@@ -1,0 +1,43 @@
+# Paladin leadership (#1124) and the fight's end offered at once (#1194), from the cloudkill fixture's party in Podal
+# Plaza with TALONIA made an 8th-level paladin (Charisma 18: 80 + 25, sure to lead) and ANDREA an NPC under the
+# computer's control (saves/leadership, slot D). Resting draws orcs; the fight opens with "TALONIA LEADS ANDREA." and
+# Andrea then takes a turn under the player's control. A Quick fight follows, and Continue Battle comes as soon as the
+# last orc falls; Yes plays one more round and asks again, No ends the fight. The golden build has neither, so it fails
+# until the goldens are recorded from a build with them.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/leadership
+press l d
+wait AREA
+checkpoint podal-plaza
+press e
+wait CAMP
+press r d i i i i i r
+wait CAMP
+press r d i i i i i r
+wait CAMP
+press r d i h i i i i i i i i r
+wait ENTER 180
+checkpoint leads
+press ret
+wait MOVE 60
+checkpoint first-turn
+# Anna and Gins guard; Andrea's turn comes under the player's control
+press d g
+wait MOVE 60
+press d g
+wait-text ^ANDREA$ 60
+wait MOVE 60
+checkpoint andrea
+# the rest of the fight in Quick mode; Continue Battle comes as soon as the last orc falls
+press alt-q
+wait CONTINUE 180
+checkpoint won
+# Yes: one more full round, with no one to fight, and the question again at its end
+press y
+wait CONTINUE 180
+checkpoint won-again
+press n
+wait ENTER 60
+checkpoint over

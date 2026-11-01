@@ -6,7 +6,15 @@ unit Demo;
 
 interface
 
-{ True when DEMO.DAX (C_DEMO.ARCHIVE) is there to play. }
+uses Types;
+
+{ True when the archive at path holds what the demo reads, so that it can play without a disk prompt or an error that
+  ends the game: the script (more than its two header bytes) and each character's record (DiskRec.CHAR_DISK_BYTES at
+  least) and items, in a directory DataArc.BlockRawSize can read whole. }
+function Complete(path: Types.TPathStr): Boolean;
+
+{ True when DEMO.DAX (C_DEMO.ARCHIVE) is there and Complete: without it the start-up menu waits on as it always did,
+  and DEMO starts nothing (#1109). }
 function Available: Boolean;
 
 { Play the demo the start-up menu asked for (CharGen.MainMenu sets GameVars.demoMode): the C64's script runs as an
@@ -18,14 +26,26 @@ procedure Run;
 
 implementation
 
-uses Crt, Types, C_AREA, C_DEMO, C_IFC, GameVars, GameIo, DaxIo, FileUtil, SaveLoad, EclVm, GameInit, TextRend,
+uses Crt, C_AREA, C_DEMO, C_IFC, GameVars, GameIo, DaxIo, DataArc, DiskRec, SaveLoad, EclVm, GameInit, TextRend,
   CharDisp, Portrait
   {$IFDEF FPC}, TpRand{$ENDIF};
 
+function Complete(path: Types.TPathStr): Boolean;
+var
+  id: Byte;
+  ok: Boolean;
+begin
+  ok := DataArc.BlockRawSize(path, C_DEMO.SCRIPT_BLOCK) > 2;
+  for id := C_DEMO.FIRST_NPC to C_DEMO.LAST_NPC do
+    ok := ok and (DataArc.BlockRawSize(path, id) >= DiskRec.CHAR_DISK_BYTES) and
+          (DataArc.BlockRawSize(path, id + C_DEMO.ITEMS_OFFSET) >= 0);
+  Complete := ok;
+end;
+
 function Available: Boolean;
 begin
-  Available := FileUtil.Exists({$IFDEF FPC}DaxIo.FolderOf(C_DEMO.ARCHIVE){$ELSE}GameVars.gameDir{$ENDIF} +
-                               C_DEMO.ARCHIVE + '.DAX');
+  Available := Demo.Complete({$IFDEF FPC}DaxIo.FolderOf(C_DEMO.ARCHIVE){$ELSE}GameVars.gameDir{$ENDIF} +
+                             C_DEMO.ARCHIVE + '.DAX');
 end;
 
 procedure Run;
@@ -33,6 +53,11 @@ var
   savedDelay: Byte;
   savedSeed: LongInt;
 begin
+  { the archive gone since the menu looked: no demo, and back to the menu }
+  if not Demo.Available then begin
+    GameVars.demoMode := False;
+    Exit;
+  end;
   savedDelay := GameVars.gameDelay;
   savedSeed := RandSeed;
   GameVars.demoArg := False;

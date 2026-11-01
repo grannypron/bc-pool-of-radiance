@@ -1758,14 +1758,15 @@ begin
   end;
 end;
 
-{ Displaced (eff 89): the first attack on the creature each combat misses. strength bit 4 = "has displaced an attack
-  this combat", cleared by ResetDisplacement as combat starts. SSI's cleared it from here, in the first round whenever
-  the attack roll stood at 0, so a first-round attack modified to exactly 0 cleared it instead of missing (#791). }
+{ Displaced (eff 89): the first attack on the creature each combat misses. strength bit C_EFFECT.DISPLACED_SPENT =
+  "has displaced an attack this combat", set here or by FxEngine.SpendDisplacement (a natural 1) and cleared by
+  ResetDisplacement as combat starts. SSI's cleared it from here, in the first round whenever the attack roll stood
+  at 0, so a first-round attack modified to exactly 0 cleared it instead of missing (#791). }
 procedure EffDisplaced(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if Types.PEffectRec(p)^.strength and $10 = 0 then begin
+  if Types.PEffectRec(p)^.strength and C_EFFECT.DISPLACED_SPENT = 0 then begin
     GameVars.forcedMiss := True;
-    Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength or $10;
+    Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength or C_EFFECT.DISPLACED_SPENT;
     { the party member whose attack it was (GameVars.curChar) sees it strike where the creature is not (#1122) }
     Bestiary.Learn(creature, GameVars.curChar, C_BEAST.DISPLACED);
   end;
@@ -1776,7 +1777,7 @@ var
   effect: Types.PEffectRec;
 begin
   if CharHlp.HasEffect(creature, C_EFFECT.DISPLACED, effect) then
-    effect^.strength := effect^.strength and not $10;
+    effect^.strength := effect^.strength and not C_EFFECT.DISPLACED_SPENT;
 end;
 
 { Con poison saving throw bonus (eff 90) }

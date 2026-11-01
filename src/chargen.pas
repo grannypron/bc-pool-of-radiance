@@ -156,6 +156,10 @@ begin
       if (ch in [C_KEYS.HOME, C_KEYS.END_KEY]) or (not inGame and (ch in [C_KEYS.UP, C_KEYS.DOWN])) then begin
         Party.SelectPrevNextChar(ch);
         CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
+      end else if ViewChar.AltItems(ch) then begin
+        { Alt-n opened member n's items (#1195): the screen is drawn again, as after View }
+        CharDisp.DisplayNoncombatInterface;
+        redraw := True;
       end;
     end else if ch = C_DEMO.START_KEY then begin
       { the start-up menu left alone with no party (PartyMnu.ChooseListed): FixMain plays the demo (#1109) }
