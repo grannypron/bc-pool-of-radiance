@@ -102,12 +102,10 @@ const
   { the settings that are ON or OFF }
   OPT_FIRST_FLAG = OPT_PORTRAITS_ALL;
   OPT_LAST_FLAG = OPT_COMBAT_LOG;
-  { POOLOPT.CFG's keys past the settings: the later games' data and save paths (Curse's, Secret's, then Pools') }
-  KEY_PATHS = OPT_COUNT;
-  LATER_PATHS = 6;
-  { and the last version the startup advisory's support part was shown for (#1173): Advisory shows it again when this
-    is not the build's own }
-  KEY_ADVISED = KEY_PATHS + LATER_PATHS + 1;
+  { POOLOPT.CFG's key past the settings: the last version the startup advisory's support part was shown for (#1173),
+    which Advisory shows again when this is not the build's own. The later games' paths that came before it (CURSEDATA
+    to POOLSSAVE) are gone (#1177): a file that still has them keeps them as lines this version does not know. }
+  KEY_ADVISED = OPT_COUNT + 1;
   KEY_COUNT = KEY_ADVISED;
   { the game speed: 0 the fastest, SLOWEST the slowest, and the default }
   SLOWEST = 9;

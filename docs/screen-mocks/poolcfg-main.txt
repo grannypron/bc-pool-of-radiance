@@ -4,9 +4,10 @@ POOLCFG (#876): Main menu
 
                ╔══════════════════ Main Menu ═══════════════════╗
                ║                                                ║
-               ║   Hardware        Video, sound, introduction   ║
-               ║   Game Settings   The Settings screen's list   ║
-               ║   Paths           Data and save folders        ║
+               ║   Hardware        Video, sound, intro, folders ║
+               ║   Game Settings   Speed, portraits, Quick Mode ║
+               ║   Sound Settings  Music and sound effects      ║
+               ║   Camp Settings   Auto Memorize, Fix           ║
                ║                                                ║
                ║   Save and Exit                                ║
                ║   Exit Without Saving                          ║
@@ -19,7 +20,6 @@ POOLCFG (#876): Main menu
   ║ POOLOPT.CFG  C:\POOLRAD\SAVE\POOLOPT.CFG    not found: defaults          ║
   ║ Changes      none                                                        ║
   ╚══════════════════════════════════════════════════════════════════════════╝
-
 
 
 
@@ -42,7 +42,8 @@ Command Key:
     UP / DOWN           UP, DOWN (WRAPS), HOME, END
     HARDWARE            H
     GAME SETTINGS       G
-    PATHS               P
+    SOUND SETTINGS      O
+    CAMP SETTINGS       C
     SAVE AND EXIT       S / F10
     EXIT WITHOUT SAVING X
     SELECT              ENTER

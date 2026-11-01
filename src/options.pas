@@ -3,7 +3,7 @@
   KEY=VALUE format used by both the game and POOLCFG (#876), while Collect and
   Apply translate between TSettings and GameVars.
 
-  The screen has Game, Sound, Camp, Paths, and System pages (#835, #1088). Combat-log settings are
+  The screen has Game, Sound, Camp, and System pages (#835, #1088). Combat-log settings are
   editable only when CbtLog has a backing store (#841). Changes are written when
   the player leaves the screen. }
 {$O+,F+,I-}
@@ -22,7 +22,7 @@ procedure LoadOptions;
   keeps the old file intact if writing fails. }
 procedure SaveOptions;
 
-{ Applies s to GameVars and retains its later-game paths and the version advised for the next save. }
+{ Applies s to GameVars and retains the version advised for the next save. }
 procedure Apply(var s: CfgFile.TSettings);
 
 { The version POOLOPT.CFG says the startup advisory's support part was last shown for (#1173), '' for none. }
@@ -31,14 +31,14 @@ function AdvisedVersion: CfgFile.TName;
 { Record version as the one the support part was last shown for, and save POOLOPT.CFG. }
 procedure SetAdvised(version: CfgFile.TName);
 
-{ Show the Settings screen until Exit or Escape. Game, Sound, Camp, Paths and System on the bottom line, which has no
+{ Show the Settings screen until Exit or Escape. Game, Sound, Camp and System on the bottom line, which has no
   prompt, show its pages. On a settings page Up and Down (also Home and End) move the highlight through its settings,
   wrapping at either end, past its headings (Quick Mode, Fix); Enter, Left or Right turn the highlighted one over, at
   once. On the Game Speed and Log Lines lines Left and Right pick Slower or Faster (Less or More) instead, and Enter
   applies the one picked. Without a store for the combat log (CbtLog.Usable) its two lines are grey, Combat Log says it
   needs EMS, and the highlight passes them by. Without a sound device (POOL.CFG's None under DOS) Music and Sound show
-  OFF and every Sound page line is grey and passed by, POOLOPT.CFG keeping their values (#1156). The Paths and System
-  pages only show. Leaving writes POOLOPT.CFG when something changed. The caller redraws its own screen afterwards. }
+  OFF and every Sound page line is grey and passed by, POOLOPT.CFG keeping their values (#1156). The System page only
+  shows. Leaving writes POOLOPT.CFG when something changed. The caller redraws its own screen afterwards. }
 procedure OptionsMenu;
 
 implementation
@@ -55,12 +55,11 @@ const
   CHOICE_LEFT = 0;
   CHOICE_RIGHT = 1;
   { The pages, in the bottom line's order: the settings split over Game, Sound (#1088) and Camp (#1119, #1129), which
-    hold too many for one box, as CfgFile.SettingPage numbers them, then Paths and System. }
+    hold too many for one box, as CfgFile.SettingPage numbers them, then System. }
   PAGE_GAME = C_OPT.OPT_PAGE_GAME;
   PAGE_SOUND = C_OPT.OPT_PAGE_SOUND;
   PAGE_CAMP = C_OPT.OPT_PAGE_CAMP;
-  PAGE_PATHS = C_OPT.OPT_PAGES + 1;
-  PAGE_SYSTEM = C_OPT.OPT_PAGES + 2;
+  PAGE_SYSTEM = C_OPT.OPT_PAGES + 1;
   SETTINGS_PAGES = [PAGE_GAME, PAGE_SOUND, PAGE_CAMP];
   { One framed box from TOP_ROW to BOTTOM_ROW: the page's title on TOP_ROW, then its lines from FIRST_ROW, the row
     below (the Game page's settings fill the box to BOTTOM_ROW). The Game page's settings have their labels at
@@ -74,7 +73,7 @@ const
   LABEL_COL = 2;
   SETTING_COL = 24;
   VALUE_COL = 20;
-  { the colours: titles and the Paths page's game names, and the lines; the Game page's highlight is TITLE_COLOR too,
+  { the colours: titles, and the lines; the Game page's highlight is TITLE_COLOR too,
     and a setting that cannot be changed here is OFF_COLOR }
   TITLE_COLOR = White;
   LINE_COLOR = LightGreen;
@@ -83,8 +82,8 @@ const
 var
   { a stepping line's choice, CHOICE_LEFT or CHOICE_RIGHT, while the screen is up }
   stepChoice: Byte;
-  { the settings as POOLOPT.CFG keeps them: the later games' paths, which only POOLCFG sets, and the rest as Collect
-    last copied them from GameVars }
+  { the settings as POOLOPT.CFG keeps them: the version advised, and the rest as Collect last copied them from
+    GameVars }
   cur: CfgFile.TSettings;
   { the settings the screen greys and passes by, while it is up: the combat log's two without a store for it
     (CbtLog.Usable), and the Sound page's without a sound device (noDevice, CfgFile.Silenced) }
@@ -110,8 +109,8 @@ begin
   end;
 end;
 
-{ The game's settings (GameVars) into s, its paths left as they are; each bit of the music and sound groups is a
-  setting of its own. }
+{ The game's settings (GameVars) into s, the version advised left as it is; each bit of the music and sound groups is
+  a setting of its own. }
 procedure Collect(var s: CfgFile.TSettings);
 var
   opt: Byte;
@@ -183,7 +182,6 @@ begin
       C_OPT.OPT_FIX_HEAL: GameVars.fixHealOn := s.flags[opt];
       C_OPT.OPT_COMBAT_LOG: GameVars.combatLogOn := s.flags[opt];
     end;
-  cur.paths := s.paths;
   cur.advised := s.advised;
 end;
 
@@ -342,42 +340,6 @@ begin
                            'No sound device in POOL.CFG');
 end;
 
-{ The Paths page: each game's name, then its data and save paths. Pool of Radiance's are the ones POOL.CFG gives this
-  game; the later games' are POOLOPT.CFG's, set only by the configuration program. }
-procedure DrawPathsPage;
-const
-  GAMES = 4;
-  { a game's three rows and the blank row after them }
-  GAME_ROWS = 4;
-var
-  g: Byte;
-  row: Byte;
-  name: Types.TStr40;
-  dataPath: Types.TPathStr;
-  savePath: Types.TPathStr;
-begin
-  for g := 1 to GAMES do begin
-    case g of
-      1: name := 'Pool of Radiance';
-      2: name := 'Curse of the Azure Bonds';
-      3: name := 'Secret of the Silver Blades';
-    else
-      name := 'Pools of Darkness';
-    end;
-    if g = 1 then begin
-      dataPath := GameVars.gameDir;
-      savePath := GameVars.saveDirectory;
-    end else begin
-      dataPath := cur.paths[2 * g - 3];
-      savePath := cur.paths[2 * g - 2];
-    end;
-    row := FIRST_ROW + (g - 1) * GAME_ROWS;
-    TextRend.DisplayString(LABEL_COL, row, TITLE_COLOR, name);
-    Options.DrawInfo(row + 1, '  Data Path', dataPath);
-    Options.DrawInfo(row + 2, '  Save Path', savePath);
-  end;
-end;
-
 { The System page: the video and sound device the game runs with, the build, the data archives and memory, the speed
   check's time, the STING, NORAND and ADVISE switches when they are given, and where to send questions and bug
   reports. }
@@ -441,10 +403,6 @@ begin
                  TextRend.DisplayCentered(LEFT_COL, RIGHT_COL, TOP_ROW, TITLE_COLOR, 'Camp Settings');
                  Options.DrawSettingsPage(PAGE_CAMP, sel);
                end;
-    PAGE_PATHS: begin
-                  TextRend.DisplayCentered(LEFT_COL, RIGHT_COL, TOP_ROW, TITLE_COLOR, 'Game Paths');
-                  Options.DrawPathsPage;
-                end;
     PAGE_SYSTEM: begin
                    TextRend.DisplayCentered(LEFT_COL, RIGHT_COL, TOP_ROW, TITLE_COLOR, 'System Info');
                    Options.DrawSystemPage;
@@ -544,7 +502,7 @@ begin
     MenuCore.arrowsToCaller := True;
     MenuCore.enterToCaller := True;
     { no prompt: with Camp the pages fill the bottom line }
-    ch := MenuCore.MenuHorizontal('', 'Game Sound Camp Paths sYstem Exit', LightMagenta, LightGreen, White, True,
+    ch := MenuCore.MenuHorizontal('', 'Game Sound Camp sYstem Exit', LightMagenta, LightGreen, White, True,
                                   False, ext);
     if ext then begin
       if page in SETTINGS_PAGES then begin
@@ -568,8 +526,6 @@ begin
                ShowPage(PAGE_SOUND);
         'C': if page <> PAGE_CAMP then
                ShowPage(PAGE_CAMP);
-        'P': if page <> PAGE_PATHS then
-               ShowPage(PAGE_PATHS);
         'Y': if page <> PAGE_SYSTEM then
                ShowPage(PAGE_SYSTEM);
       end;

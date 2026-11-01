@@ -51,7 +51,6 @@ This directory contains build instructions, release notes, implementation histor
 | File | Purpose |
 | --- | --- |
 | [`settings-game.txt`](screen-mocks/settings-game.txt) | Game, portrait, music, sound, Quick Mode, combat-log, and companion-tool settings page. |
-| [`settings-paths.txt`](screen-mocks/settings-paths.txt) | Data and save paths for Pool of Radiance and the later games in the series. |
 | [`settings-system.txt`](screen-mocks/settings-system.txt) | Read-only system information page for video, sound, version, data, memory, and EMS status. |
 
 ### Spell screens
@@ -68,8 +67,7 @@ This directory contains build instructions, release notes, implementation histor
 | File | Purpose |
 | --- | --- |
 | [`poolcfg-main.txt`](screen-mocks/poolcfg-main.txt) | POOLCFG main menu and configuration-file status panel. |
-| [`poolcfg-hardware.txt`](screen-mocks/poolcfg-hardware.txt) | Hardware configuration for video, sound device, and introduction mode. |
+| [`poolcfg-hardware.txt`](screen-mocks/poolcfg-hardware.txt) | Hardware configuration for video, sound device, introduction mode, and the data and save folders, with path editing and validation. |
 | [`poolcfg-settings.txt`](screen-mocks/poolcfg-settings.txt) | Game-settings editor, contextual About panel, defaults, and controls. |
-| [`poolcfg-paths.txt`](screen-mocks/poolcfg-paths.txt) | Data/save path editor, validation behavior, editing controls, and error states. |
 | [`poolcfg-notice.txt`](screen-mocks/poolcfg-notice.txt) | Startup notice shown when `POOL.CFG` is missing or damaged. |
 | [`poolcfg-exit.txt`](screen-mocks/poolcfg-exit.txt) | Unsaved-changes prompt and its save, discard, and cancel actions. |

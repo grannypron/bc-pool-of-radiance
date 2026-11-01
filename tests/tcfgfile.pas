@@ -154,13 +154,13 @@ begin
       TestKit.CheckEqualsL(0, CfgFile.Flag(s, opt), CfgFile.KeyName(opt) + ' is off by default')
     else
       TestKit.CheckEqualsL(1, CfgFile.Flag(s, opt), CfgFile.KeyName(opt) + ' is on by default');
-  TestKit.CheckEqualsS('C:\CURSE\', s.paths[1], 'Curse''s data path');
-  TestKit.CheckEqualsS('C:\POOLS\SAVE\', s.paths[6], 'Pools'' save path');
   TestKit.CheckEqualsS('Game Speed (1)', CfgFile.SettingLabel(s, C_OPT.OPT_SPEED), 'the speed''s label');
   TestKit.CheckEqualsS('  Log Lines (50)', CfgFile.SettingLabel(s, C_OPT.OPT_LOG_LINES), 'the log lines'' label');
   TestKit.CheckEqualsS('', s.advised, 'no version advised by default (#1173)');
-  TestKit.CheckEqualsS('POOLSSAVE', CfgFile.KeyName(C_OPT.KEY_PATHS + C_OPT.LATER_PATHS), 'the last path key');
   TestKit.CheckEqualsS('ADVISED', CfgFile.KeyName(C_OPT.KEY_COUNT), 'the last key, the version advised');
+  TestKit.CheckEqualsL(C_OPT.OPT_COUNT + 1, C_OPT.KEY_ADVISED,
+                       'right after the settings: no later games'' paths (#1177)');
+  TestKit.CheckEqualsL(0, CfgFile.KeyOf('CURSEDATA=C:\CURSE\'), 'CURSEDATA is no key now');
 
   { keys and values }
   TestKit.CheckEqualsS('a B', CfgFile.Trim(#9' a B '#9), 'Trim takes spaces and tabs off both ends, keeping case');
@@ -234,14 +234,13 @@ begin
   { POOLOPT.CFG read as the game reads it }
   TestKit.Check(ReadText('speed = 0' + CRLF + ' Monsters'#9'=off' + CRLF + 'COMPANION=1' + CRLF + 'CLUENOTES=0' + CRLF +
                          'LOGLINES=10' + CRLF + 'CURSEDATA=D:\CURSE\' + CRLF + 'CURSESAVE=' + CRLF) = CfgFile.CFG_READ,
-                'a good POOLOPT.CFG reads');
+                'a good POOLOPT.CFG reads, the later games'' paths an old one has passed over (#1177)');
+  TestKit.CheckEqualsL(0, bad, 'and not counted as bad values');
   TestKit.CheckEqualsL(0, s.speed, 'SPEED 0');
   TestKit.CheckEqualsL(0, CfgFile.Flag(s, C_OPT.OPT_MONSTERS), 'MONSTERS off, spaced and in lower case');
   TestKit.CheckEqualsL(1, CfgFile.Flag(s, C_OPT.OPT_COMPANION), 'COMPANION 1');
   TestKit.CheckEqualsL(0, CfgFile.Flag(s, C_OPT.OPT_CLUES), 'CLUENOTES 0');
   TestKit.CheckEqualsL(10, s.logLines, 'LOGLINES 10, the fewest');
-  TestKit.CheckEqualsS('D:\CURSE\', s.paths[1], 'a path');
-  TestKit.CheckEqualsS('C:\CURSE\SAVE\', s.paths[2], 'a blank path leaves the default');
   TestKit.Check(ReadText('AUTOMEMORIZE=OFF' + CRLF + 'FIXSCROLLS=ON' + CRLF + 'FixPotions = on' + CRLF +
                          'FIXPALADINCURE=1' + CRLF + 'FIXPALADINHEAL=ON' + CRLF) = CfgFile.CFG_READ,
                 'the camp settings read (#1119, #1129)');
@@ -275,7 +274,8 @@ begin
   TestKit.CheckEqualsL(1, s.speed, 'leaves the defaults');
 
   { POOLOPT.CFG written: every key in order, then the unknown lines, blank ones dropped }
-  TestKit.Check(PutFile(C_OPT.OPT_NAME, 'NEWKEY=1' + CRLF + CRLF + 'SPEED=2' + CRLF + '; a note' + CRLF), 'old file');
+  TestKit.Check(PutFile(C_OPT.OPT_NAME, 'NEWKEY=1' + CRLF + CRLF + 'SPEED=2' + CRLF + '; a note' + CRLF +
+                        'CURSEDATA=D:\CURSE\' + CRLF), 'old file');
   CfgFile.Defaults(s);
   s.speed := 4;
   CfgFile.SetFlag(s, C_OPT.OPT_WALL, 0);
@@ -296,11 +296,11 @@ begin
   TestKit.CheckEqualsL(C_OPT.OPT_FIX_SCROLLS, LineNo(C_OPT.OPT_NAME, 'FIXSCROLLS=OFF'), 'Use Scrolls off by default');
   TestKit.CheckEqualsL(C_OPT.OPT_FIX_HEAL, LineNo(C_OPT.OPT_NAME, 'FIXPALADINHEAL=OFF'),
                        'Use Paladin''s Heal off by default');
-  TestKit.CheckEqualsL(C_OPT.KEY_PATHS + C_OPT.LATER_PATHS, LineNo(C_OPT.OPT_NAME, 'POOLSSAVE=C:\POOLS\SAVE\'),
-                       'the last path key');
   TestKit.CheckEqualsL(C_OPT.KEY_COUNT, LineNo(C_OPT.OPT_NAME, 'ADVISED=V1.3-1600'), 'the last key, the version');
   TestKit.CheckEqualsL(C_OPT.KEY_COUNT + 1, LineNo(C_OPT.OPT_NAME, 'NEWKEY=1'), 'then the unknown lines');
   TestKit.CheckEqualsL(C_OPT.KEY_COUNT + 2, LineNo(C_OPT.OPT_NAME, '; a note'), 'in their order, the blank dropped');
+  TestKit.CheckEqualsL(C_OPT.KEY_COUNT + 3, LineNo(C_OPT.OPT_NAME, 'CURSEDATA=D:\CURSE\'),
+                       'an old later-game path among them, unchanged (#1177)');
   TestKit.CheckEqualsL(0, LineNo(C_OPT.OPT_NAME, 'SPEED=2'), 'an old known line is not kept');
   KeepBytes(C_OPT.OPT_NAME);
   CfgFile.Defaults(t);

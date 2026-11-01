@@ -21,7 +21,7 @@
 |                                      |
 |                                      |
 |======================================+
-SETTINGS: GAME PATHS SYSTEM EXIT
+GAME SOUND CAMP SYSTEM EXIT
 
 Color Key:
     KEY:                WHITE
@@ -29,6 +29,7 @@ Color Key:
 
 Command Key:
     GAME                G
-    PATHS               P
-    SYSTEM              S
+    SOUND               S
+    CAMP                C
+    SYSTEM              Y
     EXIT                E / ESCAPE
