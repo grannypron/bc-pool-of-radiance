@@ -249,6 +249,21 @@ begin
     TestKit.CheckEqualsL(255, GameVars.zone3^[pos + 2], '#1117: of none, which takes his picture down');
     TestKit.CheckEqualsL(C_ECL.OP_EXIT, GameVars.zone3^[pos + 3], '#1117: then EXIT');
   end;
+  { #1091, #1158: event 22 goes to new code that sends every square but (11,12) on to the arms shops, and there fills
+    the magic shop's stock with PROGRAM 11 (EclVm.PROG_MAGIC_SHOP) and enters the shop: [$6E6C] = 1, then COMBAT }
+  if FindJump(1091, 3, 0, '#1091') then begin
+    TestKit.CheckEqualsL(11, DataPat.patchBytes^[codePos + 5], '#1091: the magic shop is at x 11');
+    TestKit.CheckEqualsL(12, DataPat.patchBytes^[codePos + 10], '#1091: and y 12');
+    TestKit.CheckEqualsL(C_ECL.OP_GOTO, DataPat.patchBytes^[codePos + 12], '#1091: other squares GOTO');
+    TestKit.CheckEqualsL(PatchWord(jumpPos), PatchWord(codePos + 14), '#1091: where event 22 went');
+    pos := DataPat.parts^[codePart].newLen - 14;
+    TestKit.CheckEqualsL(C_ECL.OP_PROGRAM, DataPat.patchBytes^[codePos + pos], '#1091: a PROGRAM');
+    TestKit.CheckEqualsL(11, DataPat.patchBytes^[codePos + pos + 2], '#1091: of the magic shop');
+    TestKit.CheckEqualsL(C_ECL.SAVE, DataPat.patchBytes^[codePos + pos + 3], '#1091: then a SAVE');
+    TestKit.CheckEqualsL(1, DataPat.patchBytes^[codePos + pos + 5], '#1091: of 1');
+    TestKit.CheckEqualsL(C_GBVM.ENTER_SHOP, PatchWord(codePos + pos + 7), '#1091: to ENTER_SHOP');
+    TestKit.CheckEqualsL(C_ECL.OP_COMBAT, DataPat.patchBytes^[codePos + pos + 9], '#1091: then COMBAT');
+  end;
   DataPat.FreeTable;
   TestKit.Done;
 end.

@@ -18,8 +18,8 @@ uses C_DATA;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 106;
-  BYTE_COUNT = 3655;
+  PART_COUNT = 108;
+  BYTE_COUNT = 3776;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -361,6 +361,14 @@ begin
   DataPat.Part(1139, C_DATA.FAMILY_ECL, 3, 0, 7853, 612, 2, 2);
   DataPat.Part(1139, C_DATA.FAMILY_ECL, 3, 0, 7853, 7853, 0, 185);
   DataPat.Part(1139, C_DATA.FAMILY_ECL, 3, 8, 7500, 4544, 7, 7);
+  { #1091, #1158: New Phlan's arms and armor shop at (11,12), one of five squares that share event 22, becomes a magic
+    shop. Event 22's address in the event table (script $9B4C) goes to new code at the end of the script, after
+    #1139's, which sends every other event-22 square on to the arms shops ($A8BE) as before. At (11,12) it does what
+    the arms shop does (once a visit, the shopkeeper, the refusal after an attack on the city watch) with the magic
+    shop's greeting, and on Yes runs PROGRAM 11 (EclVm.PROG_MAGIC_SHOP), which fills the stock, then enters the shop:
+    [$6E6C] = 1, then COMBAT with no monsters }
+  DataPat.Part(1091, C_DATA.FAMILY_ECL, 3, 0, 8038, 663, 2, 2);
+  DataPat.Part(1091, C_DATA.FAMILY_ECL, 3, 0, 8038, 8038, 0, 117);
 end;
 
 { Every part's bytes, original then fixed, in table order. }
@@ -1296,6 +1304,34 @@ begin
   DataPat.Put(#$03#$01#$BD#$4A#$00#$FF#$16);                 { $AABE COMPARE [$4ABD], $FF; IF = }
   { fixed: no summons once the temple is freed }
   DataPat.Put(#$03#$01#$BD#$4A#$00#$FE#$1B);                 { $AABE COMPARE [$4ABD], $FE; IF >= }
+  { #1091 part 1, original }
+  DataPat.Put(#$BE#$A8);                                     { $9B95 ON GOTO [$9800] entry 22: LA8BE }
+  { fixed: event 22 goes to new code at the end of the script }
+  DataPat.Put(#$64#$B8);                                     { $9B95 ON GOTO [$9800] entry 22: LB864 }
+  { #1091 part 2, added at $B864, after #1139's: the arms shops but at (11,12); there, as they do, the greeting once a
+    visit, the shopkeeper and the refusal after a fight with the watch, then the magic shop's offer, its stock
+    (PROGRAM 11) and the shop }
+  DataPat.Put(#$14#$01#$4B#$C0#$00#$0B#$01#$4C#$C0#$00#$0C); { $B864 COMPARE AND [$C04B], $0B, [$C04C], $0C }
+  DataPat.Put(#$17);                                         { $B86F IF <> }
+  DataPat.Put(#$01#$01#$BE#$A8);                             { $B870 GOTO LA8BE }
+  DataPat.Put(#$02#$01#$89#$AE);                             { $B874 GOSUB LAE89 }
+  DataPat.Put(#$09#$00#$2A#$01#$E1#$6D);                     { $B878 SAVE $2A, [$6DE1] }
+  DataPat.Put(#$0E#$00#$09);                                 { $B87E PICTURE $09 }
+  DataPat.Put(#$03#$01#$C0#$4A#$00#$00);                     { $B881 COMPARE [$4AC0], $00 }
+  DataPat.Put(#$19);                                         { $B887 IF > }
+  DataPat.Put(#$01#$01#$1D#$AE);                             { $B888 GOTO LAE1D }
+  { $B88C PRINTCLEAR "THE SHOP SELLS MAGICAL ITEMS. 'CAN I SHOW YOU OUR WARES?'" }
+  DataPat.Put(#$12#$80#$2B#$50#$81#$60#$4C#$83#$D0#$81#$31#$4C#$31#$38#$0D#$04);
+  DataPat.Put(#$72#$43#$04#$C8#$09#$50#$53#$53#$BA#$09#$C3#$04#$E8#$09#$81#$32);
+  DataPat.Put(#$0F#$5E#$06#$4F#$56#$03#$D5#$4A#$05#$C1#$48#$54#$FF#$9C);
+  DataPat.Put(#$02#$01#$5D#$AE);                             { $B8BA GOSUB LAE5D }
+  DataPat.Put(#$25#$01#$79#$6E#$00#$02#$01#$CA#$B8#$01#$6D#$AE); { $B8BE ON GOTO [$6E79], $02, LB8CA, LAE6D }
+  DataPat.Put(#$1C);                                         { $B8CA CLEARMONSTERS }
+  DataPat.Put(#$38#$00#$0B);                                 { $B8CB PROGRAM $0B }
+  DataPat.Put(#$09#$00#$01#$01#$6C#$6E);                     { $B8CE SAVE $01, [$6E6C] }
+  DataPat.Put(#$24);                                         { $B8D4 COMBAT }
+  DataPat.Put(#$0E#$00#$FF);                                 { $B8D5 PICTURE $FF }
+  DataPat.Put(#$00);                                         { $B8D8 EXIT }
 end;
 
 function LoadTable: Boolean;

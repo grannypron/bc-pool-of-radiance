@@ -100,7 +100,8 @@ const
   NAME_AC_2 = 220;
   NAME_AC_6 = 221;
   NAME_AC_4 = 222;
-  { scrolls: NAME_WITH_1_SPELL and up name their spell count }
+  { a magic-user's scroll; NAME_WITH_1_SPELL and up name a scroll's spell count }
+  NAME_MAGE_SCROLL = 209;
   NAME_WITH_1_SPELL = 210;
   NAME_SPIRITUAL = 243;
   NAME_WOODEN = 252;

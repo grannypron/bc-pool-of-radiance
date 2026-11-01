@@ -13,8 +13,9 @@ const
   TEMPLATE_LAST = 19;
   { Random item templates }
   randomItemTemplates: array[1..TEMPLATE_LAST] of Types.TRandomItemTemplate = (
-    { Template 1: Potion of Extra Healing }
-    (nameIds: (187, 167, 64); weight: 1; value: 800;
+    { Template 1: Potion of Extra Healing, named "Potion Extra Healing" as every one placed in the data is; SSI's
+      (187, 167, 64) named it "Potion of Extra" (#1164) }
+    (nameIds: (185, 187, 64); weight: 1; value: 800;
      properties: (3, 3, 0)),
     { Template 2: Potion of Giant Strength }
     (nameIds: (239, 167, 64); weight: 1; value: 1100;
