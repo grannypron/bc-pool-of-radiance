@@ -141,10 +141,10 @@ begin
   c^.drainedHps := 4;
   EffHndlr.DrainLevels(c, 1);
   TestKit.CheckEqualsL(1, c^.portExt.drainCount, 'one entry over one unlogged level');
-  Magic.RestoreLevel(c);
+  TestKit.Check(Magic.RestoreLevel(c), 'the logged level is restored');
   TestKit.CheckEqualsL(3001, c^.experience, 'the logged one comes back first, with its 1500');
   TestKit.CheckEqualsL(4, c^.drainedHps, 'and its own hit points');
-  Magic.RestoreLevel(c);
+  TestKit.Check(Magic.RestoreLevel(c), 'then the unlogged level is restored');
   TestKit.CheckEqualsL(4, c^.classLevels[C_LEVEL.CLERIC], 'then the unlogged one');
   TestKit.CheckEqualsL(6001, c^.experience, 'at its level''s start');
 
