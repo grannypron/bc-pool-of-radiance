@@ -322,9 +322,16 @@ function CalcSpellRange(spell: Byte): Byte;
 { The shape of the cells spell reaches in combat (a C_SPELL.AREA_* kind), from spellTable's area mode and the shapes
   the handlers use in its place, which the aim preview and the spell page both show: Lightning Bolt's path
   (C_SPELL.AREA_BOLT, size the C_SPELL.LIGHTNING_BOLT_CELLS it runs past the aim), Stinking Cloud's 2x2 block (size 2),
-  and a fireball's radius of 2 where zone0's view3dFlag is clear (outdoors) and the table's 3 elsewhere. size is the
-  radius for C_SPELL.AREA_RADIUS, the most creatures for C_SPELL.AREA_TARGETS and 0 otherwise. }
+  a fireball's radius of 2 where zone0's view3dFlag is clear (outdoors) and the table's 3 elsewhere, Fear's and Cone of
+  Cold's cones from the caster (C_SPELL.AREA_CONE, size the reach Magic.WalkCone takes), and the pool spells' targets
+  (area mode 5, C_SPELL.AREA_POOL). size is the radius for C_SPELL.AREA_RADIUS, the most creatures for
+  C_SPELL.AREA_TARGETS and 0 otherwise. }
 function SpellArea(spell: Byte; var size: Byte): Byte;
+
+{ What target costs a pool spell's pool (C_SPELL.AREA_POOL), Curse's: against Faerie Fire's, its size, 1 for a man-sized
+  icon, 2 for a larger one or a Large creature (Types.ICON_LARGE), 4 past that; against Charm Monsters' 2d4, its
+  highest level, 1 for level 1 or below, 2 for 2, 4 for 3 and 8 above. }
+function PoolCost(spell: Byte; target: Types.PCharRecord): Byte;
 
 { A spell's duration in minutes as dice, for Magic.CalcSpellDuration to roll and the spell page to show: Cause Disease
   and the item spells below roll theirs (Dust of Disappearance by whether combat is on); any other spell's is
@@ -2003,8 +2010,19 @@ var
 begin
   size := 0;
   mode := GameDefs.spellTable[spell].area and $F;
+  if spell = C_SPELL.FEAR then begin
+    size := C_SPELL.FEAR_CONE_CELLS;
+    SpellArea := C_SPELL.AREA_CONE;
+  end else if spell = C_SPELL.CONE_OF_COLD then begin
+    { half the caster level, rounded up }
+    size := (CharHlp.GetCasterLevel(spell) + 1) div 2;
+    if size < 1 then
+      size := 1;
+    SpellArea := C_SPELL.AREA_CONE;
+  end else
   case mode of
     C_SPELL.AREA_MODE_SELF: SpellArea := C_SPELL.AREA_SELF;
+    C_SPELL.AREA_MODE_POOL: SpellArea := C_SPELL.AREA_POOL;
     C_SPELL.AREA_MODE_SPOT: SpellArea := C_SPELL.AREA_SPOT;
     C_SPELL.AREA_MODE_RADIUS_FIRST..C_SPELL.AREA_MODE_RADIUS_LAST:
       if spell = C_SPELL.LIGHTNING_BOLT then begin
@@ -2027,6 +2045,30 @@ begin
       SpellArea := C_SPELL.AREA_TARGETS;
     end;
   end;
+end;
+
+function PoolCost(spell: Byte; target: Types.PCharRecord): Byte;
+var
+  cost: Byte;
+begin
+  if spell = C_SPELL.FAERIE_FIRE then begin
+    case target^.iconDimensions and $7F of
+      0, 1: cost := 1;
+      2, 3: cost := 2;
+    else
+      cost := 4;
+    end;
+    if (target^.iconDimensions and Types.ICON_LARGE <> 0) and (cost < 2) then
+      cost := 2;
+  end else
+    case target^.levelHighest of
+      2: cost := 2;
+      3: cost := 4;
+      4..127: cost := 8;
+    else
+      cost := 1;
+    end;
+  PoolCost := cost;
 end;
 
 procedure SpellDuration(spell: Byte; var d: Types.TDurDice);

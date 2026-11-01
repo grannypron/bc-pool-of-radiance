@@ -229,7 +229,7 @@ var
   threat: Boolean;
 begin
   SpellImpact := 0;
-  if spell = C_SPELL.CURE_LIGHT_WOUNDS then begin
+  if spell in C_SPELL.CURE_WOUNDS then begin
     if CbtActs.FindCureTarget(creature, tgt) then
       SpellImpact := 1;
   end else if GameDefs.spellTable[spell].offensive = 0 then begin
@@ -241,6 +241,9 @@ begin
       threat := True;
     end;
     eff := GameDefs.spellTable[spell].effect;
+    { Fire Shield names no effect in the table: its flames are a shielded creature's mark }
+    if spell = C_SPELL.FIRE_SHIELD then
+      eff := C_EFFECT.FIRE_SHIELD_ZAP;
     if threat and ((eff = 0) or not CharHlp.HasEffect(creature, eff, effect)) then
       SpellImpact := 1;
   end else begin

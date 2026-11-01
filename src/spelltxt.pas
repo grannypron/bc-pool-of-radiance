@@ -1,6 +1,8 @@
 { Descriptions shown by the spell Info page (#839). They document this port's
   behavior, including places where its handlers differ from the rule book.
-  Entries 57..65, 127 and 128 describe item-cast spells (#861, #1121).
+  Entries 57, 59..65, 127 and 128 describe item-cast spells (#861, #1121);
+  58, 66..90, 92..94 and 100 the spells of levels 4 and 5 and the druid's
+  first (#1121), worded from Curse's.
 
   Text is stored in chunks of up to six 36-column lines joined by #13. Keeping
   the literals in code puts them in the overlay instead of the data segment.
@@ -93,6 +95,36 @@ begin
     63: LineCount := 8;
     64: LineCount := 6;
     65: LineCount := 3;
+    58: LineCount := 3;
+    66: LineCount := 3;
+    67: LineCount := 7;
+    68: LineCount := 4;
+    69: LineCount := 4;
+    70: LineCount := 7;
+    71: LineCount := 3;
+    72: LineCount := 3;
+    73: LineCount := 8;
+    74: LineCount := 3;
+    75: LineCount := 7;
+    76: LineCount := 5;
+    77: LineCount := 3;
+    78: LineCount := 7;
+    79: LineCount := 8;
+    80: LineCount := 5;
+    81: LineCount := 8;
+    82: LineCount := 6;
+    83: LineCount := 3;
+    84: LineCount := 5;
+    85: LineCount := 8;
+    86: LineCount := 6;
+    87: LineCount := 3;
+    88: LineCount := 6;
+    89: LineCount := 4;
+    90: LineCount := 6;
+    92: LineCount := 5;
+    93: LineCount := 5;
+    94: LineCount := 6;
+    100: LineCount := 5;
     C_SPELL.ITEM_OINTMENT: LineCount := 5;
     C_SPELL.ITEM_BODILY_HEALTH: LineCount := 7;
   else
@@ -678,6 +710,314 @@ begin
           'AN UNERRING MISSILE INFLICTS 2D4+2'#13 +
           'DAMAGE UPON THE TARGETED CREATURE.'#13 +
           'SHIELD NEGATES IT.';
+    { Cure Serious Wounds }
+    58:
+      if chunk = 0 then
+        TextChunk :=
+          'THE RECIPIENT REGAINS 2D8+1 HIT'#13 +
+          'POINTS. WOUNDS CAUSED BY MUMMY ROT'#13 +
+          'CANNOT BE SO CURED.';
+    { Cause Serious Wounds }
+    66:
+      if chunk = 0 then
+        TextChunk :=
+          'A SUCCESSFUL TOUCH ATTACK INFLICTS'#13 +
+          '2D8+1 DAMAGE. THE VICTIM RECEIVES NO'#13 +
+          'SAVING THROW.';
+    { Neutralize Poison }
+    67:
+      case chunk of
+        0:
+          TextChunk :=
+            'CAST IN CAMP, THIS SPELL REMOVES'#13 +
+            'POISON AND ENDS SLOW POISON. A'#13 +
+            'VICTIM THE POISON KILLED REVIVES'#13 +
+            'WITH 1 HIT POINT. A STONED,'#13 +
+            'DISINTEGRATED OR ANIMATED CREATURE,'#13 +
+            'OR ONE A WOUND KILLED UNDER SLOW';
+        1:
+          TextChunk :=
+            'POISON, IS NOT REVIVED.';
+      end;
+    { Poison }
+    68:
+      if chunk = 0 then
+        TextChunk :=
+          'THE CASTER MUST TOUCH AN OPPONENT.'#13 +
+          'IF THE ATTACK HITS, THE VICTIM MUST'#13 +
+          'SAVE VERSUS POISON OR BE POISONED'#13 +
+          'AND KILLED AT ONCE.';
+    { Protection From Evil, 10' Radius }
+    69:
+      if chunk = 0 then
+        TextChunk :=
+          'THIS FUNCTIONS AS PROTECTION FROM'#13 +
+          'EVIL, BUT THE RECIPIENT ALSO WARDS'#13 +
+          'ALLIES WITHIN 1 SQUARE. OVERLAPPING'#13 +
+          'PROTECTION BONUSES DO NOT STACK.';
+    { Sticks to Snakes }
+    70:
+      case chunk of
+        0:
+          TextChunk :=
+            'A TARGET BELOW LEVEL 6 MUST SPEND'#13 +
+            'ITS ATTACKS FIGHTING SNAKES AND CAN'#13 +
+            'DO NOTHING ELSE. EACH ROUND USES UP'#13 +
+            'AS MANY SNAKES AS THE TARGET HAS'#13 +
+            'ATTACKS, FROM A POOL EQUAL TO THE'#13 +
+            'CASTER''S LEVEL. STRONGER FOES SMASH';
+        1:
+          TextChunk :=
+            'THEM FLAT.';
+      end;
+    { Cure Critical Wounds }
+    71:
+      if chunk = 0 then
+        TextChunk :=
+          'THE RECIPIENT REGAINS 3D8+3 HIT'#13 +
+          'POINTS. WOUNDS CAUSED BY MUMMY ROT'#13 +
+          'CANNOT BE SO CURED.';
+    { Cause Critical Wounds }
+    72:
+      if chunk = 0 then
+        TextChunk :=
+          'A SUCCESSFUL TOUCH ATTACK INFLICTS'#13 +
+          '3D8+3 DAMAGE. THE VICTIM RECEIVES NO'#13 +
+          'SAVING THROW.';
+    { Dispel Evil }
+    73:
+      case chunk of
+        0:
+          TextChunk :=
+            'EVIL UNDEAD AND OTHERWORLDLY'#13 +
+            'CREATURES ATTACK THE CASTER AT -7.'#13 +
+            'ON THE CASTER''S NEXT HIT AGAINST'#13 +
+            'SUCH A FOE, IT MUST SAVE VERSUS'#13 +
+            'SPELLS OR BE DISPELLED, ENDING THE'#13 +
+            'SPELL; A SAVE OR A HIT ON ANOTHER';
+        1:
+          TextChunk :=
+            'CREATURE DOES NOT. IT LASTS 1 ROUND'#13 +
+            'PER CASTER LEVEL.';
+      end;
+    { Flame Strike }
+    74:
+      if chunk = 0 then
+        TextChunk :=
+          'A COLUMN OF FIRE INFLICTS 6D8 FIRE'#13 +
+          'DAMAGE ON ONE TARGET. A SUCCESSFUL'#13 +
+          'SAVING THROW HALVES THE DAMAGE.';
+    { Raise Dead }
+    75:
+      case chunk of
+        0:
+          TextChunk :=
+            'CAST IN CAMP, A DEAD OR ANIMATED'#13 +
+            'NON-ELF IS RESTORED TO LIFE WITH 1'#13 +
+            'HIT POINT IF IT PASSES A SURVIVAL'#13 +
+            'ROLL BASED ON CONSTITUTION, AND'#13 +
+            'LOSES 1 CONSTITUTION. ONE THAT FAILS'#13 +
+            'IS GONE FOREVER. A POISONED CORPSE';
+        1:
+          TextChunk :=
+            'IS NOT RAISED.';
+      end;
+    { Slay Living }
+    76:
+      if chunk = 0 then
+        TextChunk :=
+          'THE TARGET MUST SAVE VERSUS DEATH'#13 +
+          'MAGIC OR DIE. A SUCCESSFUL SAVE'#13 +
+          'STILL INFLICTS 2D8+1 DAMAGE. THE'#13 +
+          'UNDEAD, AND CREATURES THAT RESIST'#13 +
+          'MAGIC, MAY BE UNAFFECTED.';
+    { Detect Magic }
+    77:
+      if chunk = 0 then
+        TextChunk :=
+          'FOR THE SPELL''S DURATION, ITEMS WITH'#13 +
+          'A MAGICAL BONUS OR CURSE ARE MARKED'#13 +
+          'WITH A * IN THE PARTY''S ITEM LISTS.';
+    { Entangle }
+    78:
+      case chunk of
+        0:
+          TextChunk :=
+            'OUTDOORS, PLANTS FILL THE AREA. A'#13 +
+            'FAILED SAVE HOLDS A CREATURE WITH NO'#13 +
+            'MOVEMENT; A SUCCESSFUL SAVE HALVES'#13 +
+            'ITS MOVEMENT. IT LASTS 10 ROUNDS. A'#13 +
+            'CREATURE ALREADY ENTANGLED IS NOT'#13 +
+            'AFFECTED AGAIN. INDOORS THE SPELL IS';
+        1:
+          TextChunk :=
+            'LOST.';
+      end;
+    { Faerie Fire }
+    79:
+      case chunk of
+        0:
+          TextChunk :=
+            'A POOL EQUAL TO THE CASTER''S LEVEL'#13 +
+            'OUTLINES TARGETS IN LIGHT. A MAN-'#13 +
+            'SIZED TARGET COSTS 1 POINT, A LARGE'#13 +
+            'ONE 2, AND A HUGE ONE 4. EACH'#13 +
+            'SUFFERS A 2-POINT ARMOR CLASS'#13 +
+            'PENALTY. THE FIRST TARGET IS ALWAYS';
+        1:
+          TextChunk :=
+            'AFFECTED. THERE IS NO SAVING THROW.'#13 +
+            'IT LASTS 4 ROUNDS PER CASTER LEVEL.';
+      end;
+    { Invisibility to Animals }
+    80:
+      if chunk = 0 then
+        TextChunk :=
+          'ANIMALS AND REPTILES UNABLE TO SEE'#13 +
+          'INVISIBLE CREATURES CANNOT TARGET'#13 +
+          'THE RECIPIENT AND ATTACK IT AT -4.'#13 +
+          'OTHER CREATURES ARE UNAFFECTED. IT'#13 +
+          'LASTS 10 + CASTER LEVEL ROUNDS.';
+    { Charm Monsters }
+    81:
+      case chunk of
+        0:
+          TextChunk :=
+            'A POOL OF 2D4 POINTS BUYS TARGETS. A'#13 +
+            'LEVEL-1 TARGET COSTS 1, LEVEL 2'#13 +
+            'COSTS 2, LEVEL 3 COSTS 4, AND A'#13 +
+            'HIGHER LEVEL 8. THE FIRST TARGET IS'#13 +
+            'ALWAYS INCLUDED. THOSE OF ANY SIZE'#13 +
+            'OR KIND THAT FAIL THEIR SAVES JOIN';
+        1:
+          TextChunk :=
+            'THE CASTER''S SIDE UNDER COMPUTER'#13 +
+            'CONTROL UNTIL DISPELLED.';
+      end;
+    { Confusion }
+    82:
+      if chunk = 0 then
+        TextChunk :=
+          'UP TO 2D8 TARGETS IN THE AREA THAT'#13 +
+          'FAIL THEIR SAVES ARE CONFUSED. EACH'#13 +
+          'ROUND A VICTIM MAY FLEE, DO NOTHING,'#13 +
+          'GO BERSERK, OR ACT ENRAGED, THEN'#13 +
+          'SAVES AGAIN AT -2; SUCCESS ENDS IT.'#13 +
+          'IT LASTS 2 + CASTER LEVEL ROUNDS.';
+    { Dimension Door }
+    83:
+      if chunk = 0 then
+        TextChunk :=
+          'THE CASTER TELEPORTS TO A CHOSEN'#13 +
+          'OPEN SQUARE WITHIN RANGE, BREAKING'#13 +
+          'FREE OF ANY CREATURE HOLDING IT.';
+    { Fear }
+    84:
+      if chunk = 0 then
+        TextChunk :=
+          'A THREE-RAY CONE EXTENDS 6 SQUARES'#13 +
+          'FROM THE CASTER. CREATURES IN IT'#13 +
+          'THAT FAIL THEIR SAVES FLEE UNDER'#13 +
+          'COMPUTER CONTROL FOR 1 ROUND PER'#13 +
+          'CASTER LEVEL.';
+    { Fire Shield }
+    85:
+      case chunk of
+        0:
+          TextChunk :=
+            'THE CASTER CHOOSES A HOT OR COLD'#13 +
+            'SHIELD. A MELEE ATTACKER TAKES TWICE'#13 +
+            'THE DAMAGE IT DEALT. A HOT SHIELD'#13 +
+            'GRANTS +2 ON SAVES AGAINST COLD AND'#13 +
+            'HALVES ITS DAMAGE, NONE ON A SAVE,'#13 +
+            'BUT DOUBLES UNSAVED FIRE DAMAGE; A';
+        1:
+          TextChunk :=
+            'COLD SHIELD DOES THE REVERSE. IT'#13 +
+            'LASTS 2 + CASTER LEVEL ROUNDS.';
+      end;
+    { Fumble }
+    86:
+      if chunk = 0 then
+        TextChunk :=
+          'A TARGET THAT FAILS ITS SAVING THROW'#13 +
+          'BECOMES CLUMSY AND CAN DO NOTHING. A'#13 +
+          'TARGET THAT SAVES IS SLOWED INSTEAD,'#13 +
+          'MOVING AND ATTACKING AT HALF THE'#13 +
+          'NORMAL RATE. EITHER EFFECT LASTS 1'#13 +
+          'ROUND PER CASTER LEVEL.';
+    { Ice Storm }
+    87:
+      if chunk = 0 then
+        TextChunk :=
+          'HAIL INFLICTS 3D10 COLD DAMAGE ON'#13 +
+          'ALL CREATURES IN THE AREA, FRIEND OR'#13 +
+          'FOE. NO SAVING THROW IS ALLOWED.';
+    { Minor Globe of Invulnerability }
+    88:
+      if chunk = 0 then
+        TextChunk :=
+          'SPELLS OF LEVEL 1, 2 OR 3 DO NOTHING'#13 +
+          'TO THE CASTER, ITS ALLIES'' AS WELL'#13 +
+          'AS ITS FOES''. SPELLS OF LEVEL 4 OR'#13 +
+          'HIGHER AND OTHER ATTACKS PASS'#13 +
+          'THROUGH THE GLOBE. IT LASTS 1 ROUND'#13 +
+          'PER CASTER LEVEL.';
+    { Remove Curse }
+    89:
+      if chunk = 0 then
+        TextChunk :=
+          'THIS SPELL REMOVES BESTOW CURSE.'#13 +
+          'OTHERWISE, IT LIFTS THE CURSE FROM'#13 +
+          'ONE CURSED ITEM THE RECIPIENT'#13 +
+          'CARRIES.';
+    { Animate Dead }
+    90:
+      if chunk = 0 then
+        TextChunk :=
+          'UP TO ONE HUMAN CORPSE PER CASTER'#13 +
+          'LEVEL RISES AT FULL HIT POINTS AS A'#13 +
+          'ZOMBIE. EACH FIGHTS FOR THE CASTER'#13 +
+          'UNDER COMPUTER CONTROL. IT LOSES ITS'#13 +
+          'SPELLS AND COLLAPSES IF THIS'#13 +
+          'ENCHANTMENT IS DISPELLED.';
+    { Cone of Cold }
+    92:
+      if chunk = 0 then
+        TextChunk :=
+          'A TWO-RAY CONE REACHES 1 SQUARE PER'#13 +
+          'TWO CASTER LEVELS, ROUNDING UP. IT'#13 +
+          'INFLICTS 1D4+1 COLD DAMAGE PER'#13 +
+          'CASTER LEVEL ON ALL IN ITS PATH. A'#13 +
+          'SUCCESSFUL SAVE HALVES THE DAMAGE.';
+    { Feeblemind }
+    93:
+      if chunk = 0 then
+        TextChunk :=
+          'A VICTIM THAT FAILS ITS SAVE CAN'#13 +
+          'CAST NO SPELLS. MAGIC-USERS SAVE AT'#13 +
+          '-4, CLERICS AT +1, AND ALL OTHERS AT'#13 +
+          '-2. ONLY A TEMPLE''S HEAL SERVICE'#13 +
+          'ENDS IT.';
+    { Hold Monsters }
+    94:
+      if chunk = 0 then
+        TextChunk :=
+          'UP TO FOUR CREATURES OF ANY KIND'#13 +
+          'THAT FAIL THEIR SAVES ARE MOTIONLESS'#13 +
+          'AND HELPLESS. ONE TARGET SAVES AT'#13 +
+          '-3; TWO SAVE AT -1 EACH; THREE OR'#13 +
+          'FOUR SAVE NORMALLY. IT LASTS 1 ROUND'#13 +
+          'PER CASTER LEVEL.';
+    { Bestow Curse }
+    100:
+      if chunk = 0 then
+        TextChunk :=
+          'A SUCCESSFUL TOUCH ATTACK CURSES A'#13 +
+          'VICTIM THAT FAILS ITS SAVING THROW.'#13 +
+          'THE VICTIM SUFFERS -4 ON ATTACK'#13 +
+          'ROLLS AND SAVING THROWS. THE CURSE'#13 +
+          'LASTS 1 TURN PER CASTER LEVEL.';
     { Manual of Bodily Health }
     C_SPELL.ITEM_BODILY_HEALTH:
       case chunk of

@@ -42,8 +42,9 @@ function SaveResult(spell: Byte): Byte;
 function RangeText(line: Word; long: Boolean): Types.TStr40;
 
 { What the spell reaches (CharHlp.SpellArea): a radius (AREA R2), an aura around its target or caster, Stinking
-  Cloud's 2x2 block, Lightning Bolt's path, up to a number of creatures picked (TGT 1-3), every creature it seeks on
-  the field (AREA ALL) or the whole party in camp (AREA PARTY). A single creature, or the caster, has no short term. }
+  Cloud's 2x2 block, Lightning Bolt's path, a cone from the caster (AREA CONE), up to a number of creatures picked
+  (TGT 1-3) or as many as a pool buys (TGT POOL), every creature it seeks on the field (AREA ALL) or the whole party in
+  camp (AREA PARTY). A single creature, or the caster, has no short term. }
 function AreaText(line: Word; long: Boolean): Types.TStr40;
 
 { AreaText's page value for a spell an item casts: a potion or other item cast only on its user reads USER, not THE
@@ -118,12 +119,20 @@ const
     0, 0, 0, 1, 0, 0, 2, 0, 1, 0,
     { 51..56: Lightning Bolt .. Restoration }
     2, 0, 0, 0, 0, 0,
-    { 57..65, the item spells: Potion of Speed .. Wand of Magic Missiles; the Javelin of Lightning's bolt
-      (Magic.LightningAttackAt), the Wand of Paralyzation and the item fireball; 58 holds no spell }
+    { 57..65: the item spells Potion of Speed .. Wand of Magic Missiles, and 58, Cure Serious Wounds; the Javelin of
+      Lightning's bolt (Magic.LightningAttackAt), the Wand of Paralyzation and the item fireball }
     0, 0, 0, 2, 1, 0, 0, 2, 0,
-    { 66..126 hold no spell (#1121) }
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    { 66..70: Cause Serious Wounds .. Sticks to Snakes; Poison }
+    0, 0, 1, 0, 0,
+    { 71..80: Cure Critical Wounds .. Invisibility to Animals; Flame Strike, Slay Living (it still deals 2d8+1),
+      Entangle (it still slows) }
+    0, 0, 0, 2, 0, 4, 0, 4, 0, 0,
+    { 81..90: Charm Monsters .. Animate Dead; Confusion, Fear, Fumble (it still slows) }
+    1, 1, 0, 1, 0, 4, 0, 0, 0, 0,
+    { 91..100: Cone of Cold, Feeblemind, Hold Monsters and Bestow Curse; 91 and 95..99 hold no spell }
+    0, 2, 1, 1, 0, 0, 0, 0, 0, 1,
+    { 101..126 hold no spell (#1121) }
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     { 127 and 128: Keoghtom's Ointment and the Manual of Bodily Health }
     0, 0);
   { AreaText's value for a spell cast only on its caster }
@@ -258,6 +267,14 @@ begin
         C_SPELL.AREA_BOLT: begin
             s := 'AREA BOLT';
             l := 'BOLT, ' + StrUtil.Count(size, 'SQUARE', 'SQUARES') + ' PAST AIM';
+          end;
+        C_SPELL.AREA_CONE: begin
+            s := 'AREA CONE';
+            l := 'CONE, ' + StrUtil.Count(size, 'SQUARE', 'SQUARES') + ' LONG';
+          end;
+        C_SPELL.AREA_POOL: begin
+            s := 'TGT POOL';
+            l := 'CREATURES BY POOL';
           end;
       end;
   end;
@@ -584,10 +601,12 @@ begin
   Border.DrawWindow(1, 3, 38, 22, 0, Black, '');
   if CharHlp.IsSpell(spell) then begin
     TextRend.DisplayCentered(1, 38, 3, White, GameDefs.spellNames[spell]);
-    if GameDefs.spellTable[spell].castClass = C_SPELL.CLASS_CLERIC then
-      s := 'CLERIC'
+    case GameDefs.spellTable[spell].castClass of
+      C_SPELL.CLASS_CLERIC: s := 'CLERIC';
+      C_SPELL.CLASS_DRUID: s := 'DRUID';
     else
       s := 'MAGIC-USER';
+    end;
     s := s + ' LEVEL ' + StrUtil.NumStr(GameDefs.spellTable[spell].levelSp);
   end else begin
     { an item spell has no name of its own, and its spell level means nothing }

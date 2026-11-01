@@ -153,8 +153,8 @@ begin
   SetItem(WAND_TYPE, C_SPELL.FIREBALL, 0, 0);
   TestKit.CheckEqualsL(C_SPELL.FIREBALL, CharHlp.ItemSpell(it), 'the Wand of Fireballs casts Fireball');
   TestKit.Check(SpellInf.HasItemPage(it), 'and has its page');
-  SetItem(WAND_TYPE, 89, 0, 0);
-  TestKit.CheckEqualsL(66, CharHlp.ItemSpell(it), 'effect 89: spell 66, which holds no spell here');
+  SetItem(WAND_TYPE, 114, 0, 0);
+  TestKit.CheckEqualsL(91, CharHlp.ItemSpell(it), 'effect 114: spell 91, which holds no spell here');
   TestKit.Check(not SpellInf.HasItemPage(it), 'which has no page');
   SetItem(WAND_TYPE, 150, 0, 0);
   TestKit.CheckEqualsL(C_SPELL.ITEM_OINTMENT, CharHlp.ItemSpell(it), 'effect 150: Keoghtom''s Ointment, 127 (#1121)');
@@ -250,7 +250,7 @@ begin
   TestKit.Check(texts, 'every description within 9 lines of 36 columns');
   TestKit.CheckEqualsS('A CLOUD FILLS FOUR SQUARES. A', SpellInf.TextLine(C_SPELL.STINKING_CLOUD, 1),
                        'Stinking Cloud''s first line');
-  TestKit.CheckEqualsL(0, SpellTxt.LineCount(66), 'no text for the unused item spell');
+  TestKit.CheckEqualsL(0, SpellTxt.LineCount(91), 'no text for an id that holds no spell');
   TestKit.CheckEqualsS('THE DRINKER MOVES AND ATTACKS AT', SpellInf.TextLine(57, 1),
                        'the Potion of Speed''s first line');
   { Bless reaches only allies and Curse only foes (#1027) }

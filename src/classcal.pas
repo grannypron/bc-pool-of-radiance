@@ -200,6 +200,10 @@ function HitDieFloor(con: Byte): Byte;
   of Constitution makes. }
 function ConHpTotal(creature: Types.PCharRecord; con: Byte): Integer;
 
+{ Take a point of Constitution from creature and the maximum hit points it was worth (ConHpTotal), keeping at least 1:
+  a raise's price, the temple's and the Raise Dead spell's. }
+procedure LoseConstitution(creature: Types.PCharRecord);
+
 const
   { a prime attribute above this earns a single-class character 10% more experience }
   PRIME_STAT_THRESHOLD = 15;
@@ -1246,6 +1250,18 @@ begin
       Inc(sum, roll);
     end;
   RollFirstLevelHp := sum;
+end;
+
+procedure LoseConstitution(creature: Types.PCharRecord);
+var
+  hpLoss: Integer;
+begin
+  Dec(creature^.conCur);
+  hpLoss := ClassCal.ConHpTotal(creature, creature^.conCur + 1) - ClassCal.ConHpTotal(creature, creature^.conCur);
+  if hpLoss >= creature^.hpMax then
+    hpLoss := creature^.hpMax - 1;
+  if hpLoss > 0 then
+    Dec(creature^.hpMax, hpLoss);
 end;
 
 function ConHpTotal(creature: Types.PCharRecord; con: Byte): Integer;

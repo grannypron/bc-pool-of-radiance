@@ -554,14 +554,16 @@ begin
             C_EFFECT.ANIMATE_DEAD..C_EFFECT.DISEASED,
         C_EFFECT.BESTOW_CURSE..C_EFFECT.HASTED, C_EFFECT.PROT_MISSILES, C_EFFECT.SLOWED,
             C_EFFECT.PROT_EVIL_10FT, C_EFFECT.PROT_GOOD_10FT,
-        C_EFFECT.PRAYER, C_EFFECT.SNAKE_CHARM..C_EFFECT.SLEEP:
+        C_EFFECT.PRAYER, C_EFFECT.SNAKE_CHARM..C_EFFECT.SLEEP,
+        C_EFFECT.STICKS_TO_SNAKES, C_EFFECT.DISPEL_EVIL_TOUCH, C_EFFECT.FAERIE_FIRE, C_EFFECT.CONFUSION, C_EFFECT.FEAR,
+            C_EFFECT.FUMBLE..C_EFFECT.ENTANGLE:
           begin
-            { Find the named spell that produces this effect. Only IDs 1..C_SPELL.LAST have spell names; higher IDs
-              are item effects. }
+            { Find the named spell that produces this effect: a spell of 1..C_SPELL.LAST (CharHlp.IsSpell), not one of
+              the item spells among them, whose rows have no name. }
             k := 1;
             found := False;
             while (k <= C_SPELL.LAST) and (found = False) do
-              if GameDefs.spellTable[k].effect = id then begin
+              if CharHlp.IsSpell(k) and (GameDefs.spellTable[k].effect = id) then begin
                 s := GameDefs.spellNames[k];
                 found := True;
               end else
@@ -583,6 +585,9 @@ begin
         C_EFFECT.DUST_DISAPPEAR: s := 'Invisible';
         C_EFFECT.CAMOUFLAGE: s := 'Camouflaged';
         C_EFFECT.DISPLACED: s := 'Displaced';
+        C_EFFECT.CONFUSED_BERSERK: s := 'Berserk';
+        C_EFFECT.FIRE_SHIELD_HOT: s := 'Fire Shield (Hot)';
+        C_EFFECT.FIRE_SHIELD_COLD: s := 'Fire Shield (Cold)';
       else
         show := False;
       end;

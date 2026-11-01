@@ -178,6 +178,38 @@ const
   RECENT_HEAL = 140;
   { A paladin's week of curing disease; the strength counts the cures made. }
   RECENT_CURE = 141;
+  { The effects of the spells of levels 4 and 5 (#1121), ported from Curse's (its ids in brackets), after SSI's last;
+    a saved game holds them in a byte. }
+  { Sticks to Snakes [3]: the strength counts the snakes left; the creature fights them instead of acting. }
+  STICKS_TO_SNAKES = 142;
+  { Dispel Evil [4]: an evil creature it reaches attacks the caster at -7; DISPEL_EVIL_TOUCH [145] dispels one the
+    caster hits. }
+  DISPEL_EVIL = 143;
+  DISPEL_EVIL_TOUCH = 144;
+  { Faerie Fire [7]: the outlined creature's armor class worsens by 2. }
+  FAERIE_FIRE = 145;
+  { Confusion [35], rolled each round, and the berserk rage [137] it can give, whose strength keeps the creature's
+    hostile byte. }
+  CONFUSION = 146;
+  CONFUSED_BERSERK = 147;
+  { Fear [142]: the creature flees under computer control; its removal gives control back. }
+  FEAR = 148;
+  { Fire Shield: the hot flames [50], the cold flames [54], and the flames that burn a melee attacker [143]. }
+  FIRE_SHIELD_HOT = 149;
+  FIRE_SHIELD_COLD = 150;
+  FIRE_SHIELD_ZAP = 151;
+  { Fumble's clumsiness [27]: the creature's actions end each round. }
+  FUMBLE = 152;
+  { Minor Globe of Invulnerability [63]: spells of C_SPELL.MINOR_GLOBE_LEVEL and below do nothing to the creature. }
+  MINOR_GLOBE = 153;
+  { Feeblemind [68]: the creature cannot cast; only a temple's Heal ends it. }
+  FEEBLEMIND = 154;
+  { Invisibility to Animals [69]: animals and reptiles that do not see invisible cannot target the creature. }
+  INVISIBLE_TO_ANIMALS = 155;
+  { Entangle [136]: strength 0 holds the creature still, 1 (it saved) halves its movement. }
+  ENTANGLE = 156;
+  { the last effect id with a handler (GameVars.effectFns) }
+  LAST_ID = 156;
   { the diseases: Diseased, its Strength and hit point drains, and rot; paladins catch none (FxEngine.DiseaseImmune),
     and Dispel Magic leaves them to Cure Disease (#787) }
   DISEASES = [DISEASED, DISEASE_STRENGTH, DISEASE_HIT_POINTS, ROT_NO_HEAL, MUMMY_ROT];

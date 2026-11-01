@@ -257,7 +257,7 @@ var
 var
   { Effect dispatch }
   { effect handlers, indexed by effect id }
-  effectFns: array[C_EFFECT.BLESS..C_EFFECT.RECENT_CURE] of Types.TEffectHandler;
+  effectFns: array[C_EFFECT.BLESS..C_EFFECT.LAST_ID] of Types.TEffectHandler;
   { 3D view }
   { four 256-byte GEO planes; View3D/Explore views }
   map3d: Types.PGeoMap;

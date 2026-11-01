@@ -9,8 +9,8 @@ interface
 uses Types;
 
 var
-  { A bolt spell's path for the spell-aim preview; GameInit sets it to Magic.TraceBolt, so CbtMap does not call
-    Magic }
+  { A bolt or cone spell's cells for the spell-aim preview; GameInit sets it to Magic.TraceBolt, so CbtMap does not
+    call Magic }
   boltTracer: Types.TCellTracer;
   { Who the spell being aimed will catch, for the spell-aim preview's count on line 23 (#840); GameInit sets it to
     CbtActs.ReportAreaCatch, so CbtMap does not call CbtActs }
@@ -107,7 +107,8 @@ procedure DisplayMapViewCentered(creature: Types.PCharRecord; delta: Byte; curso
   the spell will reach light up ring by ring outward from the cursor cell in combat sprite areaCell, hold, clear, and
   the cycle repeats. AimBlast reaches every cell within radius of the cursor cell by the Pathing.WalkLine test
   Pathing.BuildTargetList applies, so walls cut it the same way; radius 0 is the cursor cell alone. AimBolt follows
-  spell's bolt (Lightning Bolt's, or the Javelin of Lightning's) from the cursor cell (boltTracer). AimCloud covers the
+  spell's bolt (Lightning Bolt's, or the Javelin of Lightning's) from the cursor cell, or covers its cone from the
+  caster toward the cursor cell (Fear, Cone of Cold), as boltTracer gives them. AimCloud covers the
   passable cells of Magic.SpellStinkingCloud's 2x2 block and draws them with the stinking-cloud terrain tile instead
   of areaCell. The frames are drawn from MenuCore.MenuHorizontal's idle hook. With report set, each restart also hands
   aimReport the creatures the spell will catch there (#840): for a blast everyone Pathing.BuildAreaList gathers at
