@@ -22,6 +22,9 @@ procedure EncumbranceAdjust(creature: Types.PCharRecord);
 
 procedure ItemLabel(item: Types.PItemRec; isInv: Boolean);
 
+{ The item's identified name parts, from 3 down to 1, made plural for count: no marker, quantity or trailing space. }
+function ItemName(item: Types.PItemRec; count: Byte): string;
+
 { Label every item of list (ItemLabel, not as inventory). }
 procedure LabelItems(list: Types.PItemRec);
 
@@ -485,11 +488,10 @@ begin
     creature^.movementCur := movement;
 end;
 
-{ Build the item label in item^.name: the ' Yes  '/' No   ' equipped marker (inventory listings only), a '*' when
-  any creature in the list has Detect Magic and the item has a plus, a save bonus or a curse, the quantity when nonzero,
-  then the identified name components from 3 down to 1, one of them pluralized with 's' when the quantity is 2 or more.
-  CharDisp.PrintItemLabel also prints it. }
-procedure ItemLabel(item: Types.PItemRec; isInv: Boolean);
+{ The identified name components from 3 down to 1, separated by spaces, one of them pluralized with 's' when count is 2
+  or more. A name whose part 2 is "of" takes the 's' on part 3 when that is shown: "Potions of Healing", "Flasks of
+  Oil" (SSI special-cased the flask alone, and put the 's' on part 1 of the rest: "Potion of Healings", #1170). }
+function ItemName(item: Types.PItemRec; count: Byte): string;
 const
   { Item name components, indexed 1..255 by TItemRec.nameIds; a zero name ID adds no component. }
   nameParts: array[1..255] of string[20] = (
@@ -751,10 +753,44 @@ const
 var
   i: Byte;
   mask: Byte;
+  appended: Boolean;
+  ofName: Boolean;
+  name: string;
+begin
+  name := '';
+  mask := 0;
+  for i := 1 to 3 do
+    if item^.nameIds[i] <> 0 then
+      if (item^.unidMask shr (3 - i)) and 1 = 0 then
+        Inc(mask, 1 shl (i - 1));
+  ofName := (item^.nameIds[2] = C_ITEM.NAME_OF) and (mask and 4 <> 0);
+  appended := False;
+  for i := 3 downto 1 do
+    if (mask shr (i - 1)) and 1 > 0 then begin
+      if name <> '' then
+        name := name + ' ';
+      name := name + nameParts[item^.nameIds[i]];
+      if (count >= 2) and not appended then
+        if ((1 shl (i - 1)) = mask) or ((i = 1) and (mask > 4) and not ofName) or
+          ((i = 2) and not Odd(mask)) or ((i = 3) and ofName) or
+          (((item^.itemType = C_ITEM.ARROW) or (item^.itemType = C_ITEM.QUARREL) or
+            (item^.itemType = C_ITEM.DART)) and (item^.nameIds[3] <> C_ITEM.NAME_SILVER)) then begin
+          name := name + 's';
+          appended := True;
+        end;
+    end;
+  ItemName := name;
+end;
+
+{ Build the item label in item^.name: the ' Yes  '/' No   ' equipped marker (inventory listings only), a '*' when
+  any creature in the list has Detect Magic and the item has a plus, a save bonus or a curse, the quantity when nonzero,
+  then ItemName for the quantity and a space. CharDisp.PrintItemLabel also prints it. }
+procedure ItemLabel(item: Types.PItemRec; isInv: Boolean);
+var
   effect: Types.PEffectRec;
   found: Boolean;
-  appended: Boolean;
   p: Types.PCharRecord;
+  name: string;
 begin
   item^.name := '';
   if isInv then begin
@@ -775,26 +811,9 @@ begin
       item^.name := item^.name + '*' + ' ';
   if item^.quantity > 0 then
     item^.name := item^.name + StrUtil.NumStr(item^.quantity) + ' ';
-  mask := 0;
-  for i := 1 to 3 do
-    if item^.nameIds[i] <> 0 then
-      if (item^.unidMask shr (3 - i)) and 1 = 0 then
-        Inc(mask, 1 shl (i - 1));
-  appended := False;
-  for i := 3 downto 1 do
-    if (mask shr (i - 1)) and 1 > 0 then begin
-      item^.name := item^.name + nameParts[item^.nameIds[i]];
-      if (item^.quantity < 2) or appended then
-        item^.name := item^.name + ' '
-      else if ((1 shl (i - 1)) = mask) or ((i = 1) and (mask > 4) and (item^.itemType <> C_ITEM.FLASK_OF_OIL)) or
-        ((i = 2) and not Odd(mask)) or ((i = 3) and (item^.itemType = C_ITEM.FLASK_OF_OIL)) or
-        (((item^.itemType = C_ITEM.ARROW) or (item^.itemType = C_ITEM.QUARREL) or
-          (item^.itemType = C_ITEM.DART)) and (item^.nameIds[3] <> C_ITEM.NAME_SILVER)) then begin
-        item^.name := item^.name + 's ';
-        appended := True;
-      end else
-        item^.name := item^.name + ' ';
-    end;
+  name := CharHlp.ItemName(item, item^.quantity);
+  if name <> '' then
+    item^.name := item^.name + name + ' ';
 end;
 
 { ItemLabel, not as inventory, every item of list: the treasure pool's or a shop's, for its menu. }

@@ -244,6 +244,8 @@ bf00fc8.
 
 **Darts +1 in a stack.** `CharHlp.ItemLabel` gives the plural s to the first name part of an arrow or quarrel stack; darts fell to the general rule, which puts it on the second part of a two-part name, so a stack of Darts +1 read "5 Dart +1s". Darts now join arrows and quarrels: "5 Darts +1". Plain darts, one name part, read "Darts" as before. TMagShop checks the label. #1165.
 
+**"Potions of Healing", and Fix names the item once.** The plural rule SSI gave `CharHlp.ItemLabel` put the s on part 1 of a three-part name, so a stack of potions read "2 Potion of Healings", rings and the rest of the "X of Y" names the same; only the Flask of Oil was special-cased, to "Flasks of Oil". Any name whose part 2 is "of" (`C_ITEM.NAME_OF`) now takes the s on part 3 when that is shown, which covers the flask (its parts are 172, 167, 99), so its special case is gone: "2 Potions of Healing". The name parts and the plural moved into the new `CharHlp.ItemName(item, count)`, which gives just the shown parts, plural for count, with no marker, count or trailing space; `ItemLabel` is the marker, the count and `ItemName` for the quantity, then a space, as before. Fix's report took the item's label, so it read "SHADOW USED 2 POTION OF HEALINGS   ON MORRIGAN" for one potion of a stack of two; it now uses `ItemName(item, 1)`. TCharHlp checks the potion at one and two, the label, a partly identified stack, the flasks and darts. #1170.
+
 **The out-of-memory save.** See section 1 (POR-0168).
 
 **A random javelin.** See section 2 (POR-0165).

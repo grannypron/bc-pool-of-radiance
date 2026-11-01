@@ -202,6 +202,28 @@ begin
   it.unidMask := 6;
   CharHlp.ItemLabel(@it, False);
   TestKit.CheckEqualsS('Javelin ', it.name, 'unidentified parts are left out');
+  { "X of Y" names take the plural on X (#1170); ItemName has no count, marker or trailing space }
+  NewItem(71, 185, C_ITEM.NAME_OF, 64, 2, 1);
+  TestKit.CheckEqualsS('Potion of Healing', CharHlp.ItemName(@it, 1), 'a potion of healing named for one');
+  TestKit.CheckEqualsS('Potions of Healing', CharHlp.ItemName(@it, 2), 'and for two: the potion pluralized');
+  CharHlp.ItemLabel(@it, False);
+  TestKit.CheckEqualsS('2 Potions of Healing ', it.name, 'two potions of healing, labelled');
+  it.unidMask := 6;
+  CharHlp.ItemLabel(@it, False);
+  TestKit.CheckEqualsS('2 Potions ', it.name, 'a partly identified stack of potions');
+  TestKit.CheckEqualsS('Potion', CharHlp.ItemName(@it, 0), 'and its name for none, singular');
+  NewItem(C_ITEM.FLASK_OF_OIL, 172, C_ITEM.NAME_OF, 99, 3, 1);
+  CharHlp.ItemLabel(@it, False);
+  TestKit.CheckEqualsS('3 Flasks of Oil ', it.name, 'flasks of oil, by the same rule as the potions');
+  NewItem(C_ITEM.DART, 0, C_ITEM.NAME_PLUS_BASE + 1, 9, 5, 1);
+  CharHlp.ItemLabel(@it, False);
+  TestKit.CheckEqualsS('5 Darts +1 ', it.name, 'darts +1 keep their plural');
+  NewItem(C_ITEM.DART, 0, 0, 9, 5, 1);
+  CharHlp.ItemLabel(@it, False);
+  TestKit.CheckEqualsS('5 Darts ', it.name, 'and plain darts theirs');
+  it.unidMask := 7;
+  CharHlp.ItemLabel(@it, False);
+  TestKit.CheckEqualsS('5 ', it.name, 'a stack with no part shown keeps its count alone');
   { Detect Magic on a party member marks a magic item }
   ClearCreature;
   FillChar(e, SizeOf(e), 0);

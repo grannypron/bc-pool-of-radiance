@@ -879,9 +879,8 @@ var
                                   Note(use.user^.name + ' cured ' + use.target^.name + '''s disease during Fix.');
                                 end;
     else
-      { the label goes with the item, which the cast may use up }
-      CharHlp.ItemLabel(use.item, False);
-      name := use.item^.name;
+      { the name goes with the item, which the cast may use up; one is used, whatever the stack (#1170) }
+      name := CharHlp.ItemName(use.item, 1);
       Magic.CastItemSpellOn(use.user, use.item, use.spell, use.target);
       if use.user = use.target then
         Note(use.user^.name + ' used ' + name + ' during Fix.')
