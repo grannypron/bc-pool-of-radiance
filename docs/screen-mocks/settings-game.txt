@@ -8,9 +8,9 @@
 | CONSOLIDATE COIN      OFF            |
 | JOURNAL               FOUND          |
 | NON-HUMAN LEVEL CAP   ON             |
+| GAME LEVEL CAP        ON             |
 | COMPANION TOOLS       OFF            |
 |   CLUE BOOK NOTES     ON             |
-|                                      |
 |                                      |
 |                                      |
 |                                      |
@@ -23,7 +23,7 @@
 |======================================+
 GAME SOUND CAMP COMBAT SYSTEM EXIT
 
-The Game page has 10 of the box's 20 rows. Quick Mode, Aim Cycles, Retrieve Thrown and the combat log have a
+The Game page has 11 of the box's 20 rows. Quick Mode, Aim Cycles, Retrieve Thrown and the combat log have a
 page of their own, Combat (#1180), with the Quick Mode heading on its first row:
 
 +======================================+

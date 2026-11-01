@@ -165,8 +165,9 @@ procedure SpellHaste;
 procedure SpellLightningBolt;
 
 { Calculates the arena cells crossed after the target by a lightning bolt or
-  Javelin of Lightning, including bounces. This only traces the current arena;
-  it does not draw or apply damage. }
+  Javelin of Lightning, including bounces, or the cells of a cone spell (Fear,
+  Cone of Cold) aimed there from the caster (TraceCone). This only traces the
+  current arena; it does not draw or apply damage. }
 procedure TraceBolt(spell: Byte; x, y: ShortInt; var cells: Types.TCellList);
 
 procedure SpellSlow;
@@ -214,6 +215,109 @@ procedure UnusedSpellHandler;
 
 procedure ManualBodilyHealthHandler;
 
+{ The spells of levels 4 and 5 and the druid's first (#1121), ported from Curse's Magic at Curse's ids. }
+
+{ Cure Serious Wounds (58): the target regains 2d8+1 hit points. }
+procedure SpellCureSeriousWounds;
+
+{ Cause Serious Wounds (66): a touch, with an attack roll, for 2d8+1 magic damage. }
+procedure SpellCauseSeriousWounds;
+
+{ Neutralize Poison (67): the target's poison and Slow Poison end. A target poison put down gets up with at least 1 hit
+  point; one the poison killed comes back to life with 1, unless Slow Poison held the poison off, when a wound killed
+  it. A stoned, disintegrated, fled or animated target is not brought back, and a target not poisoned is unaffected. }
+procedure SpellNeutralizePoison;
+
+{ Poison (68): a touch, with an attack roll; a creature touched saves against poison or dies of it, as a monster's
+  poisonous bite kills (C_EFFECT.POISON_HIT0), unless it resists the spell (FxEngine.EffectImmune). }
+procedure SpellPoison;
+
+{ Sticks to Snakes (70): a target below level 6 fights snakes, as many as the caster's level, until they are gone
+  (C_EFFECT.STICKS_TO_SNAKES), and spends this round's actions on them at once; a stronger one smashes them flat. }
+procedure SpellSticksToSnakes;
+
+{ Cure Critical Wounds (71): the target regains 3d8+3 hit points. }
+procedure SpellCureCriticalWounds;
+
+{ Cause Critical Wounds (72): a touch, with an attack roll, for 3d8+3 magic damage. }
+procedure SpellCauseCriticalWounds;
+
+{ Dispel Evil (73): for its duration the caster is attacked at -7 by evil creatures Dispel Evil reaches
+  (C_EFFECT.DISPEL_EVIL), and one it hits may be dispelled (C_EFFECT.DISPEL_EVIL_TOUCH). }
+procedure SpellDispelEvil;
+
+{ Flame Strike (74): 6d8 fire damage to one target, half on a save. }
+procedure SpellFlameStrike;
+
+{ Raise Dead (75), in camp: a dead or animated target that is no elf and has Constitution left rolls resurrection
+  survival on it (AbilAdj.ConResurrectionSurvival). It comes back okay at 1 hit point, its Animate Dead and poison gone,
+  at a point of Constitution while it has more than 3 (ClassCal.LoseConstitution); one that fails is gone for good, as
+  the 1st-edition PHB and the temple have it (Curse left it to be raised again). A dead target still poisoned is not
+  raised, as the poison would kill it again. }
+procedure SpellRaiseDead;
+
+{ Slay Living (76): a living target (not undead) that does not resist the spell saves against death magic or is
+  slain; one that saves takes 2d8+1 magic damage. }
+procedure SpellSlayLiving;
+
+{ Entangle (78): outdoors, every creature in the area not entangled already is held fast by the plants, or, if it
+  saves, slowed to half its movement (C_EFFECT.ENTANGLE). Indoors there are no plants and the spell is lost. }
+procedure SpellEntangle;
+
+{ Faerie Fire (79): the targets bought from the pool (CbtActs.SelectCombatTargets) are outlined, with no save. }
+procedure SpellFaerieFire;
+
+{ Invisibility to Animals (80): the target is hidden from animals (C_EFFECT.INVISIBLE_TO_ANIMALS). }
+procedure SpellInvisibilityToAnimals;
+
+{ Charm Monsters (81): the targets bought from the pool (CbtActs.SelectCombatTargets) that fail their saves are
+  charmed onto the caster's side, as Charm Person charms, of any kind or size. }
+procedure SpellCharmMonsters;
+
+{ Confusion (82): up to 2d8 of the creatures in the area that fail their saves are confused (C_EFFECT.CONFUSION). }
+procedure SpellConfusion;
+
+{ Dimension Door (83): the caster steps to the open cell aimed at, breaking any hold on it; a cell it does not fit
+  leaves it where it was. }
+procedure SpellDimensionDoor;
+
+{ Fear (84): each creature in the cone (C_SPELL.FEAR_CONE_RAYS rays, FEAR_CONE_CELLS long) that fails its save flees
+  in terror (C_EFFECT.FEAR, EffHndlr.StartFear). }
+procedure SpellFear;
+
+{ Fire Shield (85): the caster picks hot or cold flames (the AI either at random), which guard it against the other
+  element, burn melee attackers and leave it open to their own (C_EFFECT.FIRE_SHIELD_HOT, FIRE_SHIELD_COLD,
+  FIRE_SHIELD_ZAP). Any key but H or C asks whether to abort the spell. }
+procedure SpellFireShield;
+
+{ Fumble (86): a target that fails its save is clumsy and can do nothing (C_EFFECT.FUMBLE); one that saves is slowed
+  instead. }
+procedure SpellFumble;
+
+{ Ice Storm (87): 3d10 cold damage to everything in the area, with no save. }
+procedure SpellIceStorm;
+
+{ Minor Globe of Invulnerability (88): spells of level 3 and below no longer reach the caster (C_EFFECT.MINOR_GLOBE). }
+procedure SpellMinorGlobe;
+
+{ Cone of Cold (92): caster level + caster level d4 cold damage to each creature in the cone (C_SPELL.COLD_CONE_RAYS
+  rays, half the caster level long, rounded up), half on a save. }
+procedure SpellConeOfCold;
+
+{ Feeblemind (93): a target that fails its save, a magic-user's at -4, a cleric's at +1 and any other's at -2
+  (1st-edition PHB), can no longer cast until a temple heals it (C_EFFECT.FEEBLEMIND). }
+procedure SpellFeeblemind;
+
+{ The cone a spell aimed from (ox, oy) at (tx, ty) covers, rays lines reach cells long (Curse's cone): its centre line
+  runs on past the aim to the full reach, stopped by walls, and with rays 2 or 3 one or two side lines run beside it.
+  CollectConeTargets makes the creatures on it, the caster excepted, the spell's targets; TraceCone lists its cells for
+  the spell-aim preview. A cone aimed at its own origin covers nothing. }
+procedure CollectConeTargets(ox, oy, tx, ty: ShortInt; rays, reach: Byte);
+procedure TraceCone(ox, oy, tx, ty: ShortInt; rays, reach: Byte; var cells: Types.TCellList);
+
+{ The cone spell's rays and reach: Fear's, or Cone of Cold's at the caster's level. }
+procedure ConeShape(spell: Byte; var rays, reach: Byte);
+
 { Bronze dragon breath, installed as effect 88's handler, so it has FxEngine's effect-handler signature }
 procedure DragonBreathHandler(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
@@ -245,7 +349,7 @@ implementation
 
 uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, TextRend, Border,
   CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_KEYS, C_LEVEL, C_STATUS, C_IFC, C_DIR,
-  C_SPELL, AbilAdj, StrUtil, ChgClass, SpellInf, CbtLog, C_SPRITE, Bestiary, C_BEAST, CharExt;
+  C_SPELL, AbilAdj, StrUtil, ChgClass, SpellInf, CbtLog, C_SPRITE, Bestiary, C_BEAST, CharExt, C_RACE, EffHndlr;
 
 var
   { the menu string list }
@@ -307,7 +411,7 @@ end;
 
 { Member n of spellList as SpellInf takes a list line: its spell id, with C_SPELL.FROM_ITEM set when it is read from a
   scroll (the one-scroll list, or a Cast line with a scroll); 0 for a level heading or past the list. }
-function LineSpell(n: Integer): Byte;
+function LineSpell(n: Integer): Word;
 var
   p: Types.PItemRec;
   line: Integer;
@@ -559,8 +663,8 @@ end;
 { The indent-column marker for spell (bit 7 ignored) on a spell list, otherwise a blank: KNOWN_MARK for MARK_KNOWN when
   creature's spell book has it; NOT_KNOWN_MARK for MARK_NOT_KNOWN when the spell book lacks a spell creature's classes
   could learn. A class could learn a spell of its own (castClass 0 needs a cleric level, castClass 1 a magic-user level)
-  at spell level 1..3, the levels a character has slots for, whatever the character's current level. An ID outside the
-  spell book (1..56) gets a blank. }
+  at spell level 1..Types.CASTER_LEVEL_LAST, the levels a character has slots for, whatever the character's current
+  level. An ID that is no spell (CharHlp.IsSpell) gets a blank. }
 function SpellMark(creature: Types.PCharRecord; spell, mark: Byte): Char;
 var
   id: Byte;
@@ -568,19 +672,19 @@ var
 begin
   SpellMark := ' ';
   id := spell and C_SPELL.ID_MASK;
-  if (id >= 1) and (id <= SizeOf(creature^.spellsKnown)) then
+  if CharHlp.IsSpell(id) then
     case mark of
       MARK_KNOWN:
-        if creature^.spellsKnown[id] <> 0 then
+        if CharHlp.KnowsSpell(creature, id) then
           SpellMark := KNOWN_MARK;
       MARK_NOT_KNOWN:
-        if creature^.spellsKnown[id] = 0 then begin
+        if not CharHlp.KnowsSpell(creature, id) then begin
           learnable := False;
           with GameDefs.spellTable[id] do
-            if (levelSp >= 1) and (levelSp <= 3) then
+            if (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST) then
               case castClassSp of
-                0: learnable := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT) > 0;
-                1: learnable := CharHlp.GetClassLevel(creature, C_LEVEL.MAGE_BIT) > 0;
+                C_SPELL.CLASS_CLERIC: learnable := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT) > 0;
+                C_SPELL.CLASS_MAGE: learnable := CharHlp.GetClassLevel(creature, C_LEVEL.MAGE_BIT) > 0;
               end;
           if learnable then
             SpellMark := NOT_KNOWN_MARK;
@@ -713,8 +817,8 @@ var
   n: Byte;
 begin
   n := 0;
-  for j := 0 to Types.SPELL_SLOT_LAST do
-    if creature^.memorizedSpells[j] = creature^.memorizedSpells[i] then begin
+  for j := 0 to Types.MEMORIZED_LAST do
+    if CharHlp.MemorizedAt(creature, j) = CharHlp.MemorizedAt(creature, i) then begin
       if j < i then begin
         MemorizedCopies := 0;
         Exit;
@@ -732,7 +836,7 @@ var
 begin
   copies := Magic.MemorizedCopies(creature, i);
   if (copies = 0) or (lines > C_SPELL.LINE_LAST) then Exit;
-  Magic.AddSpellToList(creature, creature^.memorizedSpells[i], MARK_NONE);
+  Magic.AddSpellToList(creature, CharHlp.MemorizedAt(creature, i), MARK_NONE);
   Inc(lines);
   Magic.AddCopies(copies);
 end;
@@ -762,8 +866,8 @@ begin
   lines := 0;
   for lvl := 1 to SPELL_LEVEL_LAST do begin
     if memOk then
-      for i := 0 to Types.SPELL_SLOT_LAST do begin
-        id := creature^.memorizedSpells[i];
+      for i := 0 to Types.MEMORIZED_LAST do begin
+        id := CharHlp.MemorizedAt(creature, i);
         if CharHlp.IsSpell(id) then
           if GameDefs.spellTable[id].levelSp = lvl then
             Magic.AddMemorizedSpell(creature, i, lines);
@@ -807,27 +911,27 @@ begin
   scrollList := menuType = 2;
   case menuType of
     7: Magic.AddAvailableSpells(creature);
-    0: for i := 0 to Types.SPELL_SLOT_LAST do
-         if (creature^.memorizedSpells[i] > 0) and
-             (creature^.memorizedSpells[i] < C_SPELL.PENDING_FLAG) then
+    0: for i := 0 to Types.MEMORIZED_LAST do
+         if (CharHlp.MemorizedAt(creature, i) > 0) and
+             (CharHlp.MemorizedAt(creature, i) < C_SPELL.PENDING_FLAG) then
            Magic.AddMemorizedSpell(creature, i, lines);
-    5: for i := 0 to Types.SPELL_SLOT_LAST do
-         if creature^.memorizedSpells[i] > C_SPELL.ID_MASK then
+    5: for i := 0 to Types.MEMORIZED_LAST do
+         if CharHlp.MemorizedAt(creature, i) > C_SPELL.ID_MASK then
            Magic.AddMemorizedSpell(creature, i, lines);
     { every known spell, Restoration (56) too: SSI stopped at 55 }
-    1: for i := 1 to SizeOf(creature^.spellsKnown) do
-         if creature^.spellsKnown[i] <> 0 then
+    1: for i := 1 to C_SPELL.LAST do
+         if CharHlp.KnowsSpell(creature, i) then
            Magic.AddSpellToList(creature, i, MARK_NONE);
     { one scroll's list marks the spells the character could learn but does not know }
     2: Magic.AddScrollSpells(creature, False, MARK_NOT_KNOWN);
     { the scribe list marks the spells the character already knows }
     3: Magic.AddAllScrollSpells(creature, False, MARK_KNOWN);
     6: Magic.AddAllScrollSpells(creature, True, MARK_NONE);
-    { only spells inside slots[0..1, 1..3]: Restoration (spell 56, level 7) would read slots[0, 7], xpAward's low byte }
+    { a spell of a kind and level the character has slots for (CharHlp.SpellSlots; Restoration's level 7 has none) }
     4: for i := 1 to C_SPELL.LAST do
-         with GameDefs.spellTable[i] do
-           if (castClassSp >= 0) and (castClassSp <= 1) and (levelSp >= 1) and (levelSp <= 3) then
-             if (creature^.slots[castClassSp, levelSp] > 0) and (creature^.spellsKnown[i] = 0) then
+         if CharHlp.IsSpell(i) then
+           with GameDefs.spellTable[i] do
+             if (CharHlp.SpellSlots(creature, castClassSp, levelSp) > 0) and not CharHlp.KnowsSpell(creature, i) then
                Magic.AddSpellToList(creature, i, MARK_NONE);
   end;
   { a list of headings alone has nothing to pick: it counts as empty }
@@ -948,9 +1052,15 @@ var
   y: ShortInt;
   k: Byte;
   p: Types.PCharRecord;
+  effect: Types.PEffectRec;
 begin
   p := GameVars.curChar;
   ok := True;
+  { the feebleminded cast nothing from memory (#1121); in combat EffHndlr.EffFeeblemind keeps them from the Cast menu }
+  if not GameVars.usingItem and CharHlp.HasEffect(p, C_EFFECT.FEEBLEMIND, effect) then begin
+    CharDisp.PrintNameString(p, 'is too feebleminded to cast', 10, True);
+    Exit;
+  end;
   if (GameVars.ifcState <> C_IFC.IN_COMBAT) and (GameDefs.spellTable[spell].target = 0) then begin
     if GameVars.usingItem = False then begin
       Magic.ShowCombatOnlySpell(spell);
@@ -1249,9 +1359,10 @@ begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'falls asleep');
 end;
 
-{ Hold Person (spells 23 and 49): save modifier -2 (cleric) or -3 (mage) for one target, -1 for two, 0 for three or
-  more. Targets are processed in reverse; each one after the first processed (i < spellTargetCount) gets its own
-  projectile animation. Targets that are not persons (CharHlp.IsPerson, #792) always save. }
+{ Hold Person (spells 23 and 49) and Hold Monsters (94): save modifier -2 (cleric) or -3 (mage) for one target, -1 for
+  two, 0 for three or more. Targets are processed in reverse; each one after the first processed (i < spellTargetCount)
+  gets its own projectile animation. Against Hold Person, targets that are not persons (CharHlp.IsPerson, #792) always
+  save. }
 procedure SpellHold;
 var
   tgt: Types.PCharRecord;
@@ -1278,7 +1389,8 @@ begin
         SoundDrv.SoundSetAutoStop(10);
       end;
       saved := FxEngine.RollSavingThrow(tgt, GameDefs.spellTable[GameVars.spellId].saveType, smod);
-      if not CharHlp.IsPerson(tgt) then
+      { Hold Monsters holds any kind of creature (#1121) }
+      if (GameVars.spellId <> C_SPELL.HOLD_MONSTERS) and not CharHlp.IsPerson(tgt) then
         saved := True;
       FxEngine.AddEffectWithMessage(tgt, GameDefs.spellTable[GameVars.spellId].effect,
                                     Magic.CalcSpellDuration(GameVars.spellId),
@@ -1542,8 +1654,7 @@ begin
           p^.levelUndead := 2;
           p^.attackLevel := 0;
           p^.movementBase := 6;
-          for i := 0 to Types.SPELL_SLOT_LAST do
-            p^.memorizedSpells[i] := 0;
+          CharHlp.ClearMemorized(p);
           { C_NPC.FLAG set }
           if CharHlp.IsNpc(p) then
             p^.npc := C_NPC.ANIMATED_NPC
@@ -1923,7 +2034,14 @@ var
   savedY: ShortInt;
   boltLen: Byte;
   bounce: Boolean;
+  rays: Byte;
 begin
+  if (spell = C_SPELL.FEAR) or (spell = C_SPELL.CONE_OF_COLD) then begin
+    Magic.ConeShape(spell, rays, boltLen);
+    Magic.TraceCone(CbtMap.CombatCellX(GameVars.curChar), CbtMap.CombatCellY(GameVars.curChar), x, y, rays, boltLen,
+                    cells);
+    Exit;
+  end;
   savedX := gTargetX;
   savedY := gTargetY;
   gTargetX := x;
@@ -1947,9 +2065,8 @@ begin
   lvl := tgt^.classLevels[cls];
   if tgt^.portExt.formerClasses and (1 shl cls) <> 0 then
     lvl := 0;
-  { xp[] runs to level LEVEL_LAST }
-  RestorableClass := (lvl > 0) and (lvl < C_LEVEL.LEVEL_LAST) and
-                     (GameDefs.classExperience[cls].xp[Succ(lvl)] > 0) and (not CharHlp.AtLevelCap(tgt, cls));
+  { a level given back, not trained: the experience table's end (ClassCal.LevelXp) bounds it, not the Game Level Cap }
+  RestorableClass := (lvl > 0) and (ClassCal.LevelXp(cls, lvl + 1) > 0) and (not CharHlp.AtLevelCap(tgt, cls));
 end;
 
 function RestoreClass(tgt: Types.PCharRecord): ShortInt;
@@ -1968,10 +2085,10 @@ begin
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
     if Magic.RestorableClass(tgt, cls) then begin
       lvl := tgt^.classLevels[cls];
-      if (lvl <= bestLvl) and (GameDefs.classExperience[cls].xp[Succ(lvl)] < bestXp) then begin
+      if (lvl <= bestLvl) and (ClassCal.LevelXp(cls, lvl + 1) < bestXp) then begin
         bestLvl := lvl;
         RestoreClass := cls;
-        bestXp := GameDefs.classExperience[cls].xp[Succ(lvl)];
+        bestXp := ClassCal.LevelXp(cls, lvl + 1);
       end;
     end;
 end;
@@ -2007,7 +2124,7 @@ begin
   else
     cls := Magic.RestoreClass(tgt);
   if cls >= 0 then begin
-    levelXp := GameDefs.classExperience[cls].xp[Succ(tgt^.classLevels[cls])];
+    levelXp := ClassCal.LevelXp(cls, tgt^.classLevels[cls] + 1);
     Inc(tgt^.classLevels[cls]);
     if logged then
       Inc(tgt^.experience, entry.xp);
@@ -2160,6 +2277,622 @@ end;
 procedure SpellWandOfMagicMissiles;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, Dice.RollDamageDice(2, 4) + 2, C_EFFECT.ELEM_MAGIC, '');
+end;
+
+procedure SpellCureSeriousWounds;
+begin
+  if GameVars.spellTargetCount = 0 then
+    Exit;
+  if FxEngine.RestoreHitPoints(GameVars.spellTargets[1], Dice.RollDice(2, 8) + 1, False) then
+    CharDisp.PrintHpRestoreMsg(GameVars.spellTargets[1]);
+end;
+
+procedure SpellCauseSeriousWounds;
+begin
+  Magic.ResolveSpell(GameVars.spellId, 0, False, Dice.RollDamageDice(2, 8) + 1, C_EFFECT.ELEM_MAGIC, '');
+end;
+
+procedure SpellNeutralizePoison;
+var
+  tgt: Types.PCharRecord;
+  effect: Types.PEffectRec;
+  { the poison was held off by Slow Poison, so a wound, not the poison, killed a dead target }
+  slowed: Boolean;
+begin
+  tgt := GameVars.spellTargets[1];
+  if tgt = nil then
+    Exit;
+  if (tgt^.status <> C_STATUS.ANIMATED) and CharHlp.HasEffect(tgt, C_EFFECT.POISONED, effect) then begin
+    slowed := CharHlp.HasEffect(tgt, C_EFFECT.SLOW_POISON_END, effect) or
+              CharHlp.HasEffect(tgt, C_EFFECT.SLOW_POISON_HIT, effect);
+    GameVars.effectLock := 1;
+    FxEngine.RemoveEffect(tgt, C_EFFECT.POISONED, nil);
+    FxEngine.RemoveEffect(tgt, C_EFFECT.SLOW_POISON_END, nil);
+    FxEngine.RemoveEffect(tgt, C_EFFECT.SLOW_POISON_HIT, nil);
+    GameVars.effectLock := 0;
+    CharDisp.PrintNameString(tgt, 'is unpoisoned', 10, True);
+    if tgt^.status in [C_STATUS.TEMPGONE, C_STATUS.RUNNING, C_STATUS.STONED, C_STATUS.GONE] then
+    else if (tgt^.status <> C_STATUS.DEAD_STATUS) or not slowed then begin
+      if tgt^.hpCur = 0 then
+        tgt^.hpCur := 1;
+      if GameVars.ifcState = C_IFC.IN_COMBAT then
+        Magic.StandUpOrWake(tgt)
+      else begin
+        tgt^.enabled := 1;
+        tgt^.status := C_STATUS.OKAY;
+      end;
+    end;
+    CharDisp.RedrawPartyOutOfCombat;
+  end else
+    CharDisp.PrintNameString(tgt, 'is unaffected', 10, True);
+end;
+
+procedure SpellPoison;
+var
+  tgt: Types.PCharRecord;
+begin
+  tgt := GameVars.spellTargets[1];
+  if (tgt = nil) or (GameVars.ifcState <> C_IFC.IN_COMBAT) then
+    Exit;
+  CharHlp.RecalcStats(tgt);
+  FxEngine.TriggerEffectsWithCondition(C_COND.DEFENDER_AC, tgt);
+  if not FxEngine.AttackRoll(GameVars.curChar, tgt, tgt^.acCur) then
+    CharDisp.PrintNameString(GameVars.curChar, 'misses', 10, True)
+  else if FxEngine.EffectImmune(tgt, C_EFFECT.POISONED) then
+    CharDisp.PrintNameString(tgt, 'is Unaffected', 10, True)
+  else begin
+    GameVars.curChar^.combatAddr^.other := tgt;
+    FxEngine.CallEffectHandler(C_EFFECT.POISON_HIT0, GameVars.curChar, nil, False);
+  end;
+end;
+
+procedure SpellSticksToSnakes;
+var
+  effect: Types.PEffectRec;
+  tgt: Types.PCharRecord;
+begin
+  tgt := GameVars.spellTargets[1];
+  if tgt = nil then
+    Exit;
+  if tgt^.levelHighest < 6 then begin
+    Magic.ResolveSpell(GameVars.spellId, CharHlp.GetCasterLevel(GameVars.spellId), False, 0, 0, '');
+    if CharHlp.HasEffect(tgt, C_EFFECT.STICKS_TO_SNAKES, effect) then
+      FxEngine.CallEffectHandler(C_EFFECT.STICKS_TO_SNAKES, tgt, effect, False);
+  end else
+    CharDisp.PrintNameString(tgt, 'smashes them flat', 10, True);
+end;
+
+procedure SpellCureCriticalWounds;
+begin
+  if GameVars.spellTargetCount = 0 then
+    Exit;
+  if FxEngine.RestoreHitPoints(GameVars.spellTargets[1], Dice.RollDice(3, 8) + 3, False) then
+    CharDisp.PrintHpRestoreMsg(GameVars.spellTargets[1]);
+end;
+
+procedure SpellCauseCriticalWounds;
+begin
+  Magic.ResolveSpell(GameVars.spellId, 0, False, Dice.RollDamageDice(3, 8) + 3, C_EFFECT.ELEM_MAGIC, '');
+end;
+
+procedure SpellDispelEvil;
+begin
+  FxEngine.AddEffectWithMessage(GameVars.curChar, C_EFFECT.DISPEL_EVIL, Magic.CalcSpellDuration(GameVars.spellId),
+                                CharHlp.GetCasterLevel(GameVars.spellId), False, False, False, '');
+  Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is affected');
+end;
+
+procedure SpellFlameStrike;
+begin
+  Magic.ResolveSpell(GameVars.spellId, 0, False, Dice.RollDamageDice(6, 8), C_EFFECT.ELEM_FIRE or C_EFFECT.ELEM_MAGIC,
+                     '');
+end;
+
+procedure SpellRaiseDead;
+var
+  tgt: Types.PCharRecord;
+  effect: Types.PEffectRec;
+begin
+  tgt := GameVars.spellTargets[1];
+  if tgt = nil then
+    Exit;
+  if (tgt^.status = C_STATUS.DEAD_STATUS) and CharHlp.HasEffect(tgt, C_EFFECT.POISONED, effect) then
+    CharDisp.PrintNameString(tgt, 'is still poisoned', 10, True)
+  else if ((tgt^.status = C_STATUS.DEAD_STATUS) or (tgt^.status = C_STATUS.ANIMATED)) and (tgt^.conCur > 0) and
+      (tgt^.race <> C_RACE.ELF) then begin
+    GameVars.effectLock := 1;
+    FxEngine.RemoveEffect(tgt, C_EFFECT.ANIMATE_DEAD, nil);
+    if Dice.RollDice(1, 100) > AbilAdj.ConResurrectionSurvival(tgt^.conCur) then begin
+      GameVars.effectLock := 0;
+      tgt^.status := C_STATUS.GONE;
+      tgt^.enabled := 0;
+      tgt^.hpCur := 0;
+      CharDisp.PrintNameString(tgt, 'does not survive', 10, True);
+    end else begin
+      FxEngine.RemoveEffect(tgt, C_EFFECT.POISONED, nil);
+      GameVars.effectLock := 0;
+      tgt^.status := C_STATUS.OKAY;
+      tgt^.enabled := 1;
+      if tgt^.conCur > AbilAdj.SCORE_MIN then
+        ClassCal.LoseConstitution(tgt);
+      tgt^.hpCur := 1;
+      Stats.Count(tgt, Stats.RAISED, 1);
+      CharDisp.PrintNameString(tgt, 'is raised', 10, True);
+    end;
+    CharDisp.RedrawPartyOutOfCombat;
+  end else
+    CharDisp.PrintNameString(tgt, 'is unaffected', 10, True);
+end;
+
+procedure SpellSlayLiving;
+var
+  tgt: Types.PCharRecord;
+begin
+  tgt := GameVars.spellTargets[1];
+  if tgt = nil then
+    Exit;
+  { the spell's resistances: magic resistance, the globes }
+  GameVars.elementMask := C_EFFECT.ELEM_MAGIC;
+  GameVars.pendingDamage := 1;
+  GameVars.pendingEffectId := 0;
+  FxEngine.TriggerEffectsWithCondition(C_COND.EFFECT_IMMUNITY, tgt);
+  { the undead are not living (1st-edition PHB; Curse slew them too) }
+  if (GameVars.pendingDamage = 0) or (tgt^.charType = CharHlp.UNDEAD_TYPE) then
+    CharDisp.PrintNameString(tgt, 'is unaffected', 10, True)
+  else if not FxEngine.RollSavingThrow(tgt, C_SAVE.PARALYZE, 0) then
+    EffHndlr.InflictStatusMsg(tgt, C_STATUS.DEAD_STATUS, 'is slain')
+  else
+    FxEngine.InflictNonWeaponDamage(tgt, Dice.RollDamageDice(2, 8) + 1, 0, False);
+  GameVars.elementMask := 0;
+end;
+
+procedure SpellEntangle;
+var
+  i: Byte;
+  tgt: Types.PCharRecord;
+  saved: Boolean;
+  effect: Types.PEffectRec;
+begin
+  GameVars.gMultiTarget := 1;
+  if GameVars.zone0^.view3dFlag <> 0 then begin
+    CharDisp.PrintNameString(GameVars.curChar, 'finds no plants here', 10, True);
+    Exit;
+  end;
+  for i := 1 to GameVars.spellTargetCount do
+    if GameVars.spellTargets[i] <> nil then begin
+      tgt := GameVars.spellTargets[i];
+      { a creature an earlier Entangle holds or slows keeps that one, unsaved, so it never carries two }
+      if CharHlp.HasEffect(tgt, C_EFFECT.ENTANGLE, effect) then
+        CharDisp.PrintNameString(tgt, 'is already entangled', 10, True)
+      else begin
+        saved := FxEngine.RollSavingThrow(tgt, C_SAVE.SPELL, 0);
+        { 1st-edition PHB: a creature that saves still moves at half speed through the plants }
+        if saved then
+          FxEngine.AddEffectWithMessage(tgt, C_EFFECT.ENTANGLE, Magic.CalcSpellDuration(GameVars.spellId), 1, False,
+                                        False, False, 'is slowed by the plants')
+        else
+          FxEngine.AddEffectWithMessage(tgt, C_EFFECT.ENTANGLE, Magic.CalcSpellDuration(GameVars.spellId), 0, False,
+                                        False, False, 'is entangled');
+        { this round's movement too }
+        if CharHlp.HasEffect(tgt, C_EFFECT.ENTANGLE, effect) and (tgt^.combatAddr <> nil) then
+          if saved then
+            tgt^.combatAddr^.movement := tgt^.combatAddr^.movement div 2
+          else
+            tgt^.combatAddr^.movement := 0;
+      end;
+    end;
+end;
+
+{ The spell's effect on each target, the last picked first, a missile drawn to each but the last, with a save at
+  saveMod (none against Faerie Fire), at the caster level; for Charm Monsters the caster's team in bit 7, as Charm
+  Person does, and the handler asked for on removal so EffCharm gives a creature its side back. Curse's, for the pool
+  spells. }
+procedure ApplyEffectToTargets(saveMod: ShortInt; msg: Types.TStr40);
+var
+  tgt: Types.PCharRecord;
+  saved: Boolean;
+  saveNegates: Boolean;
+  i: Byte;
+  strength: Byte;
+begin
+  for i := GameVars.spellTargetCount downto 1 do
+    if GameVars.spellTargets[i] <> nil then begin
+      tgt := GameVars.spellTargets[i];
+      if i < GameVars.spellTargetCount then begin
+        SoundDrv.SoundSetAutoStop(0);
+        SoundDrv.SoundEffect(GameDefs.soundIds.commands[C_SOUND.CAST], C_SOUND.GROUP_SPELL);
+        CharDisp.AnimateBetween(GameVars.curChar, tgt, C_SPRITE.MISSILE, 4, 30);
+        SoundDrv.SoundSetAutoStop(10);
+      end;
+      if GameVars.spellId = C_SPELL.FAERIE_FIRE then begin
+        saved := False;
+        saveNegates := False;
+      end else begin
+        saved := FxEngine.RollSavingThrow(tgt, GameDefs.spellTable[GameVars.spellId].saveType, saveMod);
+        saveNegates := GameDefs.spellTable[GameVars.spellId].saveResult in [C_SPELL.SAVE_NEGATES, C_SPELL.SAVE_SPECIAL];
+      end;
+      strength := CharHlp.GetCasterLevel(GameVars.spellId);
+      if GameVars.spellId = C_SPELL.CHARM_MONSTERS then
+        strength := CharHlp.Team(GameVars.curChar) * 128 + strength;
+      FxEngine.AddEffectWithMessage(tgt, GameDefs.spellTable[GameVars.spellId].effect,
+                                    Magic.CalcSpellDuration(GameVars.spellId), strength,
+                                    GameVars.spellId = C_SPELL.CHARM_MONSTERS, saveNegates, saved, msg);
+    end;
+end;
+
+procedure SpellFaerieFire;
+begin
+  Magic.ApplyEffectToTargets(0, 'is outlined');
+end;
+
+procedure SpellInvisibilityToAnimals;
+begin
+  Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is hidden from animals');
+end;
+
+procedure SpellCharmMonsters;
+var
+  i: Byte;
+  effect: Types.PEffectRec;
+begin
+  Magic.ApplyEffectToTargets(0, 'is charmed');
+  for i := 1 to GameVars.spellTargetCount do
+    if GameVars.spellTargets[i] <> nil then
+      if CharHlp.HasEffect(GameVars.spellTargets[i], C_EFFECT.CHARM, effect) then
+        FxEngine.CallEffectHandler(C_EFFECT.CHARM, GameVars.spellTargets[i], effect, False);
+end;
+
+procedure SpellConfusion;
+var
+  i: Byte;
+  most: Byte;
+  tgt: Types.PCharRecord;
+begin
+  GameVars.gMultiTarget := 1;
+  most := Dice.RollDice(C_SPELL.CONFUSION_DICE, C_SPELL.CONFUSION_DIE);
+  if GameVars.spellTargetCount > most then
+    GameVars.spellTargetCount := most;
+  for i := 1 to GameVars.spellTargetCount do
+    if GameVars.spellTargets[i] <> nil then begin
+      tgt := GameVars.spellTargets[i];
+      FxEngine.AddEffectWithMessage(tgt, C_EFFECT.CONFUSION, Magic.CalcSpellDuration(GameVars.spellId),
+                                    CharHlp.GetCasterLevel(GameVars.spellId), False, True,
+                                    FxEngine.RollSavingThrow(tgt, C_SAVE.SPELL, 0), 'is confused');
+    end;
+end;
+
+procedure SpellDimensionDoor;
+var
+  caster: Types.PCharRecord;
+  x: ShortInt;
+  y: ShortInt;
+begin
+  caster := GameVars.curChar;
+  if (GameVars.ifcState <> C_IFC.IN_COMBAT) or (CbtMap.CombatSlot(caster) = 0) then
+    Exit;
+  x := CbtMap.CombatCellX(caster);
+  y := CbtMap.CombatCellY(caster);
+  if CbtMap.IsValidCreatureLoc(caster, gTargetX, gTargetY, True) then begin
+    { a hold on the caster lets go once it is no longer held fast (FxEngine.HoldTarget) }
+    FxEngine.RemoveEffect(caster, C_EFFECT.IMMOBILE, nil);
+    CbtMap.RedrawArenaCell(x, y);
+    CbtMap.DisplayMapViewCentered(caster, 3, False);
+    CharDisp.PrintNameString(caster, 'teleports', 10, True);
+  end else begin
+    { IsValidCreatureLoc took the caster off the map: put it back }
+    if CbtMap.IsValidCreatureLoc(caster, x, y, False) then ;
+    CbtMap.RedrawArenaCell(x, y);
+    CharDisp.PrintNameString(caster, 'cannot teleport there', 10, True);
+  end;
+end;
+
+procedure SpellFear;
+var
+  caster: Types.PCharRecord;
+  tgt: Types.PCharRecord;
+  i: Byte;
+  effect: Types.PEffectRec;
+begin
+  caster := GameVars.curChar;
+  GameVars.gMultiTarget := 1;
+  Magic.CollectConeTargets(CbtMap.CombatCellX(caster), CbtMap.CombatCellY(caster), gTargetX, gTargetY,
+                           C_SPELL.FEAR_CONE_RAYS, C_SPELL.FEAR_CONE_CELLS);
+  for i := 1 to GameVars.spellTargetCount do begin
+    tgt := GameVars.spellTargets[i];
+    if not FxEngine.RollSavingThrow(tgt, C_SAVE.SPELL, 0) then begin
+      FxEngine.AddEffectWithMessage(tgt, C_EFFECT.FEAR, Magic.CalcSpellDuration(GameVars.spellId),
+                                    CharHlp.GetCasterLevel(GameVars.spellId), True, True, False, 'runs in terror');
+      { only when the fear took: nothing would undo it for a creature that resisted }
+      if CharHlp.HasEffect(tgt, C_EFFECT.FEAR, effect) then
+        EffHndlr.StartFear(tgt);
+    end else
+      CharDisp.PrintNameString(tgt, 'is unaffected', 10, True);
+  end;
+end;
+
+procedure SpellFireShield;
+var
+  ch: Char;
+  ext: Boolean;
+  done: Boolean;
+  own: Byte;
+  other: Byte;
+  minutes: Word;
+  lvl: Byte;
+begin
+  done := False;
+  repeat
+    if GameVars.curChar^.quickfight <> 0 then begin
+      if Dice.RollDice(1, 2) = 1 then
+        ch := 'H'
+      else
+        ch := 'C';
+    end else
+      ch := MenuCore.MenuHorizontal('flame type: ', 'Hot Cold', LightMagenta, LightGreen, White, False, False, ext);
+    if (ch = 'H') or (ch = 'C') then begin
+      if ch = 'H' then begin
+        own := C_EFFECT.FIRE_SHIELD_HOT;
+        other := C_EFFECT.FIRE_SHIELD_COLD;
+      end else begin
+        own := C_EFFECT.FIRE_SHIELD_COLD;
+        other := C_EFFECT.FIRE_SHIELD_HOT;
+      end;
+      minutes := Magic.CalcSpellDuration(GameVars.spellId);
+      lvl := CharHlp.GetCasterLevel(GameVars.spellId);
+      { one kind of flames at a time }
+      FxEngine.RemoveEffect(GameVars.curChar, other, nil);
+      FxEngine.AddEffectWithMessage(GameVars.curChar, own, minutes, lvl, False, False, False, 'is protected');
+      FxEngine.AddEffectWithMessage(GameVars.curChar, C_EFFECT.FIRE_SHIELD_ZAP, minutes, lvl, False, False, False, '');
+      done := True;
+    end else if MenuCore.YesNoMenu('Abort spell? ', LightMagenta, LightGreen, White) = 'Y' then
+      done := True;
+  until done;
+end;
+
+procedure SpellFumble;
+var
+  tgt: Types.PCharRecord;
+  effect: Types.PEffectRec;
+begin
+  tgt := GameVars.spellTargets[1];
+  if tgt = nil then
+    Exit;
+  if not FxEngine.RollSavingThrow(tgt, C_SAVE.SPELL, 0) then begin
+    FxEngine.AddEffectWithMessage(tgt, C_EFFECT.FUMBLE, Magic.CalcSpellDuration(GameVars.spellId),
+                                  CharHlp.GetCasterLevel(GameVars.spellId), False, False, False, 'is clumsy');
+    if CharHlp.HasEffect(tgt, C_EFFECT.FUMBLE, effect) then
+      FxEngine.CallEffectHandler(C_EFFECT.FUMBLE, tgt, effect, False);
+  end else
+    { 1st-edition PHB: a creature that saves is slowed }
+    FxEngine.AddEffectWithMessage(tgt, C_EFFECT.SLOWED, Magic.CalcSpellDuration(GameVars.spellId),
+                                  CharHlp.GetCasterLevel(GameVars.spellId), False, False, False, 'is slowed');
+end;
+
+procedure SpellIceStorm;
+begin
+  GameVars.gMultiTarget := 1;
+  Magic.ResolveSpell(GameVars.spellId, 0, False, Dice.RollDamageDice(3, 10), C_EFFECT.ELEM_COLD or C_EFFECT.ELEM_MAGIC,
+                     '');
+end;
+
+procedure SpellMinorGlobe;
+begin
+  Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is protected');
+end;
+
+procedure ConeShape(spell: Byte; var rays, reach: Byte);
+begin
+  if spell = C_SPELL.FEAR then
+    rays := C_SPELL.FEAR_CONE_RAYS
+  else
+    rays := C_SPELL.COLD_CONE_RAYS;
+  { the reach is CharHlp.SpellArea's, which the spell page shows }
+  if CharHlp.SpellArea(spell, reach) = C_SPELL.AREA_CONE then ;
+end;
+
+procedure SpellConeOfCold;
+var
+  p: Types.PCharRecord;
+  rays: Byte;
+  reach: Byte;
+  lvl: Byte;
+begin
+  p := GameVars.curChar;
+  GameVars.gMultiTarget := 1;
+  lvl := CharHlp.GetCasterLevel(GameVars.spellId);
+  Magic.ConeShape(GameVars.spellId, rays, reach);
+  Magic.CollectConeTargets(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), gTargetX, gTargetY, rays, reach);
+  Magic.ResolveSpell(GameVars.spellId, 0, False, lvl + Dice.RollDamageDice(lvl, 4),
+                     C_EFFECT.ELEM_COLD or C_EFFECT.ELEM_MAGIC, '');
+end;
+
+procedure SpellFeeblemind;
+var
+  tgt: Types.PCharRecord;
+  effect: Types.PEffectRec;
+  saveMod: ShortInt;
+begin
+  tgt := GameVars.spellTargets[1];
+  if tgt = nil then
+    Exit;
+  if CharHlp.GetClassLevel(tgt, C_LEVEL.MAGE_BIT) > 0 then
+    saveMod := -4
+  else if CharHlp.GetClassLevel(tgt, C_LEVEL.CLERIC_BIT) > 0 then
+    saveMod := 1
+  else
+    saveMod := -2;
+  FxEngine.AddEffectWithMessage(tgt, C_EFFECT.FEEBLEMIND, 0, CharHlp.GetCasterLevel(GameVars.spellId), False, True,
+                                FxEngine.RollSavingThrow(tgt, C_SAVE.SPELL, saveMod), 'is stupid');
+  if CharHlp.HasEffect(tgt, C_EFFECT.FEEBLEMIND, effect) then
+    FxEngine.CallEffectHandler(C_EFFECT.FEEBLEMIND, tgt, effect, False);
+end;
+
+{ The side ray beside a cone's line, from the line's last direction dir (C_DIR): its left-hand neighbour's direction
+  (left) or its right-hand one's, as Curse's tables give them: a straight line's sides are the perpendiculars, a
+  diagonal's the straight steps beside it. }
+function SideDir(dir: Byte; left: Boolean): Byte;
+begin
+  if left then
+    SideDir := (dir + 6 + (dir and 1)) and 7
+  else
+    SideDir := (dir + 2 - (dir and 1)) and 7;
+end;
+
+{ CollectConeTargets' and TraceCone's walk, Curse's WalkCone. With trace set it lists in cells every arena cell its
+  lines cross and leaves the spell targets alone. }
+procedure WalkCone(ox, oy, tx, ty: ShortInt; rays, reach: Byte; trace: Boolean; var cells: Types.TCellList);
+var
+  req: Types.TPathReq;
+  done: Boolean;
+  i: Word;
+  n: Byte;
+  lastDir: Byte;
+  dirs: array[0..49] of Byte;
+  list: array[0..30] of Byte;
+  listCount: Byte;
+  crIdx: Byte;
+  terr: Byte;
+  centerDir: Byte;
+  walkDist: Word;
+  sx: ShortInt;
+  sy: ShortInt;
+  k: Byte;
+
+  { Start the line walk req from (ox, oy) to (ex, ey). }
+  procedure SetLine(ex, ey: ShortInt);
+  begin
+    FillChar(req, SizeOf(req), 0);
+    req.sx := ox;
+    req.sy := oy;
+    req.ex := ex;
+    req.ey := ey;
+    Pathing.PathFind(req);
+  end;
+
+  { Keep (cx, cy) on the arena. }
+  procedure ClampCell(var cx, cy: ShortInt);
+  begin
+    if cx > Types.ARENA_LAST_X then
+      cx := Types.ARENA_LAST_X
+    else if cx < 0 then
+      cx := 0;
+    if cy > Types.ARENA_LAST_Y then
+      cy := Types.ARENA_LAST_Y
+    else if cy < 0 then
+      cy := 0;
+  end;
+
+  { Walk the rest of req's line: with trace set list its cells, and add each creature on it to list once. }
+  procedure CollectAlong(steer: Boolean);
+  var
+    j: Byte;
+    found: Boolean;
+  begin
+    repeat
+      done := not Pathing.NextPathStep(req);
+      if not done then begin
+        if trace and (cells.count < SizeOf(cells.x)) then begin
+          Inc(cells.count);
+          cells.x[cells.count] := req.cx;
+          cells.y[cells.count] := req.cy;
+        end;
+        CbtMap.GetArenaContents(req.cx, req.cy, crIdx, terr);
+        if crIdx > 0 then begin
+          { each cell afresh: a large creature fills several cells of a line }
+          found := False;
+          for j := 1 to listCount do
+            if list[j] = crIdx then
+              found := True;
+          if not found and (listCount < 30) then begin
+            Inc(listCount);
+            list[listCount] := crIdx;
+          end;
+          { the side rays turn from the step onto the centre line's last creature }
+          if steer then
+            centerDir := req.step;
+        end;
+      end;
+    until done;
+  end;
+
+begin
+  cells.count := 0;
+  listCount := 0;
+  if (ox = tx) and (oy = ty) then begin
+    if not trace then
+      GameVars.spellTargetCount := 0;
+    Exit;
+  end;
+  { the line's steps from the origin to the aim, repeated to carry it on to the full reach }
+  n := 0;
+  SetLine(tx, ty);
+  repeat
+    done := not Pathing.NextPathStep(req);
+    if not done and (n <= 49) then begin
+      dirs[n] := req.step;
+      Inc(n);
+    end;
+  until done;
+  lastDir := n - 1;
+  n := 0;
+  walkDist := reach;
+  i := req.dist;
+  done := False;
+  while (i < Word(reach) * 2) and not done do
+    if (tx < Types.ARENA_LAST_X) and (tx > 0) and (ty < Types.ARENA_LAST_Y) and (ty > 0) then begin
+      if dirs[n] and 1 = 0 then
+        Inc(i, 2)
+      else
+        Inc(i, 3);
+      Inc(tx, GameDefs.dirDX[dirs[n]]);
+      Inc(ty, GameDefs.dirDY[dirs[n]]);
+      if n = lastDir then
+        n := 0
+      else
+        Inc(n);
+    end else
+      done := True;
+  ClampCell(tx, ty);
+  { walls stop the centre line within the reach }
+  if Pathing.WalkLine(ox, oy, tx, ty, walkDist, GameVars.arenaPtr) then ;
+  centerDir := dirs[lastDir];
+  SetLine(tx, ty);
+  CollectAlong(True);
+  if rays > 1 then begin
+    sx := tx + GameDefs.dirDX[Magic.SideDir(centerDir, False)];
+    sy := ty + GameDefs.dirDY[Magic.SideDir(centerDir, False)];
+    ClampCell(sx, sy);
+    SetLine(sx, sy);
+    CollectAlong(False);
+    if rays > 2 then begin
+      sx := tx + GameDefs.dirDX[Magic.SideDir(centerDir, True)];
+      sy := ty + GameDefs.dirDY[Magic.SideDir(centerDir, True)];
+      ClampCell(sx, sy);
+      SetLine(sx, sy);
+      CollectAlong(False);
+    end;
+  end;
+  if trace then
+    Exit;
+  GameVars.spellTargetCount := 0;
+  FillChar(GameVars.spellTargets, SizeOf(GameVars.spellTargets), 0);
+  for k := 1 to listCount do
+    if GameVars.creatureArr[list[k]] <> GameVars.curChar then begin
+      Inc(GameVars.spellTargetCount);
+      GameVars.spellTargets[GameVars.spellTargetCount] := GameVars.creatureArr[list[k]];
+    end;
+end;
+
+procedure CollectConeTargets(ox, oy, tx, ty: ShortInt; rays, reach: Byte);
+var
+  cells: Types.TCellList;
+begin
+  Magic.WalkCone(ox, oy, tx, ty, rays, reach, False, cells);
+end;
+
+procedure TraceCone(ox, oy, tx, ty: ShortInt; rays, reach: Byte; var cells: Types.TCellList);
+begin
+  Magic.WalkCone(ox, oy, tx, ty, rays, reach, True, cells);
 end;
 
 { Unused item spell slot: does nothing. }

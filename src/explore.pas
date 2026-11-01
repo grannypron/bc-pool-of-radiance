@@ -174,15 +174,16 @@ begin
   PickLock := success;
 end;
 
-{ Return the first memorizedSpells index (0..20) holding spellId, or 255 when none does. }
+{ Return the first memorized-spell slot (0..Types.MEMORIZED_LAST, CharHlp.MemorizedAt) holding spellId, or 255 when
+  none does. }
 function FindMemorizedSpell(spellId: Byte; creature: Types.PCharRecord): Byte;
 var
   i: Byte;
 begin
   i := 0;
-  while (i <= Types.SPELL_SLOT_LAST) and (creature^.memorizedSpells[i] <> spellId) do
+  while (i <= Types.MEMORIZED_LAST) and (CharHlp.MemorizedAt(creature, i) <> spellId) do
     Inc(i);
-  if i <= Types.SPELL_SLOT_LAST then
+  if i <= Types.MEMORIZED_LAST then
     FindMemorizedSpell := i
   else
     FindMemorizedSpell := 255;

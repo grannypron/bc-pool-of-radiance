@@ -6,11 +6,15 @@ interface
 
 const
   KNOCK = 31;
-  { a spell's casting class (GameDefs.spellTable's castClass): a cleric's, a magic-user's, or one cast at a fixed
-    level }
+  { a spell's casting class (GameDefs.spellTable's castClass): a cleric's (a paladin's too), a magic-user's (a
+    ranger's too), a druid's (cast here only by a ranger, #1121), or one cast at a fixed level; the first three are also
+    the kinds of a character's spell slots (CharHlp.SpellSlots), CLASS_CLERIC..CLASS_DRUID }
   CLASS_CLERIC = 0;
   CLASS_MAGE = 1;
-  CLASS_SPECIAL = 2;
+  CLASS_DRUID = 2;
+  CLASS_SPECIAL = 3;
+  { the last kind of spell slot }
+  SLOT_KIND_LAST = CLASS_DRUID;
   { the caster level of a CLASS_SPECIAL spell, and of any other spell cast from an item }
   SPECIAL_CASTER_LEVEL = 12;
   ITEM_CASTER_LEVEL = 6;
@@ -18,14 +22,23 @@ const
   ATTACK_ROLL_RANGE = 255;
   PENDING_FLAG = $80;
   ID_MASK = $7F;
-  { Spell IDs: 1..56 are spells and 57..67 are item effects. }
+  { Spell IDs, Curse's numbers (#1121): 1..56 are SSI's spells; 57 and 59..65 and 127..128 are item spells; 58 and
+    66..94 are the cleric's spells of levels 4 and 5, the druid's first level (a ranger's) and the magic-user's of
+    levels 4 and 5, and 100 the magic-user's Bestow Curse; 95..99 are Curse's monster powers, not cast here, and 91 is
+    Curse's Cloudkill, which this arena has no cloud for. }
   { no spell selected (SpellMenu exit/cancel) }
   NONE = 0;
-  { the last spell; 57..67 are item effects }
-  LAST = 56;
-  { GameDefs.spellTable's last entry }
-  TABLE_LAST = 67;
-  { an item effect above LAST is the spell id effect - ITEM_EFFECT_SHIFT (item effects 80..90 are 57..67) }
+  { the last spell: GameDefs.spellNames runs 1..LAST, and the spell lists and spell books read 1..LAST through
+    CharHlp.IsSpell, which passes over the item spells inside it by their class }
+  LAST = 100;
+  { the ids below TABLE_LAST whose spellTable rows hold no spell: no handler but Magic.UnusedSpellHandler, no name, no
+    description }
+  EMPTY_IDS = [91, 95..99, 101..126];
+  { GameDefs.spellTable's last entry: the last item spell, past every game's spell table (Pools' runs to 126) }
+  TABLE_LAST = 128;
+  { an item effect 1..ITEM_EFFECT_DIRECT_LAST is that spell; one above it is the spell effect - ITEM_EFFECT_SHIFT (SSI's
+    item effects 80..88 are 57..65, and 150 and 151 are 127 and 128) }
+  ITEM_EFFECT_DIRECT_LAST = 56;
   ITEM_EFFECT_SHIFT = 23;
   { the Javelin of Lightning's spell (item effect 83), and the cells its bolt runs past the aim cell }
   ITEM_JAVELIN_LIGHTNING = 60;
@@ -41,12 +54,16 @@ const
   SUMMARY_ROW = 22;
   MEMORIZE_LIST_BOTTOM = 16;
   SLOTS_TOP = 18;
-  { Detect Magic, the cleric's and the magic-user's: the loot menu's Detect }
+  { Detect Magic, the cleric's, the magic-user's and the druid's: the loot menu's Detect }
   DETECT_MAGIC_CLERIC = 5;
   DETECT_MAGIC_MU = 11;
-  DETECT_MAGIC = [DETECT_MAGIC_CLERIC, DETECT_MAGIC_MU];
+  DETECT_MAGIC_DRUID = 77;
+  DETECT_MAGIC = [DETECT_MAGIC_CLERIC, DETECT_MAGIC_MU, DETECT_MAGIC_DRUID];
   { spellFns[3] = SpellCureLightWounds; the cure-targeting special case in the AI + manual cast paths }
   CURE_LIGHT_WOUNDS = 3;
+  { the cures of wounds, Cure Light, Serious (58) and Critical (71) Wounds: the AI casts them on a wounded ally it finds
+    (CbtActs.FindCureTarget, #1121) }
+  CURE_WOUNDS = [CURE_LIGHT_WOUNDS, 58, 71];
   { spellFns[1] = SpellBless; Bless spares a creature already in melee in combat }
   BLESS = 1;
   { spellFns[15] = SpellMagicMissile }
@@ -80,13 +97,14 @@ const
   READ_MAGIC = 18;
   SHIELD = 19;
   { the spells whose durations CharHlp.SpellDuration rolls: Cause Disease, and the item spells Potion of Speed, Giant
-    Strength, Wand of Paralyzation, Dust of Disappearance and Manual of Bodily Health }
+    Strength, Wand of Paralyzation, Dust of Disappearance and Manual of Bodily Health, which was spell 67 until Curse's
+    Neutralize Poison took the number (#1121) }
   CAUSE_DISEASE = 40;
   ITEM_SPEED = 57;
   ITEM_GIANT_STRENGTH = 59;
   ITEM_PARALYZATION = 61;
   ITEM_DISAPPEARANCE = 63;
-  ITEM_BODILY_HEALTH = 67;
+  ITEM_BODILY_HEALTH = 128;
   { spellFns[34] = SpellStinkingCloud }
   STINKING_CLOUD = 34;
   { spellFns[37] = SpellCureBlindness }
@@ -97,8 +115,13 @@ const
   REMOVE_CURSE = 43;
   { spellFns[56] = SpellRestoration, a level-7 cleric spell: here only from a scroll }
   RESTORATION = 56;
-  { the item spells Fix may use (#1129): Keoghtom's Ointment (spellFns[58]) and the Potion of Healing (spellFns[62]) }
-  ITEM_OINTMENT = 58;
+  { the item spells Fix may use (#1129): Keoghtom's Ointment (spellFns[127], 58 until Curse's Cure Serious Wounds took
+    the number, #1121) and the Potion of Healing (spellFns[62]) }
+  ITEM_OINTMENT = 127;
+  { the item effects SSI's data gave the Ointment and the Manual, spell 58's and 67's: DiskRec.ItemFromDisk moves an
+    item with one of them and the item's name to ITEM_OINTMENT's or ITEM_BODILY_HEALTH's }
+  OLD_OINTMENT_EFFECT = 81;
+  OLD_BODILY_HEALTH_EFFECT = 90;
   ITEM_HEALING = 62;
   { spellFns[47] and spellFns[64] (the item fireball) = SpellFireball }
   FIREBALL = 47;
@@ -111,18 +134,68 @@ const
   LIGHTNING_BOLT_CELLS = 8;
   { the bronze dragon's breath bolt's length past its aim cell (Magic.DragonBreathHandler) }
   DRAGON_BOLT_CELLS = 10;
+  { the spells of levels 4 and 5 (#1121), Curse's ids: the cleric's Cure and Cause Serious Wounds, Neutralize Poison,
+    Poison, Sticks to Snakes, Cure and Cause Critical Wounds, Dispel Evil, Flame Strike, Raise Dead and Slay Living;
+    the druid's Entangle, Faerie Fire and Invisibility to Animals; the magic-user's Charm Monsters, Confusion,
+    Dimension Door, Fear, Fire Shield, Fumble, Ice Storm, Minor Globe of Invulnerability, Animate Dead, Cone of Cold,
+    Feeblemind, Hold Monsters and Bestow Curse }
+  CURE_SERIOUS_WOUNDS = 58;
+  CAUSE_SERIOUS_WOUNDS = 66;
+  NEUTRALIZE_POISON = 67;
+  POISON = 68;
+  STICKS_TO_SNAKES = 70;
+  CURE_CRITICAL_WOUNDS = 71;
+  CAUSE_CRITICAL_WOUNDS = 72;
+  DISPEL_EVIL = 73;
+  FLAME_STRIKE = 74;
+  RAISE_DEAD = 75;
+  SLAY_LIVING = 76;
+  ENTANGLE = 78;
+  FAERIE_FIRE = 79;
+  INVISIBILITY_TO_ANIMALS = 80;
+  CHARM_MONSTERS = 81;
+  CONFUSION = 82;
+  DIMENSION_DOOR = 83;
+  FEAR = 84;
+  FIRE_SHIELD = 85;
+  FUMBLE = 86;
+  ICE_STORM = 87;
+  MINOR_GLOBE = 88;
+  ANIMATE_DEAD_MU = 90;
+  CONE_OF_COLD = 92;
+  FEEBLEMIND = 93;
+  HOLD_MONSTERS = 94;
+  BESTOW_CURSE_MU = 100;
+  { the highest spell level a Minor Globe of Invulnerability stops }
+  MINOR_GLOBE_LEVEL = 3;
+  { the targets Confusion may take: 2d8 }
+  CONFUSION_DICE = 2;
+  CONFUSION_DIE = 8;
+  { Charm Monsters' pool of levels: 2d4 }
+  CHARM_MONSTERS_DICE = 2;
+  CHARM_MONSTERS_DIE = 4;
+  { the cones' rays and reach (Magic.WalkCone, CharHlp.SpellArea): Fear's three rays 6 cells long, and Cone of Cold's
+    two, which reach half its caster level, rounded up }
+  FEAR_CONE_RAYS = 3;
+  FEAR_CONE_CELLS = 6;
+  COLD_CONE_RAYS = 2;
   { the shape of the cells a spell reaches, as CharHlp.SpellArea gives it from spellTable's area mode and the handlers'
-    own shapes: the caster alone (area mode 0); some creatures picked one at a time (modes 1..7); one creature, or a
-    bare square (mode 15); everything within a radius of the aim (modes 8..14); Stinking Cloud's 2x2 block; or
-    Lightning Bolt's path }
+    own shapes: the caster alone (area mode 0); some creatures picked one at a time (modes 1..4, 6, 7); creatures
+    picked against a pool (mode 5: Faerie Fire's caster level by size, Charm Monsters' 2d4 by level); one creature, or
+    a bare square (mode 15); everything within a radius of the aim (modes 8..14); Stinking Cloud's 2x2 block;
+    Lightning Bolt's path; or a cone from the caster (Fear, Cone of Cold) }
   AREA_SELF = 0;
   AREA_TARGETS = 1;
   AREA_SPOT = 2;
   AREA_RADIUS = 3;
   AREA_CLOUD = 4;
   AREA_BOLT = 5;
-  { spellTable's area modes, its low nibble: the caster, the first and last of the radius modes, and the picked spot }
+  AREA_CONE = 6;
+  AREA_POOL = 7;
+  { spellTable's area modes, its low nibble: the caster, the pool, the first and last of the radius modes, and the
+    picked spot }
   AREA_MODE_SELF = 0;
+  AREA_MODE_POOL = 5;
   AREA_MODE_RADIUS_FIRST = 8;
   AREA_MODE_RADIUS_LAST = 14;
   AREA_MODE_SPOT = 15;
@@ -135,9 +208,10 @@ const
   SAVE_SPECIAL = 3;
   { SpellInf's save table only: a save lessens the spell but does not end it (Stinking Cloud's cough) }
   SAVE_PARTIAL = 4;
-  { a spell list line's spell cast from an item (a scroll) rather than from memory, for SpellInf: the spell id with this
-    bit set }
-  FROM_ITEM = $80;
+  { a spell list line's spell cast from an item rather than from memory, for SpellInf: the spell id with this bit set,
+    above a byte, as the item spells run past ID_MASK (#1121); LINE_ID_MASK takes the spell id back out }
+  FROM_ITEM = $100;
+  LINE_ID_MASK = $FF;
 
 implementation
 

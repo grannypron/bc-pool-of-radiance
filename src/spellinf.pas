@@ -25,7 +25,7 @@ const
 
 type
   { the list lines a page steps through, each as a list line's spell }
-  TLineSpells = array[0..C_SPELL.LINE_LAST] of Byte;
+  TLineSpells = array[0..C_SPELL.LINE_LAST] of Word;
   { the items an item page steps through }
   TPageItems = array[0..C_ITEM.CARRY_MAX - 1] of Types.PItemRec;
   PPageItems = ^TPageItems;
@@ -39,21 +39,22 @@ function SaveResult(spell: Byte): Byte;
 
 { Range in squares (RNG 6), or SELF or TOUCH; none for a spell that is not aimed (Snake Charm, Animate Dead) or is cast
   only in camp on a character the player picks. }
-function RangeText(line: Byte; long: Boolean): Types.TStr40;
+function RangeText(line: Word; long: Boolean): Types.TStr40;
 
 { What the spell reaches (CharHlp.SpellArea): a radius (AREA R2), an aura around its target or caster, Stinking
-  Cloud's 2x2 block, Lightning Bolt's path, up to a number of creatures picked (TGT 1-3), every creature it seeks on
-  the field (AREA ALL) or the whole party in camp (AREA PARTY). A single creature, or the caster, has no short term. }
-function AreaText(line: Byte; long: Boolean): Types.TStr40;
+  Cloud's 2x2 block, Lightning Bolt's path, a cone from the caster (AREA CONE), up to a number of creatures picked
+  (TGT 1-3) or as many as a pool buys (TGT POOL), every creature it seeks on the field (AREA ALL) or the whole party in
+  camp (AREA PARTY). A single creature, or the caster, has no short term. }
+function AreaText(line: Word; long: Boolean): Types.TStr40;
 
 { AreaText's page value for a spell an item casts: a potion or other item cast only on its user reads USER, not THE
   CASTER (#861). }
-function ItemAreaText(line: Byte): Types.TStr40;
+function ItemAreaText(line: Word): Types.TStr40;
 
 { Formats duration in rounds, turns, or hours. Fixed and per-level parts use the
   same unit. Random durations show their dice; immediate and indefinite effects
   use INST and PERM. }
-function DurationText(line: Byte; long: Boolean): Types.TStr40;
+function DurationText(line: Word; long: Boolean): Types.TStr40;
 
 { The saving throw (SaveResult) and, on the page, its column (VS SPELL); none when no save is rolled. }
 function SaveText(spell: Byte; long: Boolean): Types.TStr40;
@@ -64,26 +65,26 @@ function WhenText(spell: Byte; long: Boolean): Types.TStr40;
 
 { The caster level a line's spell is cast at (CharHlp.GetCasterLevel), or the item fireball's levels, which it rolls
   (3, 5 OR 7). }
-function CasterLevelText(line: Byte): Types.TStr40;
+function CasterLevelText(line: Word): Types.TStr40;
 
 { Formats casting time. Item spells and zero-initiative spells act at once;
   other combat spells show their initiative cost. Camp-only spells leave it blank. }
-function CastTimeText(line: Byte): Types.TStr40;
+function CastTimeText(line: Word): Types.TStr40;
 
 { The summary line: the short terms of RangeText, AreaText, DurationText, SaveText and WhenText that apply, two blanks
   apart, or one when two would run past SUMMARY_WIDTH. }
-function Summary(line: Byte): Types.TStr40;
+function Summary(line: Word): Types.TStr40;
 
 { A string as long as Summary(line), K under each term's key (its first word) and a blank under the rest: ShowSummary
   draws the one in white and the other in light green (#1072). }
-function SummaryKeys(line: Byte): Types.TStr40;
+function SummaryKeys(line: Word): Types.TStr40;
 
 { Line n (from 1) of spell's description (SpellTxt), or an empty string past its last. }
 function TextLine(spell, n: Byte): Types.TStr40;
 
 { Draw line's summary on row over the list window's columns, each term's key (its first word) in white and its value in
   light green (#1072); line 0 (a level heading) clears it. }
-procedure ShowSummary(line, row: Byte);
+procedure ShowSummary(line: Word; row: Byte);
 
 { Browses full spell pages over the list window. Next and Previous wrap through
   the entries. cur is updated to the last page shown. }
@@ -118,9 +119,22 @@ const
     0, 0, 0, 1, 0, 0, 2, 0, 1, 0,
     { 51..56: Lightning Bolt .. Restoration }
     2, 0, 0, 0, 0, 0,
-    { 57..67, the item spells: Potion of Speed .. Manual of Bodily Health; the Javelin of Lightning's bolt
-      (Magic.LightningAttackAt), the Wand of Paralyzation and the item fireball }
-    0, 0, 0, 2, 1, 0, 0, 2, 0, 0, 0);
+    { 57..65: the item spells Potion of Speed .. Wand of Magic Missiles, and 58, Cure Serious Wounds; the Javelin of
+      Lightning's bolt (Magic.LightningAttackAt), the Wand of Paralyzation and the item fireball }
+    0, 0, 0, 2, 1, 0, 0, 2, 0,
+    { 66..70: Cause Serious Wounds .. Sticks to Snakes; Poison }
+    0, 0, 1, 0, 0,
+    { 71..80: Cure Critical Wounds .. Invisibility to Animals; Flame Strike, Slay Living (it still deals 2d8+1),
+      Entangle (it still slows) }
+    0, 0, 0, 2, 0, 4, 0, 4, 0, 0,
+    { 81..90: Charm Monsters .. Animate Dead; Confusion, Fear, Fumble (it still slows) }
+    1, 1, 0, 1, 0, 4, 0, 0, 0, 0,
+    { 91..100: Cone of Cold, Feeblemind, Hold Monsters and Bestow Curse; 91 and 95..99 hold no spell }
+    0, 2, 1, 1, 0, 0, 0, 0, 0, 1,
+    { 101..126 hold no spell (#1121) }
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    { 127 and 128: Keoghtom's Ointment and the Manual of Bodily Health }
+    0, 0);
   { AreaText's value for a spell cast only on its caster }
   CASTER_AREA = 'THE CASTER';
   { the save columns' names, by C_SAVE; column 0 is paralyzation, poison and death magic, named PARALYSIS }
@@ -128,11 +142,11 @@ const
     'PARALYSIS', 'PETRIFY', 'WAND', 'BREATH', 'SPELL');
 
 { line's spell id, with GameVars.usingItem set as casting it would set it; old receives usingItem to restore. }
-function UseLine(line: Byte; var old: Boolean): Byte;
+function UseLine(line: Word; var old: Boolean): Byte;
 begin
   old := GameVars.usingItem;
   GameVars.usingItem := line and C_SPELL.FROM_ITEM <> 0;
-  UseLine := line and C_SPELL.ID_MASK;
+  UseLine := line and C_SPELL.LINE_ID_MASK;
 end;
 
 { True for a spell cast only in camp: spellTable's whenCast 0 (CbtActs turns such a spell away in combat). }
@@ -149,7 +163,7 @@ begin
     SaveResult := C_SPELL.SAVE_NONE;
 end;
 
-function RangeText(line: Byte; long: Boolean): Types.TStr40;
+function RangeText(line: Word; long: Boolean): Types.TStr40;
 var
   spell: Byte;
   old: Boolean;
@@ -184,7 +198,7 @@ begin
   GameVars.usingItem := old;
 end;
 
-function AreaText(line: Byte; long: Boolean): Types.TStr40;
+function AreaText(line: Word; long: Boolean): Types.TStr40;
 var
   spell: Byte;
   old: Boolean;
@@ -254,6 +268,14 @@ begin
             s := 'AREA BOLT';
             l := 'BOLT, ' + StrUtil.Count(size, 'SQUARE', 'SQUARES') + ' PAST AIM';
           end;
+        C_SPELL.AREA_CONE: begin
+            s := 'AREA CONE';
+            l := 'CONE, ' + StrUtil.Count(size, 'SQUARE', 'SQUARES') + ' LONG';
+          end;
+        C_SPELL.AREA_POOL: begin
+            s := 'TGT POOL';
+            l := 'CREATURES BY POOL';
+          end;
       end;
   end;
   if long then
@@ -263,7 +285,7 @@ begin
   GameVars.usingItem := old;
 end;
 
-function ItemAreaText(line: Byte): Types.TStr40;
+function ItemAreaText(line: Word): Types.TStr40;
 var
   s: Types.TStr40;
 begin
@@ -273,7 +295,7 @@ begin
   ItemAreaText := s;
 end;
 
-function DurationText(line: Byte; long: Boolean): Types.TStr40;
+function DurationText(line: Word; long: Boolean): Types.TStr40;
 var
   spell: Byte;
   old: Boolean;
@@ -367,7 +389,7 @@ begin
   WhenText := s;
 end;
 
-function CasterLevelText(line: Byte): Types.TStr40;
+function CasterLevelText(line: Word): Types.TStr40;
 var
   spell: Byte;
   old: Boolean;
@@ -391,12 +413,12 @@ begin
   GameVars.usingItem := old;
 end;
 
-function CastTimeText(line: Byte): Types.TStr40;
+function CastTimeText(line: Word): Types.TStr40;
 var
   spell: Byte;
   n: Byte;
 begin
-  spell := line and C_SPELL.ID_MASK;
+  spell := line and C_SPELL.LINE_ID_MASK;
   n := GameDefs.spellTable[spell].castTime div 3;
   if line and C_SPELL.FROM_ITEM <> 0 then
     n := 0;
@@ -410,7 +432,7 @@ end;
 
 { Line's summary, as Summary describes it, and in keys a string as long, K under each term's key (its first word: RNG,
   AREA, TGT, DUR, SAVE, or CAMP, CBT or DOORS alone) and a blank under the rest (#1072). }
-function BuildSummary(line: Byte; var keys: Types.TStr40): Types.TStr40;
+function BuildSummary(line: Word; var keys: Types.TStr40): Types.TStr40;
 var
   terms: array[1..5] of Types.TStr40;
   s: String;
@@ -457,14 +479,14 @@ begin
   BuildSummary := s;
 end;
 
-function Summary(line: Byte): Types.TStr40;
+function Summary(line: Word): Types.TStr40;
 var
   keys: Types.TStr40;
 begin
   Summary := SpellInf.BuildSummary(line, keys);
 end;
 
-function SummaryKeys(line: Byte): Types.TStr40;
+function SummaryKeys(line: Word): Types.TStr40;
 var
   keys: Types.TStr40;
   s: Types.TStr40;
@@ -496,7 +518,7 @@ begin
   TextLine := chunk;
 end;
 
-procedure ShowSummary(line, row: Byte);
+procedure ShowSummary(line: Word; row: Byte);
 var
   s: Types.TStr40;
   keys: Types.TStr40;
@@ -505,7 +527,7 @@ var
   color: Byte;
 begin
   TextRend.PrintSpaces(1, row, Black, SUMMARY_WIDTH);
-  if line and C_SPELL.ID_MASK = 0 then
+  if line and C_SPELL.LINE_ID_MASK = 0 then
     Exit;
   s := SpellInf.BuildSummary(line, keys);
   { a run of key letters, or of the rest, at a time }
@@ -563,7 +585,7 @@ begin
 end;
 
 { Draw the page for line over the list window; item, when not nil, is the item it is used from. }
-procedure DrawPage(line: Byte; item: Types.PItemRec);
+procedure DrawPage(line: Word; item: Types.PItemRec);
 const
   FIGURE_TOP = 6;
   TEXT_TOP = 14;
@@ -574,15 +596,17 @@ var
   i: Byte;
   row: Byte;
 begin
-  spell := line and C_SPELL.ID_MASK;
+  spell := line and C_SPELL.LINE_ID_MASK;
   lvl := SpellInf.CasterLevelText(line);
   Border.DrawWindow(1, 3, 38, 22, 0, Black, '');
   if CharHlp.IsSpell(spell) then begin
     TextRend.DisplayCentered(1, 38, 3, White, GameDefs.spellNames[spell]);
-    if GameDefs.spellTable[spell].castClass = C_SPELL.CLASS_CLERIC then
-      s := 'CLERIC'
+    case GameDefs.spellTable[spell].castClass of
+      C_SPELL.CLASS_CLERIC: s := 'CLERIC';
+      C_SPELL.CLASS_DRUID: s := 'DRUID';
     else
       s := 'MAGIC-USER';
+    end;
     s := s + ' LEVEL ' + StrUtil.NumStr(GameDefs.spellTable[spell].levelSp);
   end else begin
     { an item spell has no name of its own, and its spell level means nothing }

@@ -127,6 +127,7 @@ begin
       C_OPT.OPT_CONSOLIDATE: s.flags[opt] := GameVars.consolidateOn;
       C_OPT.OPT_JOURNAL: s.flags[opt] := GameVars.journalFoundOn;
       C_OPT.OPT_NONHUMAN_CAP: s.flags[opt] := GameVars.nonHumanCapOn;
+      C_OPT.OPT_LEVEL_CAP: s.flags[opt] := GameVars.levelCapOn;
       C_OPT.OPT_MUSIC: s.flags[opt] := GameVars.musicOn;
       C_OPT.OPT_TITLE_MUSIC, C_OPT.OPT_BATTLE_MUSIC:
         s.flags[opt] := Ord(GameVars.musicGroups and Options.GroupBit(opt) <> 0);
@@ -165,6 +166,7 @@ begin
       C_OPT.OPT_CONSOLIDATE: GameVars.consolidateOn := s.flags[opt];
       C_OPT.OPT_JOURNAL: GameVars.journalFoundOn := s.flags[opt];
       C_OPT.OPT_NONHUMAN_CAP: GameVars.nonHumanCapOn := s.flags[opt];
+      C_OPT.OPT_LEVEL_CAP: GameVars.levelCapOn := s.flags[opt];
       C_OPT.OPT_MUSIC: GameVars.musicOn := s.flags[opt];
       C_OPT.OPT_TITLE_MUSIC, C_OPT.OPT_BATTLE_MUSIC:
         if s.flags[opt] <> 0 then

@@ -1,7 +1,9 @@
 { Saves the fields added to Types.TCharExt: the classes left by a dual-classed
   human (#838), the flags (EXT_*), which mark a creature that joined through
-  Animate Dead (#1089), and the drain log (#1174), which records the levels
-  energy drains took. SSI's 285-byte character format has no room for these
+  Animate Dead (#1089), the drain log (#1174), which records the levels
+  energy drains took, and the spells past SSI's record: slots of levels 4 and 5
+  and a ranger's druid slots, spells known past 56, and memorized spells past
+  the record's 21 (#1121). SSI's 285-byte character format has no room for these
   fields, so they are stored in a separate .chx file. They remain part of the
   in-memory record, allowing normal record copies to preserve them. }
 {$O+,F+}
@@ -31,7 +33,8 @@ function HasExt(creature: Types.PCharRecord): Boolean;
 function WriteExt(var s: FileUtil.TFileSet; creature: Types.PCharRecord; base: FileUtil.TSetName): Boolean;
 
 { Read creature's port fields from <fn>.chx. They are left 0 unless the file is exactly one record with this format's
-  signature and version (or version 2's, from before the drain log, whose class left and flags are read, or version
+  signature and version (or version 3's, from before the spells past SSI's record, whose class left, flags and drain
+  log are read, or version 2's, from before the drain log, whose class left and flags are read, or version
   1's, from before the flags, whose class left is read), made for a character of this name and randByte: a character
   from SSI's game, from before #838, or whose .chx was lost, is an ordinary one. A drain log longer than the record's
   drainedLevels is cut to it, the oldest entries going. }
@@ -60,8 +63,10 @@ uses C_STATUS;
 const
   { EXT_SIG and EXT_VERSION open every .chx file; a file without both is not read }
   EXT_SIG = 'CEXT';
-  EXT_VERSION = 3;
-  { version 2's files hold the class left and the flags, version 1's the class left alone }
+  EXT_VERSION = 4;
+  { version 3's files hold the class left, the flags and the drain log, version 2's the class left and the flags,
+    version 1's the class left alone }
+  EXT_VERSION_3 = 3;
   EXT_VERSION_2 = 2;
   EXT_VERSION_1 = 1;
 
@@ -73,6 +78,18 @@ type
     name: string[Types.NAME_LEN];
     randByte: Byte;
     portExt: Types.TCharExt;
+  end;
+
+  { A version 3 .chx file, from before the spells past SSI's record (#1121): TCharExt's fields to the drain log. }
+  TCharExtFile3 = record
+    sig: string[4];
+    version: Byte;
+    name: string[Types.NAME_LEN];
+    randByte: Byte;
+    formerClasses: Byte;
+    flags: Byte;
+    drainCount: Byte;
+    drains: array[1..Types.DRAIN_LOG_LEN] of Types.TDrainRec;
   end;
 
   { A version 2 .chx file, from before the drain log. }
@@ -100,9 +117,17 @@ begin
 end;
 
 function HasExt(creature: Types.PCharRecord): Boolean;
+var
+  p: Types.PBytes;
+  i: Word;
+  any: Boolean;
 begin
-  HasExt := (creature^.portExt.formerClasses <> 0) or (creature^.portExt.flags <> 0) or
-            (creature^.portExt.drainCount <> 0);
+  any := False;
+  p := @creature^.portExt;
+  for i := 0 to SizeOf(Types.TCharExt) - 1 do
+    if p^[i] <> 0 then
+      any := True;
+  HasExt := any;
 end;
 
 function WriteExt(var s: FileUtil.TFileSet; creature: Types.PCharRecord; base: FileUtil.TSetName): Boolean;
@@ -143,6 +168,7 @@ end;
 procedure ReadExt(creature: Types.PCharRecord; fn: Types.TPathStr);
 var
   rec: TCharExtFile;
+  rec3: TCharExtFile3;
   rec2: TCharExtFile2;
   rec1: TCharExtFile1;
 begin
@@ -151,6 +177,14 @@ begin
   if FileUtil.ReadRecord(fn + '.chx', rec, SizeOf(rec)) then begin
     if (rec.sig = EXT_SIG) and (rec.version = EXT_VERSION) and CharExt.SameChar(creature, rec.name, rec.randByte) then
       creature^.portExt := rec.portExt;
+  end else if FileUtil.ReadRecord(fn + '.chx', rec3, SizeOf(rec3)) then begin
+    if (rec3.sig = EXT_SIG) and (rec3.version = EXT_VERSION_3) and
+        CharExt.SameChar(creature, rec3.name, rec3.randByte) then begin
+      creature^.portExt.formerClasses := rec3.formerClasses;
+      creature^.portExt.flags := rec3.flags;
+      creature^.portExt.drainCount := rec3.drainCount;
+      Move(rec3.drains, creature^.portExt.drains, SizeOf(rec3.drains));
+    end;
   end else if FileUtil.ReadRecord(fn + '.chx', rec2, SizeOf(rec2)) then begin
     if (rec2.sig = EXT_SIG) and (rec2.version = EXT_VERSION_2) and
         CharExt.SameChar(creature, rec2.name, rec2.randByte) then begin

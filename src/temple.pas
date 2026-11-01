@@ -95,6 +95,8 @@ begin
     c.flags := c.flags or TF_ROT;
   if CharHlp.HasEffect(cr, C_EFFECT.BESTOW_CURSE, effect) then
     c.flags := c.flags or TF_CURSED;
+  if CharHlp.HasEffect(cr, C_EFFECT.FEEBLEMIND, effect) then
+    c.flags := c.flags or TF_FEEBLE;
   item := cr^.itemsAddr;
   while item <> nil do begin
     if item^.cursed <> 0 then
@@ -131,21 +133,8 @@ begin
   CharDisp.PrintNameString(GameVars.curChar, msg, 0, True);
 end;
 
-{ Takes a point of Constitution and the maximum hit points it was worth (ClassCal.ConHpTotal), keeping at least 1. }
-procedure LoseCon(cr: Types.PCharRecord);
-var
-  hpLoss: Integer;
-begin
-  Dec(cr^.conCur);
-  hpLoss := ClassCal.ConHpTotal(cr, cr^.conCur + 1) - ClassCal.ConHpTotal(cr, cr^.conCur);
-  if hpLoss >= cr^.hpMax then
-    hpLoss := cr^.hpMax - 1;
-  if hpLoss > 0 then
-    Dec(cr^.hpMax, hpLoss);
-end;
-
-{ Carries out a TownCore deed on the current character, in TownCore's order. PoR has no Feeblemind, so TA_FEEBLE asks
-  nothing of it. }
+{ Carries out a TownCore deed on the current character, in TownCore's order. TA_FEEBLE, Heal's, ends the Feeblemind
+  spell (#1121). }
 procedure Act(d: TTempleDeed);
 var
   cr: Types.PCharRecord;
@@ -157,6 +146,8 @@ begin
     FxEngine.RemoveEffect(cr, C_EFFECT.BLIND, nil);
   if d.acts and TA_DISEASE <> 0 then
     if FxEngine.RemoveDiseases(cr) then ;
+  if d.acts and TA_FEEBLE <> 0 then
+    FxEngine.RemoveEffect(cr, C_EFFECT.FEEBLEMIND, nil);
   GameVars.effectLock := 1;
   if d.acts and TA_POISON <> 0 then begin
     FxEngine.RemoveEffect(cr, C_EFFECT.POISONED, nil);
@@ -177,7 +168,7 @@ begin
   { Constitution goes no lower than AbilAdj.SCORE_MIN (#615): TownCore asks for no more than that }
   if d.acts and TA_LOSE_CON <> 0 then
     for i := 1 to d.conLoss do
-      Temple.LoseCon(cr);
+      ClassCal.LoseConstitution(cr);
   if d.acts and TA_STATUS <> 0 then begin
     cr^.status := d.status;
     cr^.enabled := Ord(d.status = C_STATUS.OKAY);

@@ -12,9 +12,9 @@ The Settings screen's Game page (and in the same way its Sound, Camp and Combat 
  ║ Consolidate Coin        OFF              ║║ race's level limits.           ║
  ║ Journal                 FOUND            ║║                                ║
  ║ Non-Human Level Cap     ON               ║║ Off: they train as far as      ║
- ║ Companion Tools         OFF              ║║ the experience table goes,     ║
- ║   Clue Book Notes       ON               ║║ as humans do.                  ║
- ║                                          ║║                                ║
+ ║ Game Level Cap          ON               ║║ the experience table goes,     ║
+ ║ Companion Tools         OFF              ║║ as humans do.                  ║
+ ║   Clue Book Notes       ON               ║║                                ║
  ║                                          ║║ Default  ON                    ║
  ║                                          ║║ Key      NONHUMANCAP           ║
  ║                                          ║║                                ║

@@ -27,6 +27,8 @@ uses Types, Crt, C_AREA, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Opt
 { Install every spell handler in GameVars.spellFns and the noncombat cast-target menu; clear effectLock,
   GameVars.usingItem and GameVars.castTarget, and set invRedraw. }
 procedure InitSpellFns;
+var
+  i: Byte;
 begin
   GameVars.castTargetMenu := Magic.NoncombatCastTargetMenu;
   GameVars.effectLock := 0;
@@ -90,7 +92,7 @@ begin
   GameVars.spellFns[55] := Magic.SpellSlow;
   GameVars.spellFns[56] := Magic.SpellRestoration;
   GameVars.spellFns[57] := Magic.SpellPotionOfSpeed;
-  GameVars.spellFns[58] := Magic.KeoghtomsOintmentHandler;
+  GameVars.spellFns[C_SPELL.CURE_SERIOUS_WOUNDS] := Magic.SpellCureSeriousWounds;
   GameVars.spellFns[59] := Magic.SpellGiantStrength;
   GameVars.spellFns[60] := Magic.SpellJavelinOfLightning;
   GameVars.spellFns[61] := Magic.SpellWandOfParalyzation;
@@ -98,8 +100,40 @@ begin
   GameVars.spellFns[63] := Magic.SpellDustOfDisappearance;
   GameVars.spellFns[64] := Magic.SpellFireball;
   GameVars.spellFns[65] := Magic.SpellWandOfMagicMissiles;
-  GameVars.spellFns[66] := Magic.UnusedSpellHandler;
-  GameVars.spellFns[67] := Magic.ManualBodilyHealthHandler;
+  GameVars.spellFns[66] := Magic.SpellCauseSeriousWounds;
+  GameVars.spellFns[67] := Magic.SpellNeutralizePoison;
+  GameVars.spellFns[68] := Magic.SpellPoison;
+  GameVars.spellFns[69] := Magic.SpellProtection;
+  GameVars.spellFns[70] := Magic.SpellSticksToSnakes;
+  GameVars.spellFns[71] := Magic.SpellCureCriticalWounds;
+  GameVars.spellFns[72] := Magic.SpellCauseCriticalWounds;
+  GameVars.spellFns[73] := Magic.SpellDispelEvil;
+  GameVars.spellFns[74] := Magic.SpellFlameStrike;
+  GameVars.spellFns[75] := Magic.SpellRaiseDead;
+  GameVars.spellFns[76] := Magic.SpellSlayLiving;
+  GameVars.spellFns[77] := Magic.SpellDetection;
+  GameVars.spellFns[78] := Magic.SpellEntangle;
+  GameVars.spellFns[79] := Magic.SpellFaerieFire;
+  GameVars.spellFns[80] := Magic.SpellInvisibilityToAnimals;
+  GameVars.spellFns[81] := Magic.SpellCharmMonsters;
+  GameVars.spellFns[82] := Magic.SpellConfusion;
+  GameVars.spellFns[83] := Magic.SpellDimensionDoor;
+  GameVars.spellFns[84] := Magic.SpellFear;
+  GameVars.spellFns[85] := Magic.SpellFireShield;
+  GameVars.spellFns[86] := Magic.SpellFumble;
+  GameVars.spellFns[87] := Magic.SpellIceStorm;
+  GameVars.spellFns[88] := Magic.SpellMinorGlobe;
+  GameVars.spellFns[89] := Magic.SpellRemoveCurse;
+  GameVars.spellFns[90] := Magic.SpellAnimateDead;
+  GameVars.spellFns[91] := Magic.UnusedSpellHandler;
+  GameVars.spellFns[92] := Magic.SpellConeOfCold;
+  GameVars.spellFns[93] := Magic.SpellFeeblemind;
+  GameVars.spellFns[94] := Magic.SpellHold;
+  for i := 95 to C_SPELL.ITEM_OINTMENT - 1 do
+    GameVars.spellFns[i] := Magic.UnusedSpellHandler;
+  GameVars.spellFns[C_SPELL.BESTOW_CURSE_MU] := Magic.SpellBestowCurse;
+  GameVars.spellFns[C_SPELL.ITEM_OINTMENT] := Magic.KeoghtomsOintmentHandler;
+  GameVars.spellFns[C_SPELL.ITEM_BODILY_HEALTH] := Magic.ManualBodilyHealthHandler;
 end;
 
 { Install the effect handlers: REAR_CLAW_RAKE and BITE_HOLD are CbtActs' combat actions, and DRAGON_BREATH is Magic's. }
@@ -247,6 +281,21 @@ begin
   GameVars.effectFns[C_EFFECT.READY_RING_INVIS] := EffHndlr.EffReadyItem;
   GameVars.effectFns[C_EFFECT.RECENT_HEAL] := EffHndlr.EffNone;
   GameVars.effectFns[C_EFFECT.RECENT_CURE] := EffHndlr.EffNone;
+  GameVars.effectFns[C_EFFECT.STICKS_TO_SNAKES] := EffHndlr.EffSticksToSnakes;
+  GameVars.effectFns[C_EFFECT.DISPEL_EVIL] := EffHndlr.EffDispelEvil;
+  GameVars.effectFns[C_EFFECT.DISPEL_EVIL_TOUCH] := EffHndlr.EffDispelEvilTouch;
+  GameVars.effectFns[C_EFFECT.FAERIE_FIRE] := EffHndlr.EffFaerieFire;
+  GameVars.effectFns[C_EFFECT.CONFUSION] := EffHndlr.EffConfusion;
+  GameVars.effectFns[C_EFFECT.CONFUSED_BERSERK] := EffHndlr.EffConfusedBerserk;
+  GameVars.effectFns[C_EFFECT.FEAR] := EffHndlr.EffFear;
+  GameVars.effectFns[C_EFFECT.FIRE_SHIELD_HOT] := EffHndlr.EffFireShieldHot;
+  GameVars.effectFns[C_EFFECT.FIRE_SHIELD_COLD] := EffHndlr.EffFireShieldCold;
+  GameVars.effectFns[C_EFFECT.FIRE_SHIELD_ZAP] := EffHndlr.EffFireShieldZap;
+  GameVars.effectFns[C_EFFECT.FUMBLE] := EffHndlr.EffHelpless;
+  GameVars.effectFns[C_EFFECT.MINOR_GLOBE] := EffHndlr.EffMinorGlobe;
+  GameVars.effectFns[C_EFFECT.FEEBLEMIND] := EffHndlr.EffFeeblemind;
+  GameVars.effectFns[C_EFFECT.INVISIBLE_TO_ANIMALS] := EffHndlr.EffInvisibleToAnimals;
+  GameVars.effectFns[C_EFFECT.ENTANGLE] := EffHndlr.EffEntangle;
 end;
 
 procedure ResetGameState;

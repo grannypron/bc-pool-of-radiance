@@ -200,6 +200,10 @@ function HitDieFloor(con: Byte): Byte;
   of Constitution makes. }
 function ConHpTotal(creature: Types.PCharRecord; con: Byte): Integer;
 
+{ Take a point of Constitution from creature and the maximum hit points it was worth (ConHpTotal), keeping at least 1:
+  a raise's price, the temple's and the Raise Dead spell's. }
+procedure LoseConstitution(creature: Types.PCharRecord);
+
 const
   { a prime attribute above this earns a single-class character 10% more experience }
   PRIME_STAT_THRESHOLD = 15;
@@ -280,11 +284,31 @@ procedure ChangeClass(creature: Types.PCharRecord; cls: ShortInt);
   outside 1..C_SPELL.LAST. }
 function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 
+{ The experience level lvl of class slot cls (C_LEVEL) starts at: 0 for level 1 or below, the 1st-edition PHB's figure
+  (GameDefs.classExperience) for levels 2..C_LEVEL.LEVEL_LAST, and -1 for a class without a table (druid, monk) or a
+  level past LEVEL_LAST. It holds for a level a creature already has; whether a class may train to it is LevelOpen's. }
+function LevelXp(cls: ShortInt; lvl: Integer): LongInt;
+
+{ The highest level class slot cls trains to (#1121): SSI's while the Game Level Cap setting is on (GameVars.levelCapOn:
+  cleric and magic-user 6, paladin and ranger 7, fighter 8, thief 9), and C_LEVEL.LEVEL_LAST for every class with a
+  table while it is off. The racial limits are CharHlp.AtLevelCap's, a test of their own (#1176). }
+function MaxLevel(cls: ShortInt): ShortInt;
+
+{ True when class slot cls has a level lvl to train to: lvl is 2..MaxLevel and has a LevelXp figure. Training, its
+  experience clamp and Restoration ask it. }
+function LevelOpen(cls: ShortInt; lvl: Integer): Boolean;
+
+{ lvl, or C_LEVEL.LEVEL_LAST for one past it: the last row of the tables that run to it. }
+function MinLevel(lvl: ShortInt): ShortInt;
+
 implementation
 
 uses GameDefs, GameVars, C_CLASS, C_LEVEL, C_STAT, C_EQUIP, C_ITEM, C_SAVE, Dice, CharHlp, AbilAdj;
 
 const
+  { the highest level each class slot reached in SSI's game, where its experience table stopped: MaxLevel's with the
+    Game Level Cap setting on (#1121); the druid and monk have no table }
+  ssiLevelCaps: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of ShortInt = (6, 0, 8, 7, 7, 6, 9, 0);
   { StartingAge's dice: the DMG's starting ages (p.12), by race and class (C_LEVEL); the monk column (7) has only the
     DMG's human monk, 21 + 1d4, as creation offers no monk }
   ageDice: array[C_RACE.DWARF..C_RACE.HUMAN, C_LEVEL.CLERIC..C_LEVEL.MONK] of Types.TRuleAge = (
@@ -346,37 +370,38 @@ end;
 
 procedure FirstLevelSlots(creature: Types.PCharRecord; cls: ShortInt);
 begin
-  with creature^ do
-    case cls of
-      C_LEVEL.CLERIC: begin
-          FillChar(clericSpells, SizeOf(clericSpells), 0);
-          clericSpells[1] := 1;
-          ClassCal.AwardWisdomBonus(creature);
-        end;
-      C_LEVEL.MAGE: begin
-          FillChar(mageSpells, SizeOf(mageSpells), 0);
-          mageSpells[1] := 1;
-        end;
-    end;
+  case cls of
+    C_LEVEL.CLERIC: begin
+        CharHlp.ClearSpellSlots(creature, C_SPELL.CLASS_CLERIC);
+        CharHlp.SetSpellSlots(creature, C_SPELL.CLASS_CLERIC, 1, 1);
+        ClassCal.AwardWisdomBonus(creature);
+      end;
+    C_LEVEL.MAGE: begin
+        CharHlp.ClearSpellSlots(creature, C_SPELL.CLASS_MAGE);
+        CharHlp.SetSpellSlots(creature, C_SPELL.CLASS_MAGE, 1, 1);
+      end;
+  end;
 end;
 
-{ Mark known every cleric spell (castClass C_SPELL.CLASS_CLERIC) of a level creature has cleric slots for. }
+{ Mark known every cleric and druid spell (castClass C_SPELL.CLASS_CLERIC, CLASS_DRUID) of a level creature has slots of
+  that kind for: a cleric, a paladin and a ranger know every spell of their lists they can cast, as a magic-user does
+  not. }
 procedure KnowClericSpells(creature: Types.PCharRecord);
 var
   m: Byte;
 begin
-  { spellsKnown runs to C_SPELL.LAST, a byte a spell }
-  for m := 1 to SizeOf(creature^.spellsKnown) do
-    with GameDefs.spellTable[m] do
-      if (castClass = C_SPELL.CLASS_CLERIC) and (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST) and
-          (creature^.clericSpells[levelSp] > 0) then
-        creature^.spellsKnown[m] := 1;
+  for m := 1 to C_SPELL.LAST do
+    if CharHlp.IsSpell(m) then
+      with GameDefs.spellTable[m] do
+        if (castClass = C_SPELL.CLASS_CLERIC) or (castClass = C_SPELL.CLASS_DRUID) then
+          if CharHlp.SpellSlots(creature, castClass, levelSp) > 0 then
+            CharHlp.SetSpellKnown(creature, m, True);
 end;
 
 procedure FitSpellsToLevel(creature: Types.PCharRecord);
 var
-  kind: Byte;
-  lvl: Byte;
+  kind: ShortInt;
+  lvl: ShortInt;
   room: Byte;
   have: Byte;
   i: Byte;
@@ -386,39 +411,34 @@ begin
     ClassCal.FirstLevelSlots(creature, C_LEVEL.CLERIC);
   if CharHlp.GetClassLevel(creature, C_LEVEL.MAGE_BIT) = 1 then
     ClassCal.FirstLevelSlots(creature, C_LEVEL.MAGE);
-  with creature^ do
-    for kind := C_SPELL.CLASS_CLERIC to C_SPELL.CLASS_MAGE do
-      for lvl := 1 to Types.CASTER_LEVEL_LAST do begin
-        if kind = C_SPELL.CLASS_CLERIC then
-          room := clericSpells[lvl]
-        else
-          room := mageSpells[lvl];
-        have := 0;
-        for i := 0 to Types.SPELL_SLOT_LAST do begin
-          id := memorizedSpells[i] and C_SPELL.ID_MASK;
-          if CharHlp.IsSpell(id) then
-            if (GameDefs.spellTable[id].castClass = kind) and (GameDefs.spellTable[id].levelSp = lvl) then begin
-              Inc(have);
-              if have > room then
-                memorizedSpells[i] := 0;
-            end;
-        end;
+  for kind := C_SPELL.CLASS_CLERIC to C_SPELL.SLOT_KIND_LAST do
+    for lvl := 1 to Types.CASTER_LEVEL_LAST do begin
+      room := CharHlp.SpellSlots(creature, kind, lvl);
+      have := 0;
+      for i := 0 to Types.MEMORIZED_LAST do begin
+        id := CharHlp.MemorizedAt(creature, i) and C_SPELL.ID_MASK;
+        if CharHlp.IsSpell(id) then
+          if (GameDefs.spellTable[id].castClass = kind) and (GameDefs.spellTable[id].levelSp = lvl) then begin
+            Inc(have);
+            if have > room then
+              CharHlp.SetMemorizedAt(creature, i, 0);
+          end;
       end;
+    end;
 end;
 
 procedure StartCasterClass(creature: Types.PCharRecord; cls: ShortInt);
 begin
   ClassCal.FirstLevelSlots(creature, cls);
-  with creature^ do
-    case cls of
-      C_LEVEL.CLERIC: ClassCal.KnowClericSpells(creature);
-      C_LEVEL.MAGE: begin
-          spellsKnown[C_SPELL.DETECT_MAGIC_MU] := 1;
-          spellsKnown[C_SPELL.READ_MAGIC] := 1;
-          spellsKnown[C_SPELL.SHIELD] := 1;
-          spellsKnown[C_SPELL.SLEEP] := 1;
-        end;
-    end;
+  case cls of
+    C_LEVEL.CLERIC: ClassCal.KnowClericSpells(creature);
+    C_LEVEL.MAGE: begin
+        CharHlp.SetSpellKnown(creature, C_SPELL.DETECT_MAGIC_MU, True);
+        CharHlp.SetSpellKnown(creature, C_SPELL.READ_MAGIC, True);
+        CharHlp.SetSpellKnown(creature, C_SPELL.SHIELD, True);
+        CharHlp.SetSpellKnown(creature, C_SPELL.SLEEP, True);
+      end;
+  end;
 end;
 
 function PrimesAtLeast(creature: Types.PCharRecord; cls: ShortInt; score: Byte): Boolean;
@@ -486,10 +506,11 @@ begin
     drainedLevels := 0;
     drainedHps := 0;
     portExt.drainCount := 0;
-    FillChar(memorizedSpells, SizeOf(memorizedSpells), 0);
-    FillChar(clericSpells, SizeOf(clericSpells), 0);
-    FillChar(mageSpells, SizeOf(mageSpells), 0);
   end;
+  CharHlp.ClearMemorized(creature);
+  CharHlp.ClearSpellSlots(creature, C_SPELL.CLASS_CLERIC);
+  CharHlp.ClearSpellSlots(creature, C_SPELL.CLASS_MAGE);
+  CharHlp.ClearSpellSlots(creature, C_SPELL.CLASS_DRUID);
   ClassCal.StartCasterClass(creature, cls);
   ClassCal.RecalcBaseSkills(creature);
 end;
@@ -516,21 +537,92 @@ const
 
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
-  character), and for cleric or magic-user levels above 1 set the spell slots (clerics also get the Wisdom bonus and
-  every cleric spell of a level with slots marked known, KnowClericSpells; a level-1 caster's slots are FirstLevelSlots'
-  and left as they are). The slot table fills only levels 2..6, the player cap, so a
-  higher-level caster (Genheeris, a level 7 magic-user who joins the party) takes the level 6 row. classThac0 covers
-  levels 0..10, and a level outside that uses the nearer end. A dual-classed human's itemLimits are set
-  (ItemLimitsFor). Each class counts at the level the creature can use
-  (CharHlp.GetClassLevel): a class a dual-classed human has left and cannot use yet gives nothing, and a resting
+  character), and set the spell slots (CasterSlots). classThac0 covers levels 0..10, and a level outside that uses the
+  nearer end. A dual-classed human's itemLimits are set (ItemLimitsFor). Each class counts at the level the creature can
+  use (CharHlp.GetClassLevel): a class a dual-classed human has left and cannot use yet gives nothing, and a resting
   cleric's or magic-user's slots are emptied (#838); levelHighest takes the levels as they are. Then call RecalcSaves
   and RecalcThiefSkills. }
+{ A row of a class's slots by spell level, to Types.CASTER_LEVEL_LAST. }
+type
+  TSlotRow = array[1..Types.CASTER_LEVEL_LAST] of Byte;
+
+{ Set creature's slots of kind to row, or add row to them when add. }
+procedure PutSlotRow(creature: Types.PCharRecord; kind: ShortInt; var row: TSlotRow; add: Boolean);
+var
+  k: ShortInt;
+begin
+  for k := 1 to Types.CASTER_LEVEL_LAST do
+    if add then
+      CharHlp.SetSpellSlots(creature, kind, k, CharHlp.SpellSlots(creature, kind, k) + row[k])
+    else
+      CharHlp.SetSpellSlots(creature, kind, k, row[k]);
+end;
+
+{ Set creature's spell slots from the class levels it can use (CharHlp.GetClassLevel), the 1st-edition PHB's to level
+  9 (#1121). A cleric or magic-user above level 1 takes its level's row of GameDefs.classExperience (a level past the
+  table its last), a cleric with the Wisdom bonus (AwardWisdomBonus) and a fifth-level slot only at Wisdom
+  GameDefs.CLERIC_FIFTH_LEVEL_WISDOM; a level-1 caster's slots are FirstLevelSlots' and left as they are, and so are a
+  creature's with no cleric or magic-user, paladin or ranger levels (a monster's from its record). A paladin from level
+  9 adds GameDefs.paladinSlots' cleric slots, and a ranger from level 8 GameDefs.rangerMageSlots' magic-user slots and
+  rangerDruidSlots' druid slots, which no Wisdom bonus adds to; a paladin or ranger without cleric or magic-user levels
+  has its row alone, none below that level. A cleric or druid knows every spell of a level it has slots for
+  (KnowClericSpells). }
+procedure CasterSlots(creature: Types.PCharRecord);
+var
+  clr: ShortInt;
+  mag: ShortInt;
+  pal: ShortInt;
+  rng: ShortInt;
+  row: TSlotRow;
+  k: ShortInt;
+begin
+  clr := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT);
+  mag := CharHlp.GetClassLevel(creature, C_LEVEL.MAGE_BIT);
+  pal := CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT);
+  rng := CharHlp.GetClassLevel(creature, C_LEVEL.RANGER_BIT);
+  if clr > 1 then begin
+    if clr > C_LEVEL.LEVEL_LAST then
+      clr := C_LEVEL.LEVEL_LAST;
+    for k := 1 to Types.CASTER_LEVEL_LAST do
+      row[k] := GameDefs.classExperience[C_LEVEL.CLERIC].slots[clr, k];
+    if creature^.wisCur < GameDefs.CLERIC_FIFTH_LEVEL_WISDOM then
+      row[5] := 0;
+    ClassCal.PutSlotRow(creature, C_SPELL.CLASS_CLERIC, row, False);
+    ClassCal.AwardWisdomBonus(creature);
+  end;
+  if (clr > 1) or ((clr <= 0) and (pal > 0)) then begin
+    FillChar(row, SizeOf(row), 0);
+    if pal >= GameDefs.PALADIN_SPELLS_FROM then
+      for k := 1 to Types.CASTER_LEVEL_LAST do
+        row[k] := GameDefs.paladinSlots[ClassCal.MinLevel(pal), k];
+    ClassCal.PutSlotRow(creature, C_SPELL.CLASS_CLERIC, row, clr > 1);
+  end;
+  if mag > 1 then begin
+    if mag > C_LEVEL.LEVEL_LAST then
+      mag := C_LEVEL.LEVEL_LAST;
+    for k := 1 to Types.CASTER_LEVEL_LAST do
+      row[k] := GameDefs.classExperience[C_LEVEL.MAGE].slots[mag, k];
+    ClassCal.PutSlotRow(creature, C_SPELL.CLASS_MAGE, row, False);
+  end;
+  FillChar(row, SizeOf(row), 0);
+  if rng >= GameDefs.RANGER_SPELLS_FROM then
+    for k := 1 to Types.CASTER_LEVEL_LAST do
+      row[k] := GameDefs.rangerMageSlots[ClassCal.MinLevel(rng), k];
+  if (mag > 1) or ((mag <= 0) and (rng > 0)) then
+    ClassCal.PutSlotRow(creature, C_SPELL.CLASS_MAGE, row, mag > 1);
+  FillChar(row, SizeOf(row), 0);
+  if rng >= GameDefs.RANGER_SPELLS_FROM then
+    for k := 1 to Types.CASTER_LEVEL_LAST do
+      row[k] := GameDefs.rangerDruidSlots[ClassCal.MinLevel(rng), k];
+  ClassCal.PutSlotRow(creature, C_SPELL.CLASS_DRUID, row, False);
+  if (clr > 1) or (pal > 0) or (rng > 0) then
+    ClassCal.KnowClericSpells(creature);
+end;
+
 procedure RecalcBaseSkills(creature: Types.PCharRecord);
 var
   i: ShortInt;
-  k: ShortInt;
   lvl: ShortInt;
-  slotLvl: ShortInt;
   tl: ShortInt;
 begin
   creature^.thac0Base := 0;
@@ -540,12 +632,9 @@ begin
     lvl := CharHlp.GetClassLevel(creature, 1 shl i);
     if CharHlp.ClassResting(creature, i) then
       case i of
-        C_LEVEL.CLERIC: FillChar(creature^.clericSpells, SizeOf(creature^.clericSpells), 0);
-        C_LEVEL.MAGE: FillChar(creature^.mageSpells, SizeOf(creature^.mageSpells), 0);
+        C_LEVEL.CLERIC: CharHlp.ClearSpellSlots(creature, C_SPELL.CLASS_CLERIC);
+        C_LEVEL.MAGE: CharHlp.ClearSpellSlots(creature, C_SPELL.CLASS_MAGE);
       end;
-    slotLvl := lvl;
-    if slotLvl > 6 then
-      slotLvl := 6;
     tl := lvl;
     if tl < 0 then
       tl := 0
@@ -561,19 +650,9 @@ begin
         if lvl > 6 then creature^.attacks := 3;
       C_LEVEL.RANGER:
         if lvl > 7 then creature^.attacks := 3;
-      C_LEVEL.CLERIC:
-        if lvl > 1 then begin
-          for k := 1 to Types.CASTER_LEVEL_LAST do
-            creature^.clericSpells[k] := GameDefs.classExperience[C_LEVEL.CLERIC].slots[slotLvl, k];
-          ClassCal.AwardWisdomBonus(creature);
-          ClassCal.KnowClericSpells(creature);
-        end;
-      C_LEVEL.MAGE:
-        if lvl > 1 then
-          for k := 1 to Types.CASTER_LEVEL_LAST do
-            creature^.mageSpells[k] := GameDefs.classExperience[C_LEVEL.MAGE].slots[slotLvl, k];
     end;
   end;
+  ClassCal.CasterSlots(creature);
   { a dual-classed human's weapons and armor follow the classes it can use; anyone else keeps creation's }
   if CharHlp.IsDualClass(creature) then
     creature^.itemLimits := ClassCal.ItemLimitsFor(creature);
@@ -583,8 +662,8 @@ end;
 
 { Add the Wisdom bonus cleric slots, cumulative over wisBonusSpells' rows from 13 to the creature's Wisdom
   (above 25 counts as 25): Wisdom 13 and 14 each add a first-level slot, 15 and 16 a second-level slot, 17 a third-level
-  slot, 18 a fourth, and so on to 25. Only the spell levels a cleric casts here (1..Types.CASTER_LEVEL_LAST) take them,
-  and each only where that level's slot count is already non-zero. }
+  slot, 18 a fourth, and so on to 25. Only the spell levels a cleric has slots for here (1..Types.CASTER_LEVEL_LAST)
+  take them, and each only where that level's slot count is already non-zero. }
 procedure AwardWisdomBonus(creature: Types.PCharRecord);
 var
   w: Byte;
@@ -597,8 +676,9 @@ begin
       wis := 25;
     for w := 13 to wis do
       for lvl := 1 to Types.CASTER_LEVEL_LAST do
-        if clericSpells[lvl] > 0 then
-          Inc(clericSpells[lvl], wisBonusSpells[w, lvl]);
+        if CharHlp.SpellSlots(creature, C_SPELL.CLASS_CLERIC, lvl) > 0 then
+          CharHlp.SetSpellSlots(creature, C_SPELL.CLASS_CLERIC, lvl,
+                                CharHlp.SpellSlots(creature, C_SPELL.CLASS_CLERIC, lvl) + wisBonusSpells[w, lvl]);
   end;
 end;
 
@@ -609,11 +689,8 @@ begin
   lvl := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT);
   if lvl > 1 then
     ClassCal.RecalcBaseSkills(creature)
-  else if lvl = 1 then begin
-    FillChar(creature^.clericSpells, SizeOf(creature^.clericSpells), 0);
-    creature^.clericSpells[1] := 1;
-    ClassCal.AwardWisdomBonus(creature);
-  end;
+  else if lvl = 1 then
+    ClassCal.FirstLevelSlots(creature, C_LEVEL.CLERIC);
 end;
 
 { Start every saving throw at 20 and take the best (lowest) across all classes with a level above 0 the creature can
@@ -1175,6 +1252,18 @@ begin
   RollFirstLevelHp := sum;
 end;
 
+procedure LoseConstitution(creature: Types.PCharRecord);
+var
+  hpLoss: Integer;
+begin
+  Dec(creature^.conCur);
+  hpLoss := ClassCal.ConHpTotal(creature, creature^.conCur + 1) - ClassCal.ConHpTotal(creature, creature^.conCur);
+  if hpLoss >= creature^.hpMax then
+    hpLoss := creature^.hpMax - 1;
+  if hpLoss > 0 then
+    Dec(creature^.hpMax, hpLoss);
+end;
+
 function ConHpTotal(creature: Types.PCharRecord; con: Byte): Integer;
 var
   total: Integer;
@@ -1214,6 +1303,37 @@ begin
     if (GameDefs.spellTable[spell].castClassSp = C_SPELL.CLASS_CLERIC) and
         (CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT) > 0) then
       SpellFailureChance := AbilAdj.WisSpellFailure(creature^.wisCur);
+end;
+
+function LevelXp(cls: ShortInt; lvl: Integer): LongInt;
+begin
+  if lvl < 2 then
+    LevelXp := 0
+  else if lvl > C_LEVEL.LEVEL_LAST then
+    LevelXp := -1
+  else
+    LevelXp := GameDefs.classExperience[cls].xp[lvl];
+end;
+
+function MaxLevel(cls: ShortInt): ShortInt;
+begin
+  if GameVars.levelCapOn <> 0 then
+    MaxLevel := ssiLevelCaps[cls]
+  else
+    MaxLevel := C_LEVEL.LEVEL_LAST;
+end;
+
+function LevelOpen(cls: ShortInt; lvl: Integer): Boolean;
+begin
+  LevelOpen := (lvl >= 2) and (lvl <= ClassCal.MaxLevel(cls)) and (ClassCal.LevelXp(cls, lvl) > 0);
+end;
+
+function MinLevel(lvl: ShortInt): ShortInt;
+begin
+  if lvl > C_LEVEL.LEVEL_LAST then
+    MinLevel := C_LEVEL.LEVEL_LAST
+  else
+    MinLevel := lvl;
 end;
 
 end.

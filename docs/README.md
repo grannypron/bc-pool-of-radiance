@@ -50,7 +50,7 @@ This directory contains build instructions, release notes, implementation histor
 
 | File | Purpose |
 | --- | --- |
-| [`settings-game.txt`](screen-mocks/settings-game.txt) | The Settings screen's Game page (speed, portraits, Auto Join, Consolidate Coin, Journal, Non-Human Level Cap, companion tools) and its Combat page (Quick Mode, Aim Cycles, Retrieve Thrown, combat log). |
+| [`settings-game.txt`](screen-mocks/settings-game.txt) | The Settings screen's Game page (speed, portraits, Auto Join, Consolidate Coin, Journal, Non-Human Level Cap, Game Level Cap, companion tools) and its Combat page (Quick Mode, Aim Cycles, Retrieve Thrown, combat log). |
 | [`settings-system.txt`](screen-mocks/settings-system.txt) | Read-only system information page for video, sound, version, data, memory, and EMS status. |
 
 ### Spell screens

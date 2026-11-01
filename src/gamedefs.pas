@@ -337,8 +337,8 @@ const
   { direction indices: center, E, SE, S }
   cloudDir: array[1..4] of Byte = (
     8, 2, 3, 4);
-  { spell IDs 1..56 }
-  spellNames: array[1..56] of string[32] = (
+  { spell IDs 1..C_SPELL.LAST: the item spells' 57 and 59..65 and the empty ids have no name }
+  spellNames: array[1..C_SPELL.LAST] of string[32] = (
     'Bless',
     'Curse',
     'Cure Light Wounds',
@@ -394,8 +394,54 @@ const
     'Protection From Good, 10'' Radius',
     'Protection From Normal Missiles',
     'Slow',
-    'Restoration');
-  { IDs 57..67 are item effects }
+    'Restoration',
+    '',
+    'Cure Serious Wounds',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    'Cause Serious Wounds',
+    'Neutralize Poison',
+    'Poison',
+    'Protection From Evil, 10'' Radius',
+    'Sticks to Snakes',
+    'Cure Critical Wounds',
+    'Cause Critical Wounds',
+    'Dispel Evil',
+    'Flame Strike',
+    'Raise Dead',
+    'Slay Living',
+    'Detect Magic',
+    'Entangle',
+    'Faerie Fire',
+    'Invisibility to Animals',
+    'Charm Monsters',
+    'Confusion',
+    'Dimension Door',
+    'Fear',
+    'Fire Shield',
+    'Fumble',
+    'Ice Storm',
+    'Minor Globe of Invulnerability',
+    'Remove Curse',
+    'Animate Dead',
+    '',
+    'Cone of Cold',
+    'Feeblemind',
+    'Hold Monsters',
+    '',
+    '',
+    '',
+    '',
+    '',
+    'Bestow Curse');
+  { IDs 57, 59..65 and 127..128 are item spells; 58, 66..90, 92..94 and 100 are the spells of levels 4 and 5 and the
+    druid's first, from Curse's table with its castClass remapped (Curse's druid 1 and magic-user 2 are 2 and 1 here);
+    91, 95..99 and 101..126 hold no spell (#1121) }
   spellTable: array[1..C_SPELL.TABLE_LAST] of Types.TSpellRec = (
     { Spell 1: Bless }
     (castClass: 0; level: 1; rangeFixed: 6; rangeVar: 0;
@@ -678,57 +724,365 @@ const
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 6; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 57 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 39; whenCast: 2;
      castTime: 0; aiPriority: 3; offensive: 0; aiRadius: 0),
-    { Spell 58 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    { Spell 58: Cure Serious Wounds }
+    (castClass: 0; level: 4; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 4; target: 2;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
-     castTime: 0; aiPriority: 1; offensive: 0; aiRadius: 0),
+     castTime: 7; aiPriority: 1; offensive: 0; aiRadius: 0),
     { Spell 59 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 38; whenCast: 2;
      castTime: 0; aiPriority: 1; offensive: 0; aiRadius: 0),
     { Spell 60 }
-    (castClass: 2; level: 6; rangeFixed: 4; rangeVar: 4;
+    (castClass: 3; level: 6; rangeFixed: 4; rangeVar: 4;
      durFixed: 0; durVar: 0; area: 4; target: 0;
      saveResult: 2; saveType: 4; effect: 0; whenCast: 1;
      castTime: 0; aiPriority: 7; offensive: 1; aiRadius: 0),
     { Spell 61 }
-    (castClass: 2; level: 6; rangeFixed: 6; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 6; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 4; target: 0;
      saveResult: 1; saveType: 0; effect: 52; whenCast: 1;
      castTime: 0; aiPriority: 7; offensive: 1; aiRadius: 0),
     { Spell 62 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 39; whenCast: 2;
      castTime: 0; aiPriority: 1; offensive: 0; aiRadius: 0),
     { Spell 63 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 7; target: 4;
      saveResult: 0; saveType: 4; effect: 71; whenCast: 2;
      castTime: 0; aiPriority: 2; offensive: 0; aiRadius: 0),
     { Spell 64 }
-    (castClass: 2; level: 6; rangeFixed: 7; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 7; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 11; target: 0;
      saveResult: 2; saveType: 4; effect: 0; whenCast: 1;
      castTime: 0; aiPriority: 7; offensive: 1; aiRadius: 3),
     { Spell 65 }
-    (castClass: 2; level: 6; rangeFixed: 12; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 12; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 4; target: 0;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 1;
      castTime: 0; aiPriority: 6; offensive: 1; aiRadius: 0),
-    { Spell 66 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    { Spell 66: Cause Serious Wounds }
+    (castClass: 0; level: 4; rangeFixed: 255; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 4; target: 0;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 1;
+     castTime: 7; aiPriority: 5; offensive: 1; aiRadius: 0),
+    { Spell 67: Neutralize Poison }
+    (castClass: 0; level: 4; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 2;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 0;
+     castTime: 7; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 68: Poison: a touch, saved against as poison }
+    (castClass: 0; level: 4; rangeFixed: 255; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 4; target: 0;
+     saveResult: 1; saveType: 0; effect: 0; whenCast: 1;
+     castTime: 7; aiPriority: 6; offensive: 1; aiRadius: 0),
+    { Spell 69: Protection From Evil, 10' Radius, the cleric's }
+    (castClass: 0; level: 4; rangeFixed: 3; rangeVar: 0;
+     durFixed: 0; durVar: 10; area: 4; target: 2;
+     saveResult: 0; saveType: 4; effect: 45; whenCast: 2;
+     castTime: 7; aiPriority: 2; offensive: 0; aiRadius: 0),
+    { Spell 70: Sticks to Snakes }
+    (castClass: 0; level: 4; rangeFixed: 3; rangeVar: 0;
+     durFixed: 0; durVar: 2; area: 4; target: 0;
+     saveResult: 0; saveType: 4; effect: C_EFFECT.STICKS_TO_SNAKES; whenCast: 1;
+     castTime: 7; aiPriority: 4; offensive: 1; aiRadius: 0),
+    { Spell 71: Cure Critical Wounds }
+    (castClass: 0; level: 5; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 4; target: 2;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 8; aiPriority: 2; offensive: 0; aiRadius: 0),
+    { Spell 72: Cause Critical Wounds }
+    (castClass: 0; level: 5; rangeFixed: 255; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 4; target: 0;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 1;
+     castTime: 8; aiPriority: 6; offensive: 1; aiRadius: 0),
+    { Spell 73: Dispel Evil }
+    (castClass: 0; level: 5; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 1; area: 0; target: 0;
+     saveResult: 0; saveType: 4; effect: C_EFFECT.DISPEL_EVIL_TOUCH; whenCast: 1;
+     castTime: 8; aiPriority: 3; offensive: 0; aiRadius: 0),
+    { Spell 74: Flame Strike }
+    (castClass: 0; level: 5; rangeFixed: 6; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 4; target: 0;
+     saveResult: 2; saveType: 4; effect: 0; whenCast: 1;
+     castTime: 8; aiPriority: 6; offensive: 1; aiRadius: 0),
+    { Spell 75: Raise Dead }
+    (castClass: 0; level: 5; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 2;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 0;
+     castTime: 10; aiPriority: 1; offensive: 0; aiRadius: 0),
+    { Spell 76: Slay Living, saved against as death magic (Curse's row names the spell column, which its handler does
+      not roll) }
+    (castClass: 0; level: 5; rangeFixed: 3; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 4; target: 0;
+     saveResult: 1; saveType: 0; effect: 0; whenCast: 1;
+     castTime: 10; aiPriority: 7; offensive: 1; aiRadius: 0),
+    { Spell 77: Detect Magic, the druid's; AI priority 0, as the others' (Curse's 1 had the AI cast it in combat) }
+    (castClass: 2; level: 1; rangeFixed: 3; rangeVar: 0;
+     durFixed: 12; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 5; whenCast: 2;
+     castTime: 3; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 78: Entangle; the AI's friendly-fire radius is the area's (Curse's 0 let it entangle its own side) }
+    (castClass: 2; level: 1; rangeFixed: 8; rangeVar: 0;
+     durFixed: 10; durVar: 0; area: 11; target: 0;
+     saveResult: 1; saveType: 4; effect: C_EFFECT.ENTANGLE; whenCast: 1;
+     castTime: 3; aiPriority: 3; offensive: 1; aiRadius: 3),
+    { Spell 79: Faerie Fire }
+    (castClass: 2; level: 1; rangeFixed: 8; rangeVar: 0;
+     durFixed: 0; durVar: 4; area: 5; target: 0;
+     saveResult: 0; saveType: 4; effect: C_EFFECT.FAERIE_FIRE; whenCast: 1;
+     castTime: 3; aiPriority: 4; offensive: 1; aiRadius: 0),
+    { Spell 80: Invisibility to Animals: by touch, with no attack roll and not at foes (Curse's range 255 asked an
+      attack roll, and its AI aimed it at enemies) }
+    (castClass: 2; level: 1; rangeFixed: 0; rangeVar: 0;
+     durFixed: 10; durVar: 1; area: 4; target: 2;
+     saveResult: 0; saveType: 4; effect: C_EFFECT.INVISIBLE_TO_ANIMALS; whenCast: 2;
+     castTime: 4; aiPriority: 1; offensive: 0; aiRadius: 0),
+    { Spell 81: Charm Monsters }
+    (castClass: 1; level: 4; rangeFixed: 6; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 5; target: 0;
+     saveResult: 1; saveType: 4; effect: 11; whenCast: 1;
+     castTime: 4; aiPriority: 6; offensive: 1; aiRadius: 0),
+    { Spell 82: Confusion; the AI's friendly-fire radius is the area's, as for Entangle }
+    (castClass: 1; level: 4; rangeFixed: 12; rangeVar: 0;
+     durFixed: 2; durVar: 1; area: 11; target: 0;
+     saveResult: 1; saveType: 4; effect: C_EFFECT.CONFUSION; whenCast: 1;
+     castTime: 4; aiPriority: 7; offensive: 1; aiRadius: 3),
+    { Spell 83: Dimension Door }
+    (castClass: 1; level: 4; rangeFixed: 0; rangeVar: 3;
+     durFixed: 0; durVar: 0; area: 8; target: 0;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 1;
+     castTime: 1; aiPriority: 0; offensive: 1; aiRadius: 0),
+    { Spell 84: Fear }
+    (castClass: 1; level: 4; rangeFixed: 6; rangeVar: 0;
+     durFixed: 0; durVar: 1; area: 8; target: 0;
+     saveResult: 1; saveType: 4; effect: C_EFFECT.FEAR; whenCast: 1;
+     castTime: 4; aiPriority: 6; offensive: 1; aiRadius: 0),
+    { Spell 85: Fire Shield }
+    (castClass: 1; level: 4; rangeFixed: 0; rangeVar: 0;
+     durFixed: 2; durVar: 1; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 4; aiPriority: 8; offensive: 0; aiRadius: 0),
+    { Spell 86: Fumble }
+    (castClass: 1; level: 4; rangeFixed: 0; rangeVar: 1;
+     durFixed: 0; durVar: 1; area: 4; target: 0;
+     saveResult: 1; saveType: 4; effect: C_EFFECT.FUMBLE; whenCast: 1;
+     castTime: 4; aiPriority: 4; offensive: 1; aiRadius: 0),
+    { Spell 87: Ice Storm; the AI's friendly-fire radius is the area's, as for Entangle }
+    (castClass: 1; level: 4; rangeFixed: 0; rangeVar: 1;
+     durFixed: 0; durVar: 0; area: 10; target: 0;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 1;
+     castTime: 4; aiPriority: 7; offensive: 1; aiRadius: 2),
+    { Spell 88: Minor Globe Of Invulnerability }
+    (castClass: 1; level: 4; rangeFixed: 0; rangeVar: 1;
+     durFixed: 0; durVar: 1; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: C_EFFECT.MINOR_GLOBE; whenCast: 2;
+     castTime: 4; aiPriority: 5; offensive: 0; aiRadius: 0),
+    { Spell 89: Remove Curse, the magic-user's }
+    (castClass: 1; level: 4; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 4; target: 2;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 4; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 90: Animate Dead, the magic-user's: a 5th-level spell (1st-edition PHB; Curse made it a special one no class
+      casts) }
+    (castClass: 1; level: 5; rangeFixed: 1; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 240; target: 4;
+     saveResult: 0; saveType: 4; effect: 32; whenCast: 2;
+     castTime: 5; aiPriority: 2; offensive: 0; aiRadius: 0),
+    { Spell 91: Curse's Cloudkill, not cast here: the arena has no Cloudkill cloud (#1121) }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
-    { Spell 67 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    { Spell 92: Cone of Cold }
+    (castClass: 1; level: 5; rangeFixed: 6; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 8; target: 0;
+     saveResult: 2; saveType: 4; effect: 0; whenCast: 1;
+     castTime: 5; aiPriority: 6; offensive: 1; aiRadius: 0),
+    { Spell 93: Feeblemind }
+    (castClass: 1; level: 5; rangeFixed: 0; rangeVar: 1;
+     durFixed: 0; durVar: 0; area: 4; target: 0;
+     saveResult: 1; saveType: 4; effect: C_EFFECT.FEEBLEMIND; whenCast: 1;
+     castTime: 5; aiPriority: 6; offensive: 1; aiRadius: 0),
+    { Spell 94: Hold Monsters }
+    (castClass: 1; level: 5; rangeFixed: 0; rangeVar: 1;
+     durFixed: 0; durVar: 1; area: 7; target: 0;
+     saveResult: 1; saveType: 4; effect: 52; whenCast: 1;
+     castTime: 5; aiPriority: 7; offensive: 1; aiRadius: 0),
+    { Spell 95: Curse's monster power, not cast here }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 96: Curse's monster power, not cast here }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 97: Curse's monster power, not cast here }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 98: Curse's monster power, not cast here }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 99: Curse's monster power, not cast here }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 100: Bestow Curse, the magic-user's }
+    (castClass: 1; level: 4; rangeFixed: 255; rangeVar: 0;
+     durFixed: 0; durVar: 10; area: 4; target: 0;
+     saveResult: 1; saveType: 4; effect: 36; whenCast: 1;
+     castTime: 4; aiPriority: 4; offensive: 1; aiRadius: 0),
+    { Spell 101 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 102 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 103 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 104 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 105 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 106 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 107 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 108 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 109 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 110 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 111 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 112 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 113 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 114 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 115 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 116 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 117 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 118 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 119 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 120 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 121 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 122 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 123 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 124 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 125 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 126 }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 0; target: 1;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
+    { Spell 127: Keoghtom's Ointment, item effect 150 (#1121) }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
+     durFixed: 0; durVar: 0; area: 4; target: 2;
+     saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
+     castTime: 0; aiPriority: 1; offensive: 0; aiRadius: 0),
+    { Spell 128: Manual of Bodily Health, item effect 151 (#1121) }
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 4; whenCast: 0;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0));
@@ -862,25 +1216,48 @@ const
     (first: 2; second: 6; third: -1), { fighter/thief }
     (first: 2; second: 5; third: 6), { fighter/magic-user/thief }
     (first: 5; second: 6; third: -1)); { magic-user/thief }
-  { Experience and spell slots by class slot. A -1 marks a level the class cannot reach, so cleric and magic-user stop
-    at 6, paladin and ranger at 7 and fighter at 8; the thief's row runs to the end of the table at 9. }
+  { Experience and spell slots by class slot, from the 1st-edition PHB to level 9 (#1121): xp[n] is the experience
+    level n starts at, -1 for a class with no table (druid, monk). How far a class trains is ClassCal.MaxLevel's, which
+    with the Game Level Cap setting on stops at SSI's levels. slots[n] are a cleric's or magic-user's spell slots at
+    level n by spell level, before the Wisdom bonus; level 1's one slot is ClassCal.FirstLevelSlots'. }
   classExperience: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Types.TRuleXp = (
-    (xp: (1501, 3001, 6001, 13001, 27501, -1, -1, -1);
-     slots: ((2, 0, 0), (2, 1, 0), (3, 2, 0), (3, 3, 1), (3, 3, 2), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
+    (xp: (1501, 3001, 6001, 13001, 27501, 55001, 110001, 225001);
+     slots: ((2, 0, 0, 0, 0), (2, 1, 0, 0, 0), (3, 2, 0, 0, 0), (3, 3, 1, 0, 0), (3, 3, 2, 0, 0), (3, 3, 2, 1, 0),
+             (3, 3, 3, 2, 0), (4, 4, 3, 2, 1))),
     (xp: (-1, -1, -1, -1, -1, -1, -1, -1);
-     slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
-    (xp: (2001, 4001, 8001, 18001, 35001, 70001, 125001, -1);
-     slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
-    (xp: (2751, 5501, 12001, 24001, 45001, 95001, -1, -1);
-     slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
-    (xp: (2251, 4501, 10001, 20001, 40001, 90001, -1, -1);
-     slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
-    (xp: (2501, 5001, 10001, 22501, 40001, -1, -1, -1);
-     slots: ((2, 0, 0), (2, 1, 0), (3, 2, 0), (4, 2, 1), (4, 2, 2), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
+     slots: ((0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0),
+             (0, 0, 0, 0, 0), (0, 0, 0, 0, 0))),
+    (xp: (2001, 4001, 8001, 18001, 35001, 70001, 125001, 250001);
+     slots: ((0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0),
+             (0, 0, 0, 0, 0), (0, 0, 0, 0, 0))),
+    (xp: (2751, 5501, 12001, 24001, 45001, 95001, 175001, 350001);
+     slots: ((0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0),
+             (0, 0, 0, 0, 0), (0, 0, 0, 0, 0))),
+    (xp: (2251, 4501, 10001, 20001, 40001, 90001, 150001, 225001);
+     slots: ((0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0),
+             (0, 0, 0, 0, 0), (0, 0, 0, 0, 0))),
+    (xp: (2501, 5001, 10001, 22501, 40001, 60001, 90001, 135001);
+     slots: ((2, 0, 0, 0, 0), (2, 1, 0, 0, 0), (3, 2, 0, 0, 0), (4, 2, 1, 0, 0), (4, 2, 2, 0, 0), (4, 3, 2, 1, 0),
+             (4, 3, 3, 2, 0), (4, 3, 3, 2, 1))),
     (xp: (1251, 2501, 5001, 10001, 20001, 42501, 70001, 110001);
-     slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
+     slots: ((0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0),
+             (0, 0, 0, 0, 0), (0, 0, 0, 0, 0))),
     (xp: (-1, -1, -1, -1, -1, -1, -1, -1);
-     slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))));
+     slots: ((0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0),
+             (0, 0, 0, 0, 0), (0, 0, 0, 0, 0))));
+  { The spells a paladin and a ranger cast (1st-edition PHB), by class level from PALADIN_SPELLS_FROM and
+    RANGER_SPELLS_FROM to C_LEVEL.LEVEL_LAST: the paladin's cleric slots, and the ranger's druid and magic-user slots,
+    each by spell level. ClassCal.RecalcBaseSkills adds them to the character's slots of that kind (#1121). }
+  PALADIN_SPELLS_FROM = 9;
+  RANGER_SPELLS_FROM = 8;
+  paladinSlots: array[PALADIN_SPELLS_FROM..C_LEVEL.LEVEL_LAST, 1..Types.CASTER_LEVEL_LAST] of Byte = (
+    (1, 0, 0, 0, 0));
+  rangerDruidSlots: array[RANGER_SPELLS_FROM..C_LEVEL.LEVEL_LAST, 1..Types.CASTER_LEVEL_LAST] of Byte = (
+    (1, 0, 0, 0, 0), (1, 0, 0, 0, 0));
+  rangerMageSlots: array[RANGER_SPELLS_FROM..C_LEVEL.LEVEL_LAST, 1..Types.CASTER_LEVEL_LAST] of Byte = (
+    (0, 0, 0, 0, 0), (1, 0, 0, 0, 0));
+  { the Wisdom a cleric needs for a fifth-level spell, which a level-9 cleric's table row gives (1st-edition PHB) }
+  CLERIC_FIFTH_LEVEL_WISDOM = 17;
 
 implementation
 

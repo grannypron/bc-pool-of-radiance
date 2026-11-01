@@ -19,8 +19,9 @@ var
     and Resist Cold are what an enemy seen doing fire or cold damage makes worth casting (#1087). }
   seenElements: array[1..Types.ARENA_SLOTS] of Byte;
 
-{ Call the effect handler for effId (1..141) through GameVars.effectFns; an id outside the table calls nothing. p is the
-  item or effect node the handler concerns; removed is True when the item is being unreadied or the effect removed. }
+{ Call the effect handler for effId (1..C_EFFECT.LAST_ID) through GameVars.effectFns; an id outside the table calls
+  nothing. p is the item or effect node the handler concerns; removed is True when the item is being unreadied or the
+  effect removed. }
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 { Remove an effect node from the creature's list: eff when it is not nil, else the first node whose id is effId (nothing
@@ -159,6 +160,11 @@ function AdjustForNewStrength(creature: Types.PCharRecord; baseStr, excStr: Byte
   (GameVars.curChar) is on the other side from the creature, the element joins the actor's seenElements. }
 procedure InflictNonWeaponDamage(creature: Types.PCharRecord; damage, saveReduction: Byte; saved: Boolean);
 
+{ Fire Shield's part of non-weapon damage to creature, after the save (saved): its hot flames (C_EFFECT.FIRE_SHIELD_HOT)
+  double fire damage the save did not stop and halve cold damage, none on a save; its cold flames (FIRE_SHIELD_COLD)
+  the same the other way about (1st-edition PHB, as Curse has it). }
+procedure FireShieldDamage(creature: Types.PCharRecord; saved: Boolean);
+
 { InflictNonWeaponDamage, with no save, for an aligned item (eff 132) that shocks the creature readying it: in place of
   "takes n points of damage" the message window shows "<item> shocks <name> for <n> damage, and has been unequipped."
   with the item's displayed name, and waits for a key (CharDisp.MessageWait). }
@@ -231,7 +237,7 @@ const
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if (effId >= C_EFFECT.BLESS) and (effId <= C_EFFECT.RECENT_CURE) then
+  if (effId >= C_EFFECT.BLESS) and (effId <= C_EFFECT.LAST_ID) then
     GameVars.effectFns[effId](creature, p, removed);
 end;
 
@@ -383,6 +389,7 @@ begin
     C_COND.TARGET_VETO: begin
       FxEngine.TriggerEffect(creature, C_EFFECT.NULL_TARGET_VETO); FxEngine.TriggerEffect(creature, C_EFFECT.BLINKING);
       FxEngine.TriggerEffect(creature, C_EFFECT.INVISIBLE); FxEngine.TriggerEffect(creature, C_EFFECT.DUST_DISAPPEAR);
+      FxEngine.TriggerEffect(creature, C_EFFECT.INVISIBLE_TO_ANIMALS);
     end;
     C_COND.HIT_PHASE_1: begin
       FxEngine.TriggerEffect(creature, C_EFFECT.DRAIN_ONE); FxEngine.TriggerEffect(creature, C_EFFECT.DRAIN_TWO);
@@ -390,6 +397,7 @@ begin
       FxEngine.TriggerEffect(creature, C_EFFECT.FIRE_TOUCH); FxEngine.TriggerEffect(creature, C_EFFECT.ACID_SQUIRT);
       FxEngine.TriggerEffect(creature, C_EFFECT.BLOOD_ATTACH);
       FxEngine.TriggerEffect(creature, C_EFFECT.REAR_CLAW_RAKE); FxEngine.TriggerEffect(creature, C_EFFECT.BITE_ATTACH);
+      FxEngine.TriggerEffect(creature, C_EFFECT.DISPEL_EVIL_TOUCH);
     end;
     C_COND.HIT_PHASE_2: begin
       FxEngine.TriggerEffect(creature, C_EFFECT.POISON_HIT0); FxEngine.TriggerEffect(creature, C_EFFECT.POISON_HIT4);
@@ -412,6 +420,8 @@ begin
       FxEngine.TriggerEffect(creature, C_EFFECT.SILVER_MAGIC); FxEngine.TriggerEffect(creature, C_EFFECT.NEED_SILVER);
       FxEngine.TriggerEffect(creature, C_EFFECT.HALF_BASH); FxEngine.TriggerEffect(creature, C_EFFECT.NULL_DAMAGE);
       FxEngine.TriggerEffect(creature, C_EFFECT.MUMMY_FIRE); FxEngine.TriggerEffect(creature, C_EFFECT.HOLY_WATER);
+      { last: the flames burn back the damage the blow does after the defenses above }
+      FxEngine.TriggerEffect(creature, C_EFFECT.FIRE_SHIELD_ZAP);
     end;
     C_COND.NONWEAPON_DAMAGE: begin
       FxEngine.TriggerEffect(creature, C_EFFECT.EFREETI_FIRE); FxEngine.TriggerEffect(creature, C_EFFECT.RING_FIRE_RES);
@@ -422,10 +432,12 @@ begin
       FxEngine.TriggerEffect(creature, C_EFFECT.HALF_ELEC); FxEngine.TriggerEffect(creature, C_EFFECT.HALF_COLD);
       FxEngine.TriggerEffect(creature, C_EFFECT.SHIELD); FxEngine.TriggerEffect(creature, C_EFFECT.HALF_FIRE);
       FxEngine.TriggerEffect(creature, C_EFFECT.TROLL_HEAL); FxEngine.TriggerEffect(creature, C_EFFECT.MIRROR_IMAGE);
+      FxEngine.TriggerEffect(creature, C_EFFECT.MINOR_GLOBE);
     end;
     C_COND.TURN_START: begin
       FxEngine.TriggerEffect(creature, C_EFFECT.SNAKE_CHARM); FxEngine.TriggerEffect(creature, C_EFFECT.PARALYZED);
       FxEngine.TriggerEffect(creature, C_EFFECT.SLEEP); FxEngine.TriggerEffect(creature, C_EFFECT.HELPLESS);
+      FxEngine.TriggerEffect(creature, C_EFFECT.STICKS_TO_SNAKES); FxEngine.TriggerEffect(creature, C_EFFECT.FUMBLE);
     end;
     C_COND.COMBAT_START: begin
       FxEngine.TriggerEffect(creature, C_EFFECT.CAN_FIGHT_ON); FxEngine.TriggerEffect(creature, C_EFFECT.DRAGON_FEAR);
@@ -441,6 +453,7 @@ begin
       FxEngine.TriggerEffect(creature, C_EFFECT.NO_PARA_POISON); FxEngine.TriggerEffect(creature, C_EFFECT.NO_FIRE);
       FxEngine.TriggerEffect(creature, C_EFFECT.HALF_ELF_RESISTANCE);
       FxEngine.TriggerEffect(creature, C_EFFECT.NO_CHARM_POISON);
+      FxEngine.TriggerEffect(creature, C_EFFECT.MINOR_GLOBE);
     end;
     C_COND.ATTACK_ROLL_ATT: begin
       FxEngine.TriggerEffect(creature, C_EFFECT.BLESS); FxEngine.TriggerEffect(creature, C_EFFECT.CURSE);
@@ -455,6 +468,7 @@ begin
         Blindness and Shield changes (#717) }
       FxEngine.TriggerEffect(creature, C_EFFECT.STINKING_CLOUD_COUGH);
       FxEngine.TriggerEffect(creature, C_EFFECT.BLIND); FxEngine.TriggerEffect(creature, C_EFFECT.SHIELD);
+      FxEngine.TriggerEffect(creature, C_EFFECT.FAERIE_FIRE);
     end;
     C_COND.SAVING_THROW: begin
       FxEngine.TriggerProtection(creature, C_EFFECT.PROTECTION_FROM_EVIL, C_EFFECT.PROT_EVIL_10FT);
@@ -467,6 +481,8 @@ begin
       FxEngine.TriggerEffect(creature, C_EFFECT.NO_CHARM_POISON);
       FxEngine.TriggerEffect(creature, C_EFFECT.CON_PSN_SAVE);
       FxEngine.TriggerEffect(creature, C_EFFECT.CONSTITUTION_SAVE_BONUS);
+      FxEngine.TriggerEffect(creature, C_EFFECT.FIRE_SHIELD_HOT);
+      FxEngine.TriggerEffect(creature, C_EFFECT.FIRE_SHIELD_COLD);
     end;
     C_COND.HP_ZERO: begin
       FxEngine.TriggerEffect(creature, C_EFFECT.CAN_FIGHT_ON); FxEngine.TriggerEffect(creature, C_EFFECT.TROLL_BURN);
@@ -482,6 +498,7 @@ begin
       FxEngine.TriggerEffect(creature, C_EFFECT.STINKING_CLOUD_COUGH);
       FxEngine.TriggerEffect(creature, C_EFFECT.BITE_HOLD); FxEngine.TriggerEffect(creature, C_EFFECT.BLOOD_DRAIN);
       FxEngine.TriggerEffect(creature, C_EFFECT.CHARM);
+      FxEngine.TriggerEffect(creature, C_EFFECT.FEEBLEMIND); FxEngine.TriggerEffect(creature, C_EFFECT.CONFUSION);
     end;
     C_COND.ATTACK_ROLL_DEF: begin
       { after the d20, which AttackRoll rolls after C_COND.DEFENDER_AC (#789) }
@@ -492,6 +509,8 @@ begin
       FxEngine.TriggerEffect(creature, C_EFFECT.DWARF_GIANT_DEFENSE);
       FxEngine.TriggerEffect(creature, C_EFFECT.GNOME_BUGBEAR_DEFENSE);
       FxEngine.TriggerEffect(creature, C_EFFECT.DISPLACED);
+      FxEngine.TriggerEffect(creature, C_EFFECT.INVISIBLE_TO_ANIMALS);
+      FxEngine.TriggerEffect(creature, C_EFFECT.DISPEL_EVIL);
     end;
     C_COND.MORALE_CHECK: begin
       FxEngine.TriggerEffect(creature, C_EFFECT.BLESS); FxEngine.TriggerEffect(creature, C_EFFECT.CURSE);
@@ -499,7 +518,7 @@ begin
     end;
     C_COND.MOVE_ATTACK_RATE: begin
       FxEngine.TriggerEffect(creature, C_EFFECT.HASTED); FxEngine.TriggerEffect(creature, C_EFFECT.SLOWED);
-      FxEngine.TriggerEffect(creature, C_EFFECT.IMMOBILE);
+      FxEngine.TriggerEffect(creature, C_EFFECT.IMMOBILE); FxEngine.TriggerEffect(creature, C_EFFECT.ENTANGLE);
     end;
     C_COND.ROUND_END: begin
       FxEngine.TriggerEffect(creature, C_EFFECT.REGEN3); FxEngine.TriggerEffect(creature, C_EFFECT.SPIRITUAL_HAMMER);
@@ -849,6 +868,7 @@ begin
       1: GameVars.pendingDamage := 0;
       2: GameVars.pendingDamage := GameVars.pendingDamage div 2;
     end;
+  FxEngine.FireShieldDamage(creature, saved);
   if GameVars.pendingDamage > 0 then begin
     s := 'takes ' + StrUtil.Count(GameVars.pendingDamage, 'point', 'points') + ' of damage ';
     case GameVars.elementMask and not C_EFFECT.ELEM_MAGIC of
@@ -904,6 +924,34 @@ begin
       end;
     end;
     CharDisp.ClearMessageWindow;
+  end;
+end;
+
+procedure FireShieldDamage(creature: Types.PCharRecord; saved: Boolean);
+var
+  effect: Types.PEffectRec;
+  own: Byte;
+  other: Byte;
+begin
+  own := 0;
+  other := 0;
+  if CharHlp.HasEffect(creature, C_EFFECT.FIRE_SHIELD_HOT, effect) then begin
+    own := C_EFFECT.ELEM_FIRE;
+    other := C_EFFECT.ELEM_COLD;
+  end else if CharHlp.HasEffect(creature, C_EFFECT.FIRE_SHIELD_COLD, effect) then begin
+    own := C_EFFECT.ELEM_COLD;
+    other := C_EFFECT.ELEM_FIRE;
+  end;
+  if GameVars.elementMask and other <> 0 then begin
+    if saved then
+      GameVars.pendingDamage := 0
+    else
+      GameVars.pendingDamage := GameVars.pendingDamage div 2;
+  end else if (GameVars.elementMask and own <> 0) and not saved then begin
+    if GameVars.pendingDamage > 127 then
+      GameVars.pendingDamage := 255
+    else
+      GameVars.pendingDamage := GameVars.pendingDamage * 2;
   end;
 end;
 

@@ -60,6 +60,9 @@ var
     demihumans train as far as the experience table goes (#1176). It starts zeroed, as off, until GameInit applies the
     settings' defaults; a test of the caps sets it. }
   nonHumanCapOn: Byte;
+  { the Game Level Cap setting: nonzero stops each class at SSI's highest level, zero lets every class train to 9
+    (ClassCal.MaxLevel, #1121) }
+  levelCapOn: Byte;
   { nonzero: PostCbt and SaveLoad.LoadChar take the party's characters off Quick after each fight and on loading }
   quickEnds: Byte;
   { the Quick Mode Magic setting: CombatSt starts every fight with quickMagic set from it; Alt-M then turns quickMagic
@@ -261,7 +264,7 @@ var
 var
   { Effect dispatch }
   { effect handlers, indexed by effect id }
-  effectFns: array[C_EFFECT.BLESS..C_EFFECT.RECENT_CURE] of Types.TEffectHandler;
+  effectFns: array[C_EFFECT.BLESS..C_EFFECT.LAST_ID] of Types.TEffectHandler;
   { 3D view }
   { four 256-byte GEO planes; View3D/Explore views }
   map3d: Types.PGeoMap;

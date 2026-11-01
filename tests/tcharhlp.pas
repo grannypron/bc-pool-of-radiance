@@ -344,6 +344,51 @@ begin
   GameVars.nonHumanCapOn := 1;
   TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'which stops at 4 with it on');
   c^.race := C_RACE.HALF_ELF;
+  c^.classLevels[C_LEVEL.MAGE] := 7;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.MAGE), 'a half-elf magic-user trains past 7 (#1121)');
+  c^.classLevels[C_LEVEL.MAGE] := 8;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.MAGE), 'and stops at 8');
+
+  { the spells past SSI's record: slots of levels 4 and 5, known spells past 56, memorized slots past 20 (#1121) }
+  ClearCreature;
+  CharHlp.SetSpellSlots(c, C_SPELL.CLASS_CLERIC, 2, 3);
+  CharHlp.SetSpellSlots(c, C_SPELL.CLASS_CLERIC, 4, 2);
+  CharHlp.SetSpellSlots(c, C_SPELL.CLASS_DRUID, 1, 1);
+  TestKit.Check((c^.clericSpells[2] = 3) and (CharHlp.SpellSlots(c, C_SPELL.CLASS_CLERIC, 4) = 2) and
+                (CharHlp.SpellSlots(c, C_SPELL.CLASS_DRUID, 1) = 1), 'slots of every kind and level');
+  TestKit.CheckEqualsL(0, CharHlp.SpellSlots(c, C_SPELL.CLASS_SPECIAL, 1), 'none of the special kind');
+  CharHlp.SetSpellKnown(c, 10, True);
+  CharHlp.SetSpellKnown(c, C_SPELL.LAST, True);
+  TestKit.Check(CharHlp.KnowsSpell(c, 10) and (c^.spellsKnown[10] = 1), 'a spell known in the record');
+  TestKit.Check(CharHlp.KnowsSpell(c, C_SPELL.LAST) and not CharHlp.KnowsSpell(c, C_SPELL.LAST - 1),
+                'and one past it, alone');
+  CharHlp.SetSpellKnown(c, C_SPELL.LAST, False);
+  TestKit.Check(not CharHlp.KnowsSpell(c, C_SPELL.LAST), 'forgotten');
+  CharHlp.SetMemorizedAt(c, Types.MEMORIZED_LAST, 15);
+  CharHlp.SetMemorizedAt(c, 3, 21);
+  TestKit.Check((CharHlp.MemorizedAt(c, Types.MEMORIZED_LAST) = 15) and (c^.memorizedSpells[3] = 21),
+                'memorized slots past the record''s');
+  CharHlp.RemoveSpell(c, 15);
+  TestKit.CheckEqualsL(0, CharHlp.MemorizedAt(c, Types.MEMORIZED_LAST), 'RemoveSpell reaches them');
+
+  { training: the experience table's end, by the Game Level Cap, apart from the racial caps (#1121) }
+  ClearCreature;
+  c^.race := C_RACE.HUMAN;
+  c^.classLevels[C_LEVEL.CLERIC] := 6;
+  c^.experience := 60000;
+  GameVars.levelCapOn := 1;
+  TestKit.CheckEqualsL(0, CharHlp.TrainClasses(c, False), 'the cap on: a level 6 cleric with 60,000 does not train');
+  GameVars.levelCapOn := 0;
+  TestKit.CheckEqualsL(C_LEVEL.CLERIC_BIT, CharHlp.TrainClasses(c, False), 'the cap off: it trains to 7');
+  c^.experience := 50000;
+  TestKit.CheckEqualsL(0, CharHlp.TrainClasses(c, False), 'but not short of 55,001');
+  c^.classLevels[C_LEVEL.CLERIC] := 9;
+  c^.experience := 900000;
+  TestKit.CheckEqualsL(0, CharHlp.TrainClasses(c, False), 'and never past 9');
+  c^.race := C_RACE.HALF_ELF;
+  c^.classLevels[C_LEVEL.CLERIC] := 5;
+  TestKit.CheckEqualsL(0, CharHlp.TrainClasses(c, False), 'the racial cap holds with the table open');
+  GameVars.levelCapOn := 1;
 
   { a half-orc's cleric and thief caps by Wisdom and Dexterity (PHB pp. 14-15, #956) }
   ClearCreature;

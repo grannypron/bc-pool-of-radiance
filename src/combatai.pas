@@ -229,7 +229,7 @@ var
   threat: Boolean;
 begin
   SpellImpact := 0;
-  if spell = C_SPELL.CURE_LIGHT_WOUNDS then begin
+  if spell in C_SPELL.CURE_WOUNDS then begin
     if CbtActs.FindCureTarget(creature, tgt) then
       SpellImpact := 1;
   end else if GameDefs.spellTable[spell].offensive = 0 then begin
@@ -241,6 +241,9 @@ begin
       threat := True;
     end;
     eff := GameDefs.spellTable[spell].effect;
+    { Fire Shield names no effect in the table: its flames are a shielded creature's mark }
+    if spell = C_SPELL.FIRE_SHIELD then
+      eff := C_EFFECT.FIRE_SHIELD_ZAP;
     if threat and ((eff = 0) or not CharHlp.HasEffect(creature, eff, effect)) then
       SpellImpact := 1;
   end else begin
@@ -300,16 +303,16 @@ begin
 end;
 
 { Choose a spell for an NPC, or for a PC while quick magic (Alt-M) is on, when an enemy team remains. The list holds
-  every memorizedSpells entry that names a spell in spellTable if castAllowed is set; one with bit 7 set (still being
-  memorized) or past the table is left out. Each is weighed by how many it would affect (SpellImpact) times its
-  aiPriority, and one is drawn at random by weight, so the big plays come up most and the AI still fumbles now and
-  then; one that would do nothing, or has priority 0, is never drawn (#1086). It goes to CbtActs.CastSpellCombat,
-  whose result is returned. SSI drew at random over passes of falling priority, whatever the spell would do. Nothing
-  is cast in an anti-magic area (CharHlp.AntiMagicArea), where the Cast menu is not offered either (#1120). }
+  every memorized spell (CharHlp.MemorizedAt) that names a spell (CharHlp.IsSpell) if castAllowed is set; one with bit 7
+  set (still being memorized) or past the spells is left out. Each is weighed by how many it would affect (SpellImpact)
+  times its aiPriority, and one is drawn at random by weight, so the big plays come up most and the AI still fumbles now
+  and then; one that would do nothing, or has priority 0, is never drawn (#1086). It goes to CbtActs.CastSpellCombat,
+  whose result is returned. SSI drew at random over passes of falling priority, whatever the spell would do. Nothing is
+  cast in an anti-magic area (CharHlp.AntiMagicArea), where the Cast menu is not offered either (#1120). }
 function SelectSpellToCast(creature: Types.PCharRecord): Boolean;
 var
-  list: Types.TSpellSlots;
-  weight: array[0..Types.SPELL_SLOT_LAST] of Word;
+  list: Types.TMemorized;
+  weight: array[0..Types.MEMORIZED_LAST] of Word;
   total: Word;
   roll: Word;
   ext: Boolean;
@@ -319,10 +322,10 @@ var
 begin
   count := 0;
   if (creature^.combatAddr^.castAllowed <> 0) and not CharHlp.AntiMagicArea then
-    for k := 0 to Types.SPELL_SLOT_LAST do
-      { a pending entry (bit 7) is past the table too }
-      if (creature^.memorizedSpells[k] > 0) and (creature^.memorizedSpells[k] <= C_SPELL.TABLE_LAST) then begin
-        list[count] := creature^.memorizedSpells[k];
+    for k := 0 to Types.MEMORIZED_LAST do
+      { a pending entry (bit 7) is no spell }
+      if CharHlp.IsSpell(CharHlp.MemorizedAt(creature, k)) then begin
+        list[count] := CharHlp.MemorizedAt(creature, k);
         Inc(count);
       end;
   chosen := 0;

@@ -59,8 +59,8 @@ begin
   maxScr := 0;
   cntMem := 0;
   cntScr := 0;
-  for i := 0 to SizeOf(creature^.memorizedSpells) - 1 do begin
-    lvl := Camp.PendingLevel(creature^.memorizedSpells[i]);
+  for i := 0 to Types.MEMORIZED_LAST do begin
+    lvl := Camp.PendingLevel(CharHlp.MemorizedAt(creature, i));
     if lvl > maxMem then maxMem := lvl;
     Inc(cntMem, lvl);
   end;
@@ -89,9 +89,9 @@ procedure ResetMemorize(creature: Types.PCharRecord);
 var
   i: Byte;
 begin
-  for i := 0 to SizeOf(creature^.memorizedSpells) - 1 do
-    if creature^.memorizedSpells[i] > C_SPELL.ID_MASK then
-      creature^.memorizedSpells[i] := 0;
+  for i := 0 to Types.MEMORIZED_LAST do
+    if CharHlp.MemorizedAt(creature, i) > C_SPELL.ID_MASK then
+      CharHlp.SetMemorizedAt(creature, i, 0);
   creature^.spellPrepTime := 0;
 end;
 
@@ -211,9 +211,10 @@ begin
 end;
 
 { Show the remaining spell slots in the window under the memorize list (#900): 'Spell Slots Remaining' in light cyan
-  on C_SPELL.SLOTS_TOP, then a light green row for each class with an allowance, cleric first, as
-  'Magic-User  1:2  2:1  3:0'; a level with no allowance is left blank, a full one shows zero, and an unused class row
-  is blank. Return True whenever the character has any spell allowance, even if all slots are occupied. }
+  on C_SPELL.SLOTS_TOP, then a light green row for each kind of slot the character has, cleric, magic-user, then druid
+  (a ranger's, #1121), as 'Magic-User  1:2  2:1  3:0  4:1'; a level with no allowance is left blank, a full one shows
+  zero, and the rows below the last kind it has are blank. Return True whenever the character has any spell allowance,
+  even if all slots are occupied. }
 function DisplaySpellSlots: Boolean;
 var
   s: Types.TStr40;
@@ -225,16 +226,17 @@ var
 begin
   any := False;
   row := C_SPELL.SLOTS_TOP + 1;
-  for typ := 0 to 1 do begin
+  for typ := C_SPELL.CLASS_CLERIC to C_SPELL.SLOT_KIND_LAST do begin
     has := False;
     case typ of
-      0: s := 'Cleric';
+      C_SPELL.CLASS_CLERIC: s := 'Cleric';
+      C_SPELL.CLASS_MAGE: s := 'Magic-User';
     else
-      s := 'Magic-User';
+      s := 'Druid';
     end;
     s := StrUtil.PadRight(s, 10);
-    for lvl := 1 to 3 do
-      if GameVars.curChar^.slots[typ, lvl] = 0 then
+    for lvl := 1 to Types.CASTER_LEVEL_LAST do
+      if CharHlp.SpellSlots(GameVars.curChar, typ, lvl) = 0 then
         s := s + '     '
       else begin
         s := s + '  ' + StrUtil.NumStr(lvl) + ':' + StrUtil.NumStr(UsualSpl.SpellSlotsRemaining(GameVars.curChar, lvl,
@@ -250,8 +252,8 @@ begin
   end;
   if any then begin
     TextRend.DisplayString(1, C_SPELL.SLOTS_TOP, LightCyan, 'Spell Slots Remaining');
-    { a single-class character's second row }
-    while row <= C_SPELL.SLOTS_TOP + 2 do begin
+    { the rows of the kinds the character has not }
+    while row <= C_SPELL.SLOTS_TOP + 1 + C_SPELL.SLOT_KIND_LAST do begin
       TextRend.PrintSpaces(1, row, Black, 38);
       Inc(row);
     end;
@@ -331,11 +333,11 @@ end;
 { Remember the current character's memorized and pending spells as its usual spells (UsualSpl.SetUsualSpells). }
 procedure RememberUsualSpells;
 var
-  spells: Types.TSpellSlots;
+  spells: Types.TMemorized;
   i: Byte;
 begin
-  for i := 0 to SizeOf(spells) - 1 do
-    spells[i] := GameVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
+  for i := 0 to Types.MEMORIZED_LAST do
+    spells[i] := CharHlp.MemorizedAt(GameVars.curChar, i) and C_SPELL.ID_MASK;
   UsualSpl.SetUsualSpells(GameVars.curChar, spells);
 end;
 
@@ -453,7 +455,7 @@ begin
           CharDisp.PrintNameString(GameVars.curChar, 'has no copyable scrolls.', 10, True)
         else
           redraw := True;
-      end else if (spellId > SizeOf(GameVars.curChar^.spellsKnown)) or
+      end else if not CharHlp.IsSpell(spellId) or
           not UsualSpl.HasSlotKind(GameDefs.spellTable[spellId].levelSp, GameDefs.spellTable[spellId].castClassSp)
       then begin
         { a scroll byte past the spells a character can know, or a spell with no memorize slot, is not scribed }
@@ -461,7 +463,7 @@ begin
         CharDisp.PrintBottomLine('You can not scribe that spell.');
       end else begin
         redraw := True;
-        if GameVars.curChar^.spellsKnown[spellId] <> 0 then
+        if CharHlp.KnowsSpell(GameVars.curChar, spellId) then
           CharDisp.PrintBottomLine('You already know that spell.')
         else begin
           p := GameVars.curChar^.itemsAddr;
@@ -477,8 +479,8 @@ begin
             p := p^.next;
           end;
           if found = False then begin
-            if GameVars.curChar^.slots[GameDefs.spellTable[spellId].castClassSp,
-                                       GameDefs.spellTable[spellId].levelSp] > 0
+            if CharHlp.SpellSlots(GameVars.curChar, GameDefs.spellTable[spellId].castClassSp,
+                                  GameDefs.spellTable[spellId].levelSp) > 0
             then begin
               p := GameVars.curChar^.itemsAddr;
               while (p <> nil) and (found = False) do begin
@@ -552,14 +554,16 @@ begin
             C_EFFECT.ANIMATE_DEAD..C_EFFECT.DISEASED,
         C_EFFECT.BESTOW_CURSE..C_EFFECT.HASTED, C_EFFECT.PROT_MISSILES, C_EFFECT.SLOWED,
             C_EFFECT.PROT_EVIL_10FT, C_EFFECT.PROT_GOOD_10FT,
-        C_EFFECT.PRAYER, C_EFFECT.SNAKE_CHARM..C_EFFECT.SLEEP:
+        C_EFFECT.PRAYER, C_EFFECT.SNAKE_CHARM..C_EFFECT.SLEEP,
+        C_EFFECT.STICKS_TO_SNAKES, C_EFFECT.DISPEL_EVIL_TOUCH, C_EFFECT.FAERIE_FIRE, C_EFFECT.CONFUSION, C_EFFECT.FEAR,
+            C_EFFECT.FUMBLE..C_EFFECT.ENTANGLE:
           begin
-            { Find the named spell that produces this effect. Only IDs 1..C_SPELL.LAST have spell names; higher IDs
-              are item effects. }
+            { Find the named spell that produces this effect: a spell of 1..C_SPELL.LAST (CharHlp.IsSpell), not one of
+              the item spells among them, whose rows have no name. }
             k := 1;
             found := False;
             while (k <= C_SPELL.LAST) and (found = False) do
-              if GameDefs.spellTable[k].effect = id then begin
+              if CharHlp.IsSpell(k) and (GameDefs.spellTable[k].effect = id) then begin
                 s := GameDefs.spellNames[k];
                 found := True;
               end else
@@ -581,6 +585,9 @@ begin
         C_EFFECT.DUST_DISAPPEAR: s := 'Invisible';
         C_EFFECT.CAMOUFLAGE: s := 'Camouflaged';
         C_EFFECT.DISPLACED: s := 'Displaced';
+        C_EFFECT.CONFUSED_BERSERK: s := 'Berserk';
+        C_EFFECT.FIRE_SHIELD_HOT: s := 'Fire Shield (Hot)';
+        C_EFFECT.FIRE_SHIELD_COLD: s := 'Fire Shield (Cold)';
       else
         show := False;
       end;

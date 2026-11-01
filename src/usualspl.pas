@@ -11,10 +11,10 @@ uses Types, FileUtil;
 
 { The character's usual spells: the spell IDs in its memorized and pending slots when it last confirmed memorizing,
   pending flags stripped. Return False when none are remembered for it. }
-function GetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots): Boolean;
+function GetUsualSpells(creature: Types.PCharRecord; var spells: Types.TMemorized): Boolean;
 
 { Remember spells as the character's usual spells. }
-procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots);
+procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TMemorized);
 
 { Forget the character's usual spells; called before its record is freed or reused. }
 procedure ForgetUsualSpells(creature: Types.PCharRecord);
@@ -27,8 +27,8 @@ function WriteUsualSpells(var s: FileUtil.TFileSet; creature: Types.PCharRecord;
   usual-spells record with this format's signature and version, made for a character of this name and randByte. }
 procedure ReadUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
 
-{ True when spells of class typ (0 cleric, 1 magic-user) and level lvl have memorize slots (TCharRecord.slots): levels
-  1..3 of the two classes. }
+{ True when spells of class typ (C_SPELL.CLASS_CLERIC..SLOT_KIND_LAST) and level lvl have memorize slots
+  (CharHlp.SpellSlots): levels 1..Types.CASTER_LEVEL_LAST of the cleric's, magic-user's and druid's. }
 function HasSlotKind(lvl, typ: ShortInt): Boolean;
 
 { The creature's spell allowance for a class and level minus its memorized and pending spells of that class and level,
@@ -60,11 +60,22 @@ const
   USUAL_ENTRIES = Types.MAX_PARTY;
   { MEM_SIG and MEM_VERSION open every .mem file; a file without both is not read }
   MEM_SIG = 'USPL';
-  MEM_VERSION = 1;
+  MEM_VERSION = 2;
+  { version 1's files hold the record's 21 slots alone, from before the slots past them (#1121) }
+  MEM_VERSION_1 = 1;
 
 type
   { A .mem file: the usual spells, with the name and randByte of the character they belong to. }
   TUsualSpellsFile = record
+    sig: string[4];
+    version: Byte;
+    name: string[Types.NAME_LEN];
+    randByte: Byte;
+    spells: Types.TMemorized;
+  end;
+
+  { A version 1 .mem file. }
+  TUsualSpellsFile1 = record
     sig: string[4];
     version: Byte;
     name: string[Types.NAME_LEN];
@@ -77,7 +88,7 @@ var
     owner marks a free entry. }
   usualOwner: array[1..USUAL_ENTRIES] of Types.PCharRecord;
   usualName: array[1..USUAL_ENTRIES] of string[Types.NAME_LEN];
-  usualSpells: array[1..USUAL_ENTRIES] of Types.TSpellSlots;
+  usualSpells: array[1..USUAL_ENTRIES] of Types.TMemorized;
 
 { The usual-spells entry for creature: its record and name both match, or 0 when there is none. }
 function FindUsualEntry(creature: Types.PCharRecord): Byte;
@@ -91,7 +102,7 @@ begin
         FindUsualEntry := i;
 end;
 
-function GetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots): Boolean;
+function GetUsualSpells(creature: Types.PCharRecord; var spells: Types.TMemorized): Boolean;
 var
   i: Byte;
 begin
@@ -101,7 +112,7 @@ begin
   GetUsualSpells := i > 0;
 end;
 
-procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots);
+procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TMemorized);
 var
   i: Byte;
   j: Byte;
@@ -152,13 +163,21 @@ end;
 procedure ReadUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
 var
   rec: TUsualSpellsFile;
+  rec1: TUsualSpellsFile1;
 begin
   UsualSpl.ForgetUsualSpells(creature);
   { read-only, so a write-protected .mem is read too }
-  if FileUtil.ReadRecord(fn + '.mem', rec, SizeOf(rec)) then
+  if FileUtil.ReadRecord(fn + '.mem', rec, SizeOf(rec)) then begin
     if (rec.sig = MEM_SIG) and (rec.version = MEM_VERSION) and (Length(rec.name) <= Types.NAME_LEN) and
         (rec.name = creature^.name) and (rec.randByte = creature^.randByte) then
       UsualSpl.SetUsualSpells(creature, rec.spells);
+  end else if FileUtil.ReadRecord(fn + '.mem', rec1, SizeOf(rec1)) then
+    if (rec1.sig = MEM_SIG) and (rec1.version = MEM_VERSION_1) and (Length(rec1.name) <= Types.NAME_LEN) and
+        (rec1.name = creature^.name) and (rec1.randByte = creature^.randByte) then begin
+      FillChar(rec.spells, SizeOf(rec.spells), 0);
+      Move(rec1.spells, rec.spells, SizeOf(rec1.spells));
+      UsualSpl.SetUsualSpells(creature, rec.spells);
+    end;
 end;
 
 { How many of the creature's memorized and pending spells are of this class and level; an id outside the spell table
@@ -170,8 +189,8 @@ var
   id: Byte;
 begin
   count := 0;
-  for i := 0 to SizeOf(creature^.memorizedSpells) - 1 do begin
-    id := creature^.memorizedSpells[i] and C_SPELL.ID_MASK;
+  for i := 0 to Types.MEMORIZED_LAST do begin
+    id := CharHlp.MemorizedAt(creature, i) and C_SPELL.ID_MASK;
     if CharHlp.IsSpell(id) then
       if (GameDefs.spellTable[id].levelSp = lvl) and (GameDefs.spellTable[id].castClassSp = typ) then
         Inc(count);
@@ -181,7 +200,8 @@ end;
 
 function HasSlotKind(lvl, typ: ShortInt): Boolean;
 begin
-  HasSlotKind := (lvl >= 1) and (lvl <= 3) and (typ >= 0) and (typ <= 1);
+  HasSlotKind := (lvl >= 1) and (lvl <= Types.CASTER_LEVEL_LAST) and (typ >= C_SPELL.CLASS_CLERIC) and
+                 (typ <= C_SPELL.SLOT_KIND_LAST);
 end;
 
 function SpellSlotsRemaining(creature: Types.PCharRecord; lvl, typ: ShortInt): Byte;
@@ -191,8 +211,8 @@ begin
   SpellSlotsRemaining := 0;
   if UsualSpl.HasSlotKind(lvl, typ) then begin
     count := UsualSpl.SlotsUsed(creature, lvl, typ);
-    if count < creature^.slots[typ, lvl] then
-      SpellSlotsRemaining := creature^.slots[typ, lvl] - count;
+    if count < CharHlp.SpellSlots(creature, typ, lvl) then
+      SpellSlotsRemaining := CharHlp.SpellSlots(creature, typ, lvl) - count;
   end;
 end;
 
@@ -201,27 +221,29 @@ var
   i: Byte;
 begin
   i := 0;
-  while (i < SizeOf(creature^.memorizedSpells)) and (creature^.memorizedSpells[i] <> 0) do
+  while (i <= Types.MEMORIZED_LAST) and (CharHlp.MemorizedAt(creature, i) <> 0) do
     Inc(i);
-  placed := i < SizeOf(creature^.memorizedSpells);
+  placed := i <= Types.MEMORIZED_LAST;
   if placed then
-    creature^.memorizedSpells[i] := id + C_SPELL.PENDING_FLAG;
+    CharHlp.SetMemorizedAt(creature, i, id + C_SPELL.PENDING_FLAG);
 end;
 
 procedure SortMemorizedSpells(creature: Types.PCharRecord);
 var
+  all: Types.TMemorized;
   i: Byte;
   j: Byte;
   tmp: Byte;
 begin
-  with creature^ do
-    for i := 0 to SizeOf(memorizedSpells) - 2 do
-      for j := i to SizeOf(memorizedSpells) - 1 do
-        if (memorizedSpells[i] and C_SPELL.ID_MASK) > (memorizedSpells[j] and C_SPELL.ID_MASK) then begin
-          tmp := memorizedSpells[i];
-          memorizedSpells[i] := memorizedSpells[j];
-          memorizedSpells[j] := tmp;
-        end;
+  CharHlp.GetMemorized(creature, all);
+  for i := 0 to Types.MEMORIZED_LAST - 1 do
+    for j := i to Types.MEMORIZED_LAST do
+      if (all[i] and C_SPELL.ID_MASK) > (all[j] and C_SPELL.ID_MASK) then begin
+        tmp := all[i];
+        all[i] := all[j];
+        all[j] := tmp;
+      end;
+  CharHlp.PutMemorized(creature, all);
 end;
 
 function HasPending(creature: Types.PCharRecord): Boolean;
@@ -230,16 +252,16 @@ var
   pending: Boolean;
 begin
   pending := False;
-  for i := 0 to SizeOf(creature^.memorizedSpells) - 1 do
-    if creature^.memorizedSpells[i] > C_SPELL.ID_MASK then
+  for i := 0 to Types.MEMORIZED_LAST do
+    if CharHlp.MemorizedAt(creature, i) > C_SPELL.ID_MASK then
       pending := True;
   HasPending := pending;
 end;
 
 procedure QueueUsualSpells(creature: Types.PCharRecord);
 var
-  usual: Types.TSpellSlots;
-  have: Types.TSpellSlots;
+  usual: Types.TMemorized;
+  have: Types.TMemorized;
   i: Byte;
   j: Byte;
   id: Byte;
@@ -247,19 +269,19 @@ var
   placed: Boolean;
 begin
   if UsualSpl.GetUsualSpells(creature, usual) then begin
-    for i := 0 to SizeOf(have) - 1 do
-      have[i] := creature^.memorizedSpells[i] and C_SPELL.ID_MASK;
-    for i := 0 to SizeOf(usual) - 1 do begin
+    for i := 0 to Types.MEMORIZED_LAST do
+      have[i] := CharHlp.MemorizedAt(creature, i) and C_SPELL.ID_MASK;
+    for i := 0 to Types.MEMORIZED_LAST do begin
       id := usual[i];
-      if (id > 0) and (id <= SizeOf(creature^.spellsKnown)) then begin
+      if CharHlp.IsSpell(id) then begin
         { a copy already memorized or pending covers this one }
         found := False;
-        for j := 0 to SizeOf(have) - 1 do
+        for j := 0 to Types.MEMORIZED_LAST do
           if (not found) and (have[j] = id) then begin
             have[j] := 0;
             found := True;
           end;
-        if (not found) and (creature^.spellsKnown[id] <> 0) then
+        if (not found) and CharHlp.KnowsSpell(creature, id) then
           if UsualSpl.SpellSlotsRemaining(creature, GameDefs.spellTable[id].levelSp,
                                           GameDefs.spellTable[id].castClassSp) > 0 then
             UsualSpl.PutPending(creature, id, placed);

@@ -1297,6 +1297,14 @@ begin
     C_SPELL.STINKING_CLOUD: ok := not FxEngine.CloudSpares(target) and not CbtActs.InCloud(target);
     C_SPELL.CAUSE_DISEASE: ok := target^.charType <> CharHlp.UNDEAD_TYPE;
     C_SPELL.SILENCE: ok := CbtMap.CombatSlot(target) in CbtActs.seenCasting;
+    { the spells of levels 4 and 5 (#1121): Hold Monsters and Charm Monsters take any kind of creature but the ones
+      the party has seen shrug them off; Slay Living kills no undead, Sticks to Snakes troubles none of level 6 or
+      more, and Poison needs a creature that can be poisoned }
+    C_SPELL.HOLD_MONSTERS: ok := not CbtActs.PartyKnows(caster, target, C_BEAST.IMMUNE_PARALYSIS);
+    C_SPELL.CHARM_MONSTERS: ok := not CbtActs.PartyKnows(caster, target, C_BEAST.IMMUNE_SLEEP_CHARM);
+    C_SPELL.SLAY_LIVING: ok := target^.charType <> CharHlp.UNDEAD_TYPE;
+    C_SPELL.STICKS_TO_SNAKES: ok := target^.levelHighest < 6;
+    C_SPELL.POISON: ok := not CbtActs.PartyKnows(caster, target, C_BEAST.IMMUNE_POISON);
   end;
   SpellCanAffect := ok;
 end;
@@ -1387,7 +1395,7 @@ begin
   end else begin
     if GameDefs.spellTable[spell].offensive = 0 then begin
       tgt.cr := GameVars.curChar;
-      if (spell <> C_SPELL.CURE_LIGHT_WOUNDS) or CbtActs.FindCureTarget(GameVars.curChar, tgt.cr) then begin
+      if not (spell in C_SPELL.CURE_WOUNDS) or CbtActs.FindCureTarget(GameVars.curChar, tgt.cr) then begin
         tgt.x := CbtMap.CombatCellX(tgt.cr);
         tgt.y := CbtMap.CombatCellY(tgt.cr);
         found := True;
@@ -1533,7 +1541,8 @@ end;
 { The cast-target menu in combat (GameVars.castTargetMenu): build the spell-target list from the spell's shape
   (CharHlp.SpellArea). The caster alone; one picked creature (a bare cell gets a zero-radius area); everything within
   the table radius (area and 7) of the picked cell, for a radius, a bolt or a cloud (the Fireball, Lightning Bolt and
-  Stinking Cloud handlers then take their own cells); or up to its count of creatures picked one at a time. b is the
+  Stinking Cloud handlers then take their own cells); a cone toward the picked cell, whose handler takes its cells; the
+  creatures a pool buys (Faerie Fire, Charm Monsters); or up to its count of creatures picked one at a time. b is the
   AI flag, passed to SelectSpellTarget. While the player aims, the CbtMap spell-aim preview shows the cells the spell
   will reach: Lightning Bolt's path, Stinking Cloud's 2x2 block, or the blast at SpellArea's radius (a fireball bursts
   in flame); for a radius, a bolt or a cloud, line 23 shows who it will catch (ReportAreaCatch). The Javelin of
@@ -1549,6 +1558,10 @@ var
   kind: Byte;
   size: Byte;
   picked: Boolean;
+  { a pool spell's pool (CharHlp.PoolCost), what its targets cost so far, and the end of its picks }
+  pool: Byte;
+  spent: Byte;
+  stop: Boolean;
 begin
   cast := True;
   GameVars.spellTargetCount := 0;
@@ -1610,6 +1623,62 @@ begin
           Pathing.TargetArea(Magic.gTargetX, Magic.gTargetY, GameDefs.spellTable[spell].area and 7);
           GameVars.gMultiTarget := 1;
         end else
+          cast := False;
+      end;
+    C_SPELL.AREA_CONE:
+      { a cone from the caster toward the picked cell: the handler gathers the creatures on it (Magic.WalkCone), which
+        the preview shows (Magic.TraceBolt) }
+      begin
+        if not b then begin
+          aimSpell := spell;
+          CbtMap.StartSpellPreview(Types.AimBolt, spell, 0, CbtActs.AimMarker(spell), True);
+        end;
+        picked := CbtActs.SelectSpellTarget(spell, b, 1, sel);
+        CbtMap.StopSpellPreview;
+        if picked then
+          GameVars.gMultiTarget := 1
+        else
+          cast := False;
+      end;
+    C_SPELL.AREA_POOL:
+      { creatures picked one at a time against the pool (Curse's): each costs CharHlp.PoolCost, the first is always
+        taken, and the pick that would overspend the pool ends the picking untaken }
+      begin
+        if spell = C_SPELL.FAERIE_FIRE then
+          pool := CharHlp.GetCasterLevel(spell)
+        else
+          pool := Dice.RollDice(C_SPELL.CHARM_MONSTERS_DICE, C_SPELL.CHARM_MONSTERS_DIE);
+        spent := 0;
+        k := 0;
+        stop := False;
+        repeat
+          if not b then
+            CbtMap.StartSpellPreview(Types.AimBlast, spell, 0, CbtActs.AimMarker(spell), False);
+          picked := CbtActs.SelectSpellTarget(spell, b, 0, sel);
+          CbtMap.StopSpellPreview;
+          if picked and (sel.cr <> nil) then begin
+            dup := False;
+            for j := 1 to k do
+              if GameVars.spellTargets[j] = sel.cr then
+                dup := True;
+            if not dup then begin
+              Inc(spent, CharHlp.PoolCost(spell, sel.cr));
+              if (k > 0) and (spent > pool) then
+                stop := True
+              else begin
+                Inc(k);
+                GameVars.spellTargets[k] := sel.cr;
+              end;
+            end else if not b then
+              CharDisp.PrintBottomLine('Already been targeted')
+            else
+              Dec(pool);
+            CbtMap.RedrawArenaCell(CbtMap.CombatCellX(sel.cr), CbtMap.CombatCellY(sel.cr));
+          end else
+            stop := True;
+        until stop or (pool = 0) or (k = Types.ARENA_SLOTS);
+        GameVars.spellTargetCount := k;
+        if k = 0 then
           cast := False;
       end;
   else

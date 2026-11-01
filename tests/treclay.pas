@@ -108,8 +108,6 @@ begin
   At(158, DiskRec.CharDiskOfs(Ofs(ch.genderSp) - Ofs(ch)), 'TCharRecord.genderSp');
   At(16, DiskRec.CharDiskOfs(Ofs(ch.iconColorsPad) - Ofs(ch)), 'TCharRecord.iconColorsPad');
   At(193, DiskRec.CharDiskOfs(Ofs(ch.iconColors1) - Ofs(ch)), 'TCharRecord.iconColors1');
-  At(16, DiskRec.CharDiskOfs(Ofs(ch.slotsPad) - Ofs(ch)), 'TCharRecord.slotsPad');
-  At(178, DiskRec.CharDiskOfs(Ofs(ch.slots) - Ofs(ch)), 'TCharRecord.slots');
   At(16, DiskRec.CharDiskOfs(Ofs(ch.viewPad0) - Ofs(ch)), 'TCharRecord.viewPad0');
   At(158, DiskRec.CharDiskOfs(Ofs(ch.genderIdx) - Ofs(ch)), 'TCharRecord.genderIdx');
   At(159, DiskRec.CharDiskOfs(Ofs(ch.viewPad1) - Ofs(ch)), 'TCharRecord.viewPad1');

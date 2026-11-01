@@ -213,6 +213,7 @@ begin
     C_OPT.OPT_CONSOLIDATE: KeyName := 'CONSOLIDATECOIN';
     C_OPT.OPT_JOURNAL: KeyName := 'JOURNAL';
     C_OPT.OPT_NONHUMAN_CAP: KeyName := 'NONHUMANCAP';
+    C_OPT.OPT_LEVEL_CAP: KeyName := 'LEVELCAP';
     C_OPT.OPT_MUSIC: KeyName := 'MUSIC';
     C_OPT.OPT_TITLE_MUSIC: KeyName := 'TITLEMUSIC';
     C_OPT.OPT_BATTLE_MUSIC: KeyName := 'BATTLEMUSIC';
@@ -254,6 +255,7 @@ begin
     C_OPT.OPT_CONSOLIDATE: SettingName := 'Consolidate Coin';
     C_OPT.OPT_JOURNAL: SettingName := 'Journal';
     C_OPT.OPT_NONHUMAN_CAP: SettingName := 'Non-Human Level Cap';
+    C_OPT.OPT_LEVEL_CAP: SettingName := 'Game Level Cap';
     C_OPT.OPT_MUSIC: SettingName := 'Music';
     C_OPT.OPT_TITLE_MUSIC: SettingName := '  Title Music';
     C_OPT.OPT_BATTLE_MUSIC: SettingName := '  Battle Music';

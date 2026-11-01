@@ -825,6 +825,10 @@ begin
     C_OPT.OPT_NONHUMAN_CAP: AboutText := 'Dwarves, elves, gnomes,|half-elves, halflings and|' +
                                          'half-orcs stop at their|race''s level limits.||' +
                                          'Off: they train as far as|the experience table goes,|as humans do.';
+    C_OPT.OPT_LEVEL_CAP: AboutText := 'Each class stops where|SSI''s game stopped it:|' +
+                                      'clerics and magic-users at|6, paladins and rangers at|' +
+                                      '7, fighters at 8.||Off: every class trains to|' +
+                                      '9, with the spells of|levels 4 and 5.';
     C_OPT.OPT_MUSIC: AboutText := 'Every tune at once.';
     C_OPT.OPT_TITLE_MUSIC: AboutText := 'The title theme.';
     C_OPT.OPT_BATTLE_MUSIC: AboutText := 'The music as a fight starts.';

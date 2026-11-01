@@ -18,8 +18,8 @@ uses C_DATA;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 111;
-  BYTE_COUNT = 3941;
+  PART_COUNT = 112;
+  BYTE_COUNT = 3943;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -378,6 +378,9 @@ begin
   DataPat.Part(1168, C_DATA.FAMILY_ECL, 3, 0, 8155, 4796, 2, 2);
   DataPat.Part(1168, C_DATA.FAMILY_ECL, 3, 0, 8155, 4807, 2, 2);
   DataPat.Part(1168, C_DATA.FAMILY_ECL, 3, 0, 8155, 8155, 0, 157);
+  { #1121: the Manual of Bodily Health placed in Phlan (ITEM2 block 1, record 0) casts spell 67 by effect 90, which is
+    Curse's Neutralize Poison; the Manual's spell moves to 128, effect 151 (C_SPELL.ITEM_BODILY_HEALTH) }
+  DataPat.Part(1121, C_DATA.FAMILY_ITEM, 2, 1, 63, 61, 1, 1);
 end;
 
 { Every part's bytes, original then fixed, in table order. }
@@ -1380,6 +1383,10 @@ begin
   DataPat.Put(#$0A#$01#$02#$98);                             { $B96A LOAD CHARACTER [$9802] }
   DataPat.Put(#$02#$01#$1F#$AF);                             { $B96E GOSUB LAF1F }
   DataPat.Put(#$01#$01#$9A#$AB);                             { $B972 GOTO LAB9A }
+  { #1121, original: effect 90 }
+  DataPat.Put(#$5A);
+  { fixed: effect 151 }
+  DataPat.Put(#$97);
 end;
 
 function LoadTable: Boolean;

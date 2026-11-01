@@ -257,6 +257,82 @@ procedure EffHammerGone(creature: Types.PCharRecord; p: Pointer; removed: Boolea
 { The handler for effects whose presence is all that matters: eff 5, 13, 16, 19, 24, 27, 54, 55, 60, 63, 92, 127 }
 procedure EffNone(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
+{ Print "<name> <msg>", then set the status (dead, stoned or gone), disable the creature with 0 HP, count a party
+  member's death (dead or gone) in its statistics (#796), remove the effects that end at 0 HP, run the C_COND.HP_ZERO
+  effects and, if it is still disabled, hand it to CbtMap.CreatureDowned. Then pause, clear the message window and, out
+  of combat, redisplay the party. The message prints first: for a creature already dead, stoned or gone it is all that
+  happens. }
+procedure InflictStatusMsg(creature: Types.PCharRecord; status: Byte; msg: Types.TStr40);
+
+{ The effects of the spells of levels 4 and 5 (#1121), ported from Curse's EffHndlr. }
+
+{ Sticks to Snakes (eff 142), at C_COND.TURN_START: the snakes take the creature's attacks for the round, which it
+  spends on them instead of acting; the strength counts the snakes left, and the effect ends when they are gone. }
+procedure EffSticksToSnakes(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ Dispel Evil (eff 143), at C_COND.ATTACK_ROLL_DEF: an attacker it reaches (DispelEvilReaches) takes 7 from its roll. }
+procedure EffDispelEvil(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ Dispel Evil's touch (eff 144), at C_COND.HIT_PHASE_1: a creature the caster hits that Dispel Evil reaches
+  (DispelEvilReaches) and that fails a saving throw against spells is dispelled (gone), and the spell ends; otherwise it
+  "resists dispel evil" and the spell goes on. }
+procedure EffDispelEvilTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ True when Dispel Evil reaches creature: an evil one (C_ALIGN.EVIL_ALIGNMENTS) that is undead (charType
+  CharHlp.UNDEAD_TYPE) or otherworldly (charType OTHERWORLDLY_TYPE: the efreeti, the quicklings). Curse marks the
+  creatures it reaches in a flag byte this game's monster data lacks; the 1st-edition PHB names summoned creatures and
+  creatures of other planes, which here are these. }
+function DispelEvilReaches(creature: Types.PCharRecord): Boolean;
+
+{ Faerie Fire (eff 145), at C_COND.DEFENDER_AC: the outlined creature's armor class worsens by 2, front and rear. }
+procedure EffFaerieFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ Confusion (eff 146), at C_COND.ACTION_START while the creature is casting nothing: 1d100 picks its round. 1..10 it
+  flees (Fear for 10 rounds, the confusion over), 11..60 it stands confused and its actions end, 61..80 it goes
+  berserk for a round (eff 147), 81..100 it is enraged and acts as it would. Then a saving throw against spells at -2
+  ends the confusion. }
+procedure EffConfusion(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ Confusion's berserk rage (eff 147): the creature goes under computer control and turns on the nearest other creature
+  in sight, joining the side against it; the strength keeps its hostile byte, which comes back on removal with its
+  control. }
+procedure EffConfusedBerserk(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ Make creature flee in terror: turned (CombatAi.CheckMorale forces it to flee), under computer control (a party
+  member with the C_NPC.ANIMATED_PC mark EffFear's removal clears) and with no target. Fear and Confusion's flight. }
+procedure StartFear(creature: Types.PCharRecord);
+
+{ Fear (eff 148): on removal, the creature stops fleeing and a party member StartFear marked comes back under the
+  player's control. }
+procedure EffFear(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ Fire Shield's hot flames (eff 149) and cold flames (eff 150), at C_COND.SAVING_THROW: +2 to the saving throw against
+  the other element, cold or fire. FxEngine.NonWeaponDamage doubles their own element's damage when the save failed and
+  halves the other's, none on a save. }
+procedure EffFireShieldHot(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffFireShieldCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ Fire Shield's flames on a melee attacker (eff 151), at C_COND.WEAPON_DAMAGE_DEF: an attacker next to the creature
+  (CbtMap.CalcDistance below 2) "gets zapped" for twice the damage it dealt, as magic. The blow's damage and element are
+  kept for the rest of its resolution. }
+procedure EffFireShieldZap(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ Minor Globe of Invulnerability (eff 153), at C_COND.NONWEAPON_DAMAGE and EFFECT_IMMUNITY: a spell being cast
+  (GameVars.spellId) of level C_SPELL.MINOR_GLOBE_LEVEL or below does no damage and leaves no effect. }
+procedure EffMinorGlobe(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ Feeblemind (eff 154), at C_COND.ACTION_START: in combat the creature cannot cast, and a spell it was casting is
+  lost. Magic.CastSpell turns away its spells out of combat. }
+procedure EffFeeblemind(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ Invisibility to Animals (eff 155), at C_COND.TARGET_VETO and ATTACK_ROLL_DEF: an animal attacker (ANIMAL_TYPES) that
+  does not see invisible creatures cannot target the creature, and any animal attacks it at -4. }
+procedure EffInvisibleToAnimals(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ Entangle (eff 156), at C_COND.MOVE_ATTACK_RATE while movement is worked out: strength 0 holds the creature still, 1
+  (it saved) halves its movement. }
+procedure EffEntangle(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
 function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 
 { True when gazer has a clear line to target on the combat map within range squares (Pathing.WalkLine from cell to
@@ -278,6 +354,12 @@ uses C_ITEM, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, CbtActs, ClassCa
   C_LEVEL, Dice, Stats, ChgClass, Bestiary, C_BEAST, C_SPRITE, CharExt;
 
 const
+  { the monster data's creature types Invisibility to Animals hides from: the reptiles (11: the giant lizard, the
+    basilisk), the giant snake and the scorpions (14), and the animals (15: the wolf, the tiger, the boar); Curse's
+    animals and reptiles are its types 19 and 11 }
+  ANIMAL_TYPES = [11, 14, 15];
+  { the monster data's otherworldly creatures (the efreeti, the quicklings), whom Dispel Evil reaches when evil }
+  OTHERWORLDLY_TYPE = 7;
   { The petrifying gaze's range in squares (1" a square). The Monster Manual gives the medusa's 3"; the basilisk's, the
     one other gazer in the monster data (MON*SPC eff 83, #938), has none listed, and takes the medusa's. }
   PETRIFY_GAZE_RANGE = 3;
@@ -372,11 +454,6 @@ begin
   end;
 end;
 
-{ Print "<name> <msg>", then set the status (dead, stoned or gone), disable the creature with 0 HP, count a party
-  member's death (dead or gone) in its statistics (#796), remove the effects that end at 0 HP, run the C_COND.HP_ZERO
-  effects and, if it is still disabled, hand it to CbtMap.CreatureDowned. Then pause, clear the message window and, out
-  of combat, redisplay the party. The message prints first: for a creature already dead, stoned or gone it is all that
-  happens. }
 procedure InflictStatusMsg(creature: Types.PCharRecord; status: Byte; msg: Types.TStr40);
 begin
   CharDisp.PrintNameString(creature, msg, 10, False);
@@ -1576,12 +1653,10 @@ var
       if creature^.portExt.formerClasses and (1 shl jj) <> 0 then
         lvl := -1;
       { xp[] runs to level 9; a level above it reads level 9's entry }
-      if lvl > 9 then
-        xpTry := GameDefs.classExperience[jj].xp[9]
-      else if lvl > 1 then
-        xpTry := GameDefs.classExperience[jj].xp[lvl]
+      if lvl > C_LEVEL.LEVEL_LAST then
+        xpTry := ClassCal.LevelXp(jj, C_LEVEL.LEVEL_LAST)
       else
-        xpTry := 0;
+        xpTry := ClassCal.LevelXp(jj, lvl);
       if (lvl >= bestLvl) and (lvl >= 0) then
         if (xpTry >= xpMin) or (xpTry = -1) then begin
           xpMin := xpTry;
@@ -2286,6 +2361,222 @@ end;
 { the do-nothing handler (eff 5, 13, 16, 19, 24, 27, 54, 55, 60, 63, 92, 127) }
 procedure EffNone(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
+end;
+
+procedure EffSticksToSnakes(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  attacks: Byte;
+begin
+  attacks := creature^.curAttacks + creature^.curAttacks2;
+  if Types.PEffectRec(p)^.strength > attacks then
+    Dec(Types.PEffectRec(p)^.strength, attacks)
+  else
+    FxEngine.RemoveEffect(creature, C_EFFECT.STICKS_TO_SNAKES, p);
+  CharDisp.PrintNameStringAnim(creature, True, 'is fighting with snakes');
+  CharDisp.ClearMessageWindow;
+  if CharHlp.EndActions(creature) then ;
+end;
+
+function DispelEvilReaches(creature: Types.PCharRecord): Boolean;
+begin
+  DispelEvilReaches := (creature^.alignment in C_ALIGN.EVIL_ALIGNMENTS) and
+                       ((creature^.charType = CharHlp.UNDEAD_TYPE) or (creature^.charType = OTHERWORLDLY_TYPE));
+end;
+
+procedure EffDispelEvil(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+begin
+  if EffHndlr.DispelEvilReaches(GameVars.curChar) then
+    Dec(GameVars.gAttackRoll, 7);
+end;
+
+procedure EffDispelEvilTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  tgt: Types.PCharRecord;
+begin
+  tgt := EffHndlr.AttackTarget(creature);
+  if tgt = nil then
+    Exit;
+  if EffHndlr.DispelEvilReaches(tgt) and not FxEngine.RollSavingThrow(tgt, C_SAVE.SPELL, 0) then begin
+    EffHndlr.InflictStatusMsg(tgt, C_STATUS.GONE, 'is dispelled');
+    FxEngine.RemoveEffect(creature, C_EFFECT.DISPEL_EVIL, nil);
+    FxEngine.RemoveEffect(creature, C_EFFECT.DISPEL_EVIL_TOUCH, nil);
+  end else
+    CharDisp.PrintNameString(tgt, 'resists dispel evil', 10, True);
+end;
+
+procedure EffFaerieFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+begin
+  if creature^.acCur >= 2 then
+    Dec(creature^.acCur, 2)
+  else
+    creature^.acCur := 0;
+  if creature^.acBehind >= 2 then
+    Dec(creature^.acBehind, 2)
+  else
+    creature^.acBehind := 0;
+end;
+
+procedure StartFear(creature: Types.PCharRecord);
+begin
+  creature^.combatAddr^.turned := 1;
+  creature^.quickfight := 1;
+  if not CharHlp.IsNpc(creature) then
+    creature^.npc := C_NPC.ANIMATED_PC;
+  creature^.combatAddr^.other := nil;
+end;
+
+procedure EffConfusion(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  effect: Types.PEffectRec;
+begin
+  if (creature^.combatAddr = nil) or (creature^.combatAddr^.spellCast <> 0) then
+    Exit;
+  case Dice.RollDice(1, 100) of
+    { the flight and the rage act only when their effect took: one resisted ("is Unaffected") has no node whose
+      removal would undo them }
+    1..10: begin
+        FxEngine.AddEffectWithMessage(creature, C_EFFECT.FEAR, 10, 0, True, True, False, 'runs away');
+        if CharHlp.HasEffect(creature, C_EFFECT.FEAR, effect) then begin
+          EffHndlr.StartFear(creature);
+          FxEngine.RemoveEffect(creature, C_EFFECT.CONFUSION, p);
+          Exit;
+        end;
+      end;
+    11..60: begin
+        CharDisp.PrintNameStringAnim(creature, True, 'is confused');
+        CharDisp.ClearMessageWindow;
+        if CharHlp.EndActions(creature) then ;
+      end;
+    61..80: begin
+        FxEngine.AddEffectWithMessage(creature, C_EFFECT.CONFUSED_BERSERK, 1, Byte(creature^.hostile), True, True,
+                                      False, 'goes berserk');
+        if CharHlp.HasEffect(creature, C_EFFECT.CONFUSED_BERSERK, effect) then
+          FxEngine.CallEffectHandler(C_EFFECT.CONFUSED_BERSERK, creature, effect, False);
+      end;
+  else
+    begin
+      CharDisp.PrintNameStringAnim(creature, True, 'is enraged');
+      CharDisp.ClearMessageWindow;
+    end;
+  end;
+  if FxEngine.RollSavingThrow(creature, C_SAVE.SPELL, -2) then
+    FxEngine.RemoveEffect(creature, C_EFFECT.CONFUSION, p);
+end;
+
+procedure EffConfusedBerserk(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  save: Types.TTargetSnapshot;
+begin
+  if removed then begin
+    if creature^.npc = C_NPC.ANIMATED_PC then
+      creature^.npc := 0;
+    creature^.hostile := ShortInt(Types.PEffectRec(p)^.strength);
+    CharHlp.CountTeams;
+  end else if GameVars.ifcState = C_IFC.IN_COMBAT then begin
+    creature^.quickfight := 1;
+    if not CharHlp.IsNpc(creature) or (creature^.npc = C_NPC.ANIMATED_PC) then
+      creature^.npc := C_NPC.ANIMATED_PC
+    else
+      creature^.npc := C_NPC.ANIMATED_NPC;
+    creature^.combatAddr^.other := nil;
+    Pathing.SaveTargets(save);
+    Pathing.BuildTargetList(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 255, 255,
+                            CbtMap.GetIconSize(creature), GameVars.arenaPtr);
+    { entry 1 is the creature itself; with no other creature in sight it keeps no target and its side }
+    if GameVars.targetCount >= 2 then
+      creature^.combatAddr^.other := GameVars.creatureArr[GameVars.targetList[2].idx];
+    Pathing.RestoreTargets(save);
+    if creature^.combatAddr^.other <> nil then begin
+      creature^.hostile := 1 - CharHlp.Team(creature^.combatAddr^.other);
+      CharHlp.CountTeams;
+    end;
+  end;
+end;
+
+procedure EffFear(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+begin
+  if removed then begin
+    if creature^.npc = C_NPC.ANIMATED_PC then begin
+      creature^.npc := 0;
+      creature^.quickfight := 0;
+    end;
+    if creature^.combatAddr <> nil then
+      creature^.combatAddr^.turned := 0;
+  end;
+end;
+
+procedure EffFireShieldHot(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+begin
+  if GameVars.elementMask and C_EFFECT.ELEM_COLD <> 0 then
+    Inc(FxEngine.saveRoll, 2);
+end;
+
+procedure EffFireShieldCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+begin
+  if GameVars.elementMask and C_EFFECT.ELEM_FIRE <> 0 then
+    Inc(FxEngine.saveRoll, 2);
+end;
+
+procedure EffFireShieldZap(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  dmg: Byte;
+  elem: Byte;
+  attacker: Types.PCharRecord;
+begin
+  attacker := GameVars.curChar;
+  if (attacker = nil) or (attacker = creature) or (GameVars.pendingDamage = 0) then
+    Exit;
+  if CbtMap.CalcDistance(attacker, creature) < 2 then begin
+    dmg := GameVars.pendingDamage;
+    elem := GameVars.elementMask;
+    CharDisp.PrintNameString(attacker, 'gets zapped', 10, True);
+    GameVars.elementMask := C_EFFECT.ELEM_MAGIC;
+    if dmg > 127 then
+      FxEngine.InflictNonWeaponDamage(attacker, 255, 0, False)
+    else
+      FxEngine.InflictNonWeaponDamage(attacker, dmg * 2, 0, False);
+    GameVars.pendingDamage := dmg;
+    GameVars.elementMask := elem;
+  end;
+end;
+
+procedure EffMinorGlobe(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+begin
+  if CharHlp.IsSpell(GameVars.spellId) then
+    if GameDefs.spellTable[GameVars.spellId].level <= C_SPELL.MINOR_GLOBE_LEVEL then
+      EffHndlr.NullifyAttack(0);
+end;
+
+procedure EffFeeblemind(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+begin
+  if (GameVars.ifcState = C_IFC.IN_COMBAT) and (creature^.combatAddr <> nil) then begin
+    creature^.combatAddr^.castAllowed := 0;
+    if creature^.combatAddr^.spellCast > 0 then begin
+      CharDisp.PrintNameString(creature, 'lost a spell', 12, True);
+      CharHlp.RemoveSpell(creature, creature^.combatAddr^.spellCast);
+      creature^.combatAddr^.spellCast := 0;
+    end;
+  end;
+end;
+
+procedure EffInvisibleToAnimals(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  effect: Types.PEffectRec;
+begin
+  if GameVars.curChar^.charType in ANIMAL_TYPES then begin
+    if not CharHlp.HasEffect(GameVars.curChar, C_EFFECT.SEE_INVISIBLE, effect) then
+      CbtActs.suppressTargeting := 1;
+    Dec(GameVars.gAttackRoll, 4);
+  end;
+end;
+
+procedure EffEntangle(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+begin
+  if GameVars.currentCreatureCalculatingFlag <> 0 then
+    if Types.PEffectRec(p)^.strength = 0 then
+      GameVars.currentAttackCurrent := 0
+    else
+      GameVars.currentAttackCurrent := GameVars.currentAttackCurrent div 2;
 end;
 
 end.

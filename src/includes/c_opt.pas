@@ -62,47 +62,49 @@ const
   { the racial level limits of dwarves, elves, gnomes, half-elves, halflings and half-orcs apply (ON), or they train as
     far as the experience table goes, as humans do (OFF) (#1176) }
   OPT_NONHUMAN_CAP = 8;
-  OPT_COMPANION = 9;
-  OPT_CLUES = 10;
+  { each class stops at the level SSI's game stopped it (ON), or every class trains to 9 (OFF) (#1121) }
+  OPT_LEVEL_CAP = 9;
+  OPT_COMPANION = 10;
+  OPT_CLUES = 11;
   OPT_LAST_GAME = OPT_CLUES;
   { the Sound page's: the music, then the sound effects }
-  OPT_MUSIC = 11;
-  OPT_TITLE_MUSIC = 12;
-  OPT_BATTLE_MUSIC = 13;
-  OPT_SOUND = 14;
-  OPT_FOOTSTEPS = 15;
-  OPT_RANGED = 16;
-  OPT_MELEE = 17;
-  OPT_DEATH = 18;
-  OPT_WALL = 19;
-  OPT_SPELLS = 20;
+  OPT_MUSIC = 12;
+  OPT_TITLE_MUSIC = 13;
+  OPT_BATTLE_MUSIC = 14;
+  OPT_SOUND = 15;
+  OPT_FOOTSTEPS = 16;
+  OPT_RANGED = 17;
+  OPT_MELEE = 18;
+  OPT_DEATH = 19;
+  OPT_WALL = 20;
+  OPT_SPELLS = 21;
   OPT_FIRST_SOUND = OPT_MUSIC;
   OPT_LAST_SOUND = OPT_SPELLS;
   { the Camp page's: Rest memorizes each caster's usual spells when none is pending (#1119), and under the Fix heading
     (#1129) what Fix may use besides the clerics' spells: scrolls, potions, and a paladin's weekly cure and daily laying
     on of hands }
-  OPT_AUTO_MEMORIZE = 21;
-  OPT_FIX_SCROLLS = 22;
-  OPT_FIX_POTIONS = 23;
-  OPT_FIX_CURE = 24;
-  OPT_FIX_HEAL = 25;
+  OPT_AUTO_MEMORIZE = 22;
+  OPT_FIX_SCROLLS = 23;
+  OPT_FIX_POTIONS = 24;
+  OPT_FIX_CURE = 25;
+  OPT_FIX_HEAL = 26;
   OPT_FIRST_CAMP = OPT_AUTO_MEMORIZE;
   OPT_LAST_CAMP = OPT_FIX_HEAL;
   { the Combat page's (#1180): first, under the Quick Mode heading, Auto End Quick Mode, Use Magic and Allow Gear
     Changes, with which quick mode re-equips the party's weapons and shields (#1127) }
-  OPT_QUICK = 26;
-  OPT_MAGIC = 27;
-  OPT_GEAR = 28;
+  OPT_QUICK = 27;
+  OPT_MAGIC = 28;
+  OPT_GEAR = 29;
   { the aim menu's Next and Prev reach one side only, ENEMIES, or every creature, ALL (#1137) }
-  OPT_AIM = 29;
+  OPT_AIM = 30;
   { a single thrown weapon goes back to its thrower after the fight (#1118) }
-  OPT_RETRIEVE = 30;
+  OPT_RETRIEVE = 31;
   { the combat log (#841), and how many messages it keeps }
-  OPT_COMBAT_LOG = 31;
-  OPT_LOG_LINES = 32;
+  OPT_COMBAT_LOG = 32;
+  OPT_LOG_LINES = 33;
   OPT_FIRST_COMBAT = OPT_QUICK;
   OPT_LAST_COMBAT = OPT_LOG_LINES;
-  OPT_COUNT = 32;
+  OPT_COUNT = 33;
   { the pages the settings are shown on (CfgFile.SettingPage), in the order the game's Settings screen and POOLCFG
     offer them }
   OPT_PAGE_GAME = 1;

@@ -85,26 +85,13 @@ begin
     if classLevels[cls] = 1 then
       case cls of
         C_LEVEL.CLERIC: ClassCal.ResetClericSlots(Types.PCharRecord(GameVars.curChar));
-        C_LEVEL.MAGE: begin
-            FillChar(mageSpells, SizeOf(mageSpells), 0);
-            mageSpells[1] := 1;
-          end;
+        C_LEVEL.MAGE: ClassCal.FirstLevelSlots(Types.PCharRecord(GameVars.curChar), C_LEVEL.MAGE);
       end;
     { the level drained or lowered to is the creature's level, as EffHndlr's drain sets it }
     levelHighest := 0;
     ClassCal.RecalcBaseSkills(Types.PCharRecord(GameVars.curChar));
   end;
   ChgClass.SyncClassPowers(Types.PCharRecord(GameVars.curChar));
-end;
-
-{ The experience a level of class slot cls starts at: 0 for level 1, and -1 for a level past the experience table's for
-  the class (GameDefs.classExperience). }
-function LevelXp(cls: ShortInt; level: Byte): LongInt;
-begin
-  if level < 2 then
-    LevelXp := 0
-  else
-    LevelXp := GameDefs.classExperience[cls].xp[level];
 end;
 
 { The Levels screen: each class's level, the experience and hit points; row sel's class in inverse video, black on
@@ -165,14 +152,15 @@ begin
               LowerLevel(cls, ClassCal.HpClassCount(Types.PCharRecord(GameVars.curChar)));
               { past the level's range, the experience comes down to one short of the next level; a next level
                 the table does not reach (-1) leaves it, as one short of that is negative }
-              if (LevelXp(cls, classLevels[cls] + 1) > 0) and (experience >= LevelXp(cls, classLevels[cls] + 1)) then
-                experience := LevelXp(cls, classLevels[cls] + 1) - 1;
+              xp := ClassCal.LevelXp(cls, classLevels[cls] + 1);
+              if (xp > 0) and (experience >= xp) then
+                experience := xp - 1;
             end;
           C_KEYS.RIGHT:
             if classLevels[cls] < C_LEVEL.LEVEL_LAST then begin
               CharGen.GainLevels(GameDefs.classBits[cls], False);
-              if experience < LevelXp(cls, classLevels[cls]) then
-                experience := LevelXp(cls, classLevels[cls]);
+              if experience < ClassCal.LevelXp(cls, classLevels[cls]) then
+                experience := ClassCal.LevelXp(cls, classLevels[cls]);
             end;
         end
     else if key = 'E' then begin
@@ -464,9 +452,10 @@ begin
     n := 0;
     for m := 1 to C_SPELL.LAST do
       with GameDefs.spellTable[m] do
-        if (castClass = cls) and (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST) then begin
+        if CharHlp.IsSpell(m) and (castClass = cls) and (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST)
+        then begin
           mark := '  ';
-          if GameVars.curChar^.spellsKnown[m] <> 0 then
+          if CharHlp.KnowsSpell(GameVars.curChar, m) then
             mark := '* ';
           MenuCore.AppendMenuLine(head, tail, mark + StrUtil.NumStr(levelSp) + ' ' + GameDefs.spellNames[m], False);
           Inc(n);
@@ -482,8 +471,7 @@ begin
       k := MenuCore.ListIndex(head, sel) + 1;
     MenuCore.FreeStringList(head);
     if k <> 0 then
-      with GameVars.curChar^ do
-        spellsKnown[spells[k]] := Ord(spellsKnown[spells[k]] = 0);
+      CharHlp.SetSpellKnown(GameVars.curChar, spells[k], not CharHlp.KnowsSpell(GameVars.curChar, spells[k]));
   until k = 0;
 end;
 

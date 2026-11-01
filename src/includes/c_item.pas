@@ -90,6 +90,12 @@ const
   NAME_COMPOSITE_LONG_BOW = 41;
   NAME_SHORT_BOW = 44;
   NAME_MIRROR = 118;
+  { the names of Keoghtom's Ointment (RandItem's template: "Keoghtum's" and the first of two "Ointment" parts, 181 the
+    other) and the Manual of Bodily Health (ITEM2 block 1's: "Manual", "of", "Bodily Health"), which
+    DiskRec.ItemFromDisk tests to move their spells (#1121) }
+  NAME_OINTMENT = 111;
+  NAME_OINTMENT_2 = 181;
+  NAME_MANUAL = 114;
   NAME_HOLY_SYMBOL = 152;
   { NAME_PLUS_BASE + plus is "+1".."+5" }
   NAME_PLUS_BASE = 161;

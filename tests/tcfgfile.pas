@@ -202,8 +202,9 @@ begin
   TestKit.CheckEqualsL(5, CfgFile.SettingLine(C_OPT.OPT_CONSOLIDATE), 'Consolidate Coin after Auto Join (#1179)');
   TestKit.CheckEqualsL(6, CfgFile.SettingLine(C_OPT.OPT_JOURNAL), 'the Journal after it (#1090)');
   TestKit.CheckEqualsL(7, CfgFile.SettingLine(C_OPT.OPT_NONHUMAN_CAP), 'Non-Human Level Cap after the Journal (#1176)');
-  TestKit.CheckEqualsL(8, CfgFile.SettingLine(C_OPT.OPT_COMPANION), 'the Companion Tools after it');
-  TestKit.CheckEqualsL(9, CfgFile.SettingLine(C_OPT.OPT_CLUES), 'the Game page ends with the Clue Book notes');
+  TestKit.CheckEqualsL(8, CfgFile.SettingLine(C_OPT.OPT_LEVEL_CAP), 'Game Level Cap after it (#1121)');
+  TestKit.CheckEqualsL(9, CfgFile.SettingLine(C_OPT.OPT_COMPANION), 'the Companion Tools after that');
+  TestKit.CheckEqualsL(10, CfgFile.SettingLine(C_OPT.OPT_CLUES), 'the Game page ends with the Clue Book notes');
   TestKit.CheckEqualsL(1, CfgFile.SettingLine(C_OPT.OPT_QUICK), 'the Combat page starts under the Quick Mode heading');
   TestKit.CheckEqualsL(3, CfgFile.SettingLine(C_OPT.OPT_GEAR), 'Allow Gear Changes under Quick Mode, after Use Magic');
   TestKit.CheckEqualsL(5, CfgFile.SettingLine(C_OPT.OPT_RETRIEVE), 'Aim Cycles and Retrieve Thrown after it');
@@ -270,6 +271,9 @@ begin
   TestKit.CheckEqualsS('Consolidate Coin', CfgFile.SettingName(C_OPT.OPT_CONSOLIDATE), 'its label');
   TestKit.Check(ReadText('NONHUMANCAP=OFF' + CRLF) = CfgFile.CFG_READ, 'NONHUMANCAP reads (#1176)');
   TestKit.CheckEqualsL(0, CfgFile.Flag(s, C_OPT.OPT_NONHUMAN_CAP), 'Non-Human Level Cap off');
+  TestKit.Check(ReadText('LEVELCAP=OFF' + CRLF) = CfgFile.CFG_READ, 'LEVELCAP reads (#1121)');
+  TestKit.CheckEqualsL(0, CfgFile.Flag(s, C_OPT.OPT_LEVEL_CAP), 'Game Level Cap off');
+  TestKit.CheckEqualsS('Game Level Cap', CfgFile.SettingName(C_OPT.OPT_LEVEL_CAP), 'its label');
   TestKit.Check(ReadText('SPEED=9' + CRLF + 'SPEED=A' + CRLF + 'LOGLINES=60' + CRLF + 'LOGLINES=61' + CRLF +
                          'LOGLINES=9' + CRLF + 'LOGLINES=abc' + CRLF + 'MUSIC=maybe' + CRLF + 'SPEED=10')
                 = CfgFile.CFG_FIXED, 'bad values are a fixed read');
@@ -310,6 +314,8 @@ begin
   TestKit.CheckEqualsL(6, LineNo(C_OPT.OPT_NAME, 'CONSOLIDATECOIN=OFF'), 'Consolidate Coin off by default, after it');
   TestKit.CheckEqualsL(C_OPT.OPT_NONHUMAN_CAP, LineNo(C_OPT.OPT_NAME, 'NONHUMANCAP=ON'),
                        'Non-Human Level Cap on by default, after the Journal (#1176)');
+  TestKit.CheckEqualsL(C_OPT.OPT_LEVEL_CAP, LineNo(C_OPT.OPT_NAME, 'LEVELCAP=ON'),
+                       'Game Level Cap on by default, after it (#1121)');
   TestKit.CheckEqualsL(C_OPT.OPT_JOURNAL, LineNo(C_OPT.OPT_NAME, 'JOURNAL=FOUND'),
                        'the Journal FOUND by default, after Auto Join');
   TestKit.CheckEqualsL(C_OPT.OPT_GEAR, LineNo(C_OPT.OPT_NAME, 'GEARCHANGES=ON'), 'Allow Gear Changes on by default');

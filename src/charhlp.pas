@@ -123,6 +123,10 @@ function PaladinCanCure(p: Types.PCharRecord): Boolean;
 
 function Guard(creature: Types.PCharRecord): Boolean;
 
+{ The level curChar casts spell at: a cleric spell at its cleric level or its paladin level less PALADIN_LEVELS_BEFORE,
+  the higher; a magic-user spell at its magic-user level or its ranger level less RANGER_MAGE_LEVELS_BEFORE; a druid
+  spell at its ranger level less RANGER_DRUID_LEVELS_BEFORE (#1121); a special spell at C_SPELL.SPECIAL_CASTER_LEVEL;
+  any spell cast from an item (GameVars.usingItem) but a special one at C_SPELL.ITEM_CASTER_LEVEL. }
 function GetCasterLevel(spell: Byte): Byte;
 
 function HasRangedWeapon(creature: Types.PCharRecord): Boolean;
@@ -140,10 +144,10 @@ function FindDamagingRangedWeapon(creature: Types.PCharRecord; var sel: Types.PI
 function FindAmmo(creature: Types.PCharRecord; w: Types.PItemRec; var sel: Types.PItemRec): Boolean;
 
 { Check the racial level limit for a class: a fighter's, and a half-elf ranger's, from FIGHTER_CAP by the character's
-  PermanentStrength, a half-elf cleric's (HALFELF_CLERIC_CAP), and a half-orc cleric's and thief's by Wisdom and
-  Dexterity (HalfOrcCap, #956); a level at or past the cap counts. None with the Non-Human Level Cap setting off
-  (GameVars.nonHumanCapOn, #1176): which classes a race may take is not this test's, so off lifts limits without
-  opening classes. }
+  PermanentStrength, a half-elf cleric's and magic-user's (HALFELF_CLERIC_CAP, HALFELF_MAGE_CAP), and a half-orc
+  cleric's and thief's by Wisdom and Dexterity (HalfOrcCap, #956); a level at or past the cap counts. None with the
+  Non-Human Level Cap setting off (GameVars.nonHumanCapOn, #1176): which classes a race may take is not this test's, so
+  off lifts limits without opening classes. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 
 { The Strength points the creature's disease (eff 43) has taken so far, which a cure gives back: the upper nibble of the
@@ -261,15 +265,48 @@ function ItemReadable(it: Pointer): Boolean;
   cleric level with a cleric's scroll (base slot C_ITEM.SLOT_CLERIC_SCROLL), identifies it first. }
 function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 
-{ True when id is a named spell, 1..C_SPELL.LAST: one with a spellNames entry and its own spellTable row. }
+{ True when id is a named spell, 1..C_SPELL.LAST: one with a spellNames entry and its own spellTable row, cast by a
+  cleric, magic-user or druid (an item spell's row, or one that holds no spell, is C_SPELL.CLASS_SPECIAL's). }
 function IsSpell(id: Byte): Boolean;
+
+{ The spell slots creature has of kind (C_SPELL.CLASS_CLERIC..C_SPELL.SLOT_KIND_LAST) and spell level lvl, the Wisdom
+  bonus in: SSI's record holds the cleric's and magic-user's levels 1..Types.RECORD_SPELL_LEVELS, portExt the rest
+  (#1121). 0 for a kind or level past them. }
+function SpellSlots(creature: Types.PCharRecord; kind, lvl: ShortInt): Byte;
+
+{ Set creature's spell slots of kind and level lvl to n; a kind or level past them is left. }
+procedure SetSpellSlots(creature: Types.PCharRecord; kind, lvl: ShortInt; n: Byte);
+
+{ Empty creature's spell slots of kind, every level. }
+procedure ClearSpellSlots(creature: Types.PCharRecord; kind: ShortInt);
+
+{ True when creature knows spell id: spellsKnown to Types.KNOWN_RECORD_LAST, portExt.moreKnown past it (#1121). False
+  for an id past C_SPELL.LAST or 0. }
+function KnowsSpell(creature: Types.PCharRecord; id: Byte): Boolean;
+
+{ Mark spell id known or not; an id past C_SPELL.LAST or 0 is left. }
+procedure SetSpellKnown(creature: Types.PCharRecord; id: Byte; known: Boolean);
+
+{ Memorized-spell slot i (0..Types.MEMORIZED_LAST) of creature: memorizedSpells to Types.SPELL_SLOT_LAST, then
+  portExt.moreMemorized (#1121); 0 past them. }
+function MemorizedAt(creature: Types.PCharRecord; i: Byte): Byte;
+
+{ Set memorized-spell slot i of creature to b; one past Types.MEMORIZED_LAST is left. }
+procedure SetMemorizedAt(creature: Types.PCharRecord; i, b: Byte);
+
+{ Every memorized-spell slot of creature, in order, into all; PutMemorized puts all back. }
+procedure GetMemorized(creature: Types.PCharRecord; var all: Types.TMemorized);
+procedure PutMemorized(creature: Types.PCharRecord; var all: Types.TMemorized);
+
+{ Empty every memorized-spell slot of creature. }
+procedure ClearMemorized(creature: Types.PCharRecord);
 
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
 
-{ The spell Use casts from item: its effect, an effect past C_SPELL.LAST being item spell effect -
-  C_SPELL.ITEM_EFFECT_SHIFT (item effects 80..90 are spells 57..67). C_SPELL.NONE for a scroll, whose spells are picked
-  from its list, for an item with no effect or one readying applies (special $80 and up), and for an effect past the
-  spell table, from corrupt or edited item data (#708). }
+{ The spell Use casts from item: its effect, an effect past C_SPELL.ITEM_EFFECT_DIRECT_LAST being item spell effect -
+  C_SPELL.ITEM_EFFECT_SHIFT (item effects 80..88 are spells 57..65, 150 and 151 are 127 and 128). C_SPELL.NONE for a
+  scroll, whose spells are picked from its list, for an item with no effect or one readying applies (special $80 and
+  up), and for an effect past the spell table, from corrupt or edited item data (#708). }
 function ItemSpell(item: Types.PItemRec): Byte;
 
 { True when item is a scroll creature can read (ScrollLegible) and could use: readied, or of a class Ready accepts. The
@@ -290,9 +327,16 @@ function CalcSpellRange(spell: Byte): Byte;
 { The shape of the cells spell reaches in combat (a C_SPELL.AREA_* kind), from spellTable's area mode and the shapes
   the handlers use in its place, which the aim preview and the spell page both show: Lightning Bolt's path
   (C_SPELL.AREA_BOLT, size the C_SPELL.LIGHTNING_BOLT_CELLS it runs past the aim), Stinking Cloud's 2x2 block (size 2),
-  and a fireball's radius of 2 where zone0's view3dFlag is clear (outdoors) and the table's 3 elsewhere. size is the
-  radius for C_SPELL.AREA_RADIUS, the most creatures for C_SPELL.AREA_TARGETS and 0 otherwise. }
+  a fireball's radius of 2 where zone0's view3dFlag is clear (outdoors) and the table's 3 elsewhere, Fear's and Cone of
+  Cold's cones from the caster (C_SPELL.AREA_CONE, size the reach Magic.WalkCone takes), and the pool spells' targets
+  (area mode 5, C_SPELL.AREA_POOL). size is the radius for C_SPELL.AREA_RADIUS, the most creatures for
+  C_SPELL.AREA_TARGETS and 0 otherwise. }
 function SpellArea(spell: Byte; var size: Byte): Byte;
+
+{ What target costs a pool spell's pool (C_SPELL.AREA_POOL), Curse's: against Faerie Fire's, its size, 1 for a man-sized
+  icon, 2 for a larger one or a Large creature (Types.ICON_LARGE), 4 past that; against Charm Monsters' 2d4, its
+  highest level, 1 for level 1 or below, 2 for 2, 4 for 3 and 8 above. }
+function PoolCost(spell: Byte; target: Types.PCharRecord): Byte;
 
 { A spell's duration in minutes as dice, for Magic.CalcSpellDuration to roll and the spell page to show: Cause Disease
   and the item spells below roll theirs (Dust of Disappearance by whether combat is on); any other spell's is
@@ -358,8 +402,16 @@ const
     (5, 5, 6),
     (6, 7, 8),
     (4, 5, 6));
-  { a half-elf cleric's cap }
+  { the levels a paladin's cleric spells, and a ranger's druid and magic-user spells, are cast below his class level
+    (1st-edition PHB): a paladin casts as a cleric of his level less 8, a ranger as a druid of his level less 7 and a
+    magic-user of his level less 8 (GetCasterLevel, #1121) }
+  PALADIN_LEVELS_BEFORE = 8;
+  RANGER_DRUID_LEVELS_BEFORE = 7;
+  RANGER_MAGE_LEVELS_BEFORE = 8;
+  { a half-elf cleric's cap, and a half-elf magic-user's (1st-edition PHB p. 14), which the experience table's end at 6
+    hid until the table ran to 9 (#1121) }
   HALFELF_CLERIC_CAP = 5;
+  HALFELF_MAGE_CAP = 8;
   { a half-orc's caps (1st-edition PHB pp. 14-15): a cleric's 4 to Wisdom 14, then one more a point to 7 at 17; a
     thief's 8 to Dexterity 14, then one more a point to 11 at 17 }
   HALFORC_CLERIC_CAP = 4;
@@ -1036,10 +1088,10 @@ var
   i: Byte;
 begin
   i := 0;
-  while (i <= Types.SPELL_SLOT_LAST) and (creature^.memorizedSpells[i] <> spell) do
+  while (i <= Types.MEMORIZED_LAST) and (CharHlp.MemorizedAt(creature, i) <> spell) do
     Inc(i);
-  if i <= Types.SPELL_SLOT_LAST then
-    creature^.memorizedSpells[i] := 0;
+  if i <= Types.MEMORIZED_LAST then
+    CharHlp.SetMemorizedAt(creature, i, 0);
 end;
 
 procedure FreeItemList(var list: Types.PItemRec);
@@ -1419,12 +1471,30 @@ end;
   (C_SPELL.SPECIAL_CASTER_LEVEL for the special class), C_SPELL.ITEM_CASTER_LEVEL when cast from an item
   (GameVars.usingItem) unless the class is the special one. }
 function GetCasterLevel(spell: Byte): Byte;
+var
+  own: Integer;
+  other: Integer;
 begin
+  own := 0;
+  other := 0;
   case GameDefs.spellTable[spell].castClass of
-    C_SPELL.CLASS_CLERIC: GetCasterLevel := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.CLERIC_BIT);
-    C_SPELL.CLASS_MAGE: GetCasterLevel := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.MAGE_BIT);
-    C_SPELL.CLASS_SPECIAL: GetCasterLevel := C_SPELL.SPECIAL_CASTER_LEVEL;
+    C_SPELL.CLASS_CLERIC: begin
+        own := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.CLERIC_BIT);
+        other := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.PALADIN_BIT) - PALADIN_LEVELS_BEFORE;
+      end;
+    C_SPELL.CLASS_MAGE: begin
+        own := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.MAGE_BIT);
+        other := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.RANGER_BIT) - RANGER_MAGE_LEVELS_BEFORE;
+      end;
+    C_SPELL.CLASS_DRUID:
+      own := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.RANGER_BIT) - RANGER_DRUID_LEVELS_BEFORE;
+    C_SPELL.CLASS_SPECIAL: own := C_SPELL.SPECIAL_CASTER_LEVEL;
   end;
+  if other > own then
+    own := other;
+  if own < 0 then
+    own := 0;
+  GetCasterLevel := own;
   if GameVars.usingItem and (GameDefs.spellTable[spell].castClass <> C_SPELL.CLASS_SPECIAL) then
     GetCasterLevel := C_SPELL.ITEM_CASTER_LEVEL;
 end;
@@ -1488,11 +1558,11 @@ begin
     { a class a dual-classed human has left never trains again (#838) }
     if creature^.portExt.formerClasses and (1 shl cls) <> 0 then
       lvl := 0;
-    { xp[] runs to C_LEVEL.LEVEL_LAST }
-    if (lvl > 0) and (lvl < C_LEVEL.LEVEL_LAST) then
+    { the experience table's end (ClassCal.LevelOpen, the Game Level Cap) and the race's limit are separate tests }
+    if lvl > 0 then
       if not CharHlp.AtLevelCap(creature, cls) then
-        if GameDefs.classExperience[cls].xp[lvl + 1] > 0 then
-          if anyXp or (GameDefs.classExperience[cls].xp[lvl + 1] <= creature^.experience) then
+        if ClassCal.LevelOpen(cls, lvl + 1) then
+          if anyXp or (ClassCal.LevelXp(cls, lvl + 1) <= creature^.experience) then
             mask := mask or (1 shl cls);
   end;
   TrainClasses := mask;
@@ -1551,6 +1621,8 @@ begin
       band := STR_BAND_18;
     if (race = C_RACE.HALF_ELF) and (cls = C_LEVEL.CLERIC) then
       AtLevelCap := lvl >= HALFELF_CLERIC_CAP
+    else if (race = C_RACE.HALF_ELF) and (cls = C_LEVEL.MAGE) then
+      AtLevelCap := lvl >= HALFELF_MAGE_CAP
     else if race = C_RACE.HALF_ORC then
       AtLevelCap := (CharHlp.HalfOrcCap(creature, cls) <> 0) and (lvl >= CharHlp.HalfOrcCap(creature, cls))
     else if (race in [C_RACE.DWARF..C_RACE.HALFLING]) and
@@ -1769,7 +1841,120 @@ end;
   spell. }
 function IsSpell(id: Byte): Boolean;
 begin
-  IsSpell := (id >= 1) and (id <= C_SPELL.LAST);
+  IsSpell := False;
+  if (id >= 1) and (id <= C_SPELL.LAST) then
+    IsSpell := GameDefs.spellTable[id].castClass <> C_SPELL.CLASS_SPECIAL;
+end;
+
+function SpellSlots(creature: Types.PCharRecord; kind, lvl: ShortInt): Byte;
+begin
+  SpellSlots := 0;
+  if (lvl >= 1) and (lvl <= Types.CASTER_LEVEL_LAST) then
+    with creature^ do
+      case kind of
+        C_SPELL.CLASS_CLERIC:
+          if lvl <= Types.RECORD_SPELL_LEVELS then
+            SpellSlots := clericSpells[lvl]
+          else
+            SpellSlots := portExt.moreSlots[kind, lvl];
+        C_SPELL.CLASS_MAGE:
+          if lvl <= Types.RECORD_SPELL_LEVELS then
+            SpellSlots := mageSpells[lvl]
+          else
+            SpellSlots := portExt.moreSlots[kind, lvl];
+        C_SPELL.CLASS_DRUID: SpellSlots := portExt.druidSlots[lvl];
+      end;
+end;
+
+procedure SetSpellSlots(creature: Types.PCharRecord; kind, lvl: ShortInt; n: Byte);
+begin
+  if (lvl >= 1) and (lvl <= Types.CASTER_LEVEL_LAST) then
+    with creature^ do
+      case kind of
+        C_SPELL.CLASS_CLERIC:
+          if lvl <= Types.RECORD_SPELL_LEVELS then
+            clericSpells[lvl] := n
+          else
+            portExt.moreSlots[kind, lvl] := n;
+        C_SPELL.CLASS_MAGE:
+          if lvl <= Types.RECORD_SPELL_LEVELS then
+            mageSpells[lvl] := n
+          else
+            portExt.moreSlots[kind, lvl] := n;
+        C_SPELL.CLASS_DRUID: portExt.druidSlots[lvl] := n;
+      end;
+end;
+
+procedure ClearSpellSlots(creature: Types.PCharRecord; kind: ShortInt);
+var
+  lvl: ShortInt;
+begin
+  for lvl := 1 to Types.CASTER_LEVEL_LAST do
+    CharHlp.SetSpellSlots(creature, kind, lvl, 0);
+end;
+
+function KnowsSpell(creature: Types.PCharRecord; id: Byte): Boolean;
+begin
+  if (id >= 1) and (id <= Types.KNOWN_RECORD_LAST) then
+    KnowsSpell := creature^.spellsKnown[id] <> 0
+  else if (id > Types.KNOWN_RECORD_LAST) and (id <= C_SPELL.LAST) then
+    KnowsSpell := creature^.portExt.moreKnown[(id - Types.KNOWN_RECORD_LAST - 1) div 8] and
+                  (1 shl ((id - Types.KNOWN_RECORD_LAST - 1) mod 8)) <> 0
+  else
+    KnowsSpell := False;
+end;
+
+procedure SetSpellKnown(creature: Types.PCharRecord; id: Byte; known: Boolean);
+var
+  k: Byte;
+  bit: Byte;
+begin
+  if (id >= 1) and (id <= Types.KNOWN_RECORD_LAST) then
+    creature^.spellsKnown[id] := Ord(known)
+  else if (id > Types.KNOWN_RECORD_LAST) and (id <= C_SPELL.LAST) then begin
+    k := (id - Types.KNOWN_RECORD_LAST - 1) div 8;
+    bit := 1 shl ((id - Types.KNOWN_RECORD_LAST - 1) mod 8);
+    if known then
+      creature^.portExt.moreKnown[k] := creature^.portExt.moreKnown[k] or bit
+    else
+      creature^.portExt.moreKnown[k] := creature^.portExt.moreKnown[k] and not bit;
+  end;
+end;
+
+function MemorizedAt(creature: Types.PCharRecord; i: Byte): Byte;
+begin
+  if i <= Types.SPELL_SLOT_LAST then
+    MemorizedAt := creature^.memorizedSpells[i]
+  else if i <= Types.MEMORIZED_LAST then
+    MemorizedAt := creature^.portExt.moreMemorized[i]
+  else
+    MemorizedAt := 0;
+end;
+
+procedure SetMemorizedAt(creature: Types.PCharRecord; i, b: Byte);
+begin
+  if i <= Types.SPELL_SLOT_LAST then
+    creature^.memorizedSpells[i] := b
+  else if i <= Types.MEMORIZED_LAST then
+    creature^.portExt.moreMemorized[i] := b;
+end;
+
+procedure GetMemorized(creature: Types.PCharRecord; var all: Types.TMemorized);
+begin
+  Move(creature^.memorizedSpells, all[0], SizeOf(creature^.memorizedSpells));
+  Move(creature^.portExt.moreMemorized, all[Types.SPELL_SLOT_LAST + 1], SizeOf(creature^.portExt.moreMemorized));
+end;
+
+procedure PutMemorized(creature: Types.PCharRecord; var all: Types.TMemorized);
+begin
+  Move(all[0], creature^.memorizedSpells, SizeOf(creature^.memorizedSpells));
+  Move(all[Types.SPELL_SLOT_LAST + 1], creature^.portExt.moreMemorized, SizeOf(creature^.portExt.moreMemorized));
+end;
+
+procedure ClearMemorized(creature: Types.PCharRecord);
+begin
+  FillChar(creature^.memorizedSpells, SizeOf(creature^.memorizedSpells), 0);
+  FillChar(creature^.portExt.moreMemorized, SizeOf(creature^.portExt.moreMemorized), 0);
 end;
 
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
@@ -1791,7 +1976,7 @@ begin
   ItemSpell := C_SPELL.NONE;
   if not CharHlp.ItemReadable(item) and (item^.effect > 0) and (item^.special < $80) then begin
     id := item^.effect;
-    if id > C_SPELL.LAST then
+    if id > C_SPELL.ITEM_EFFECT_DIRECT_LAST then
       id := id - C_SPELL.ITEM_EFFECT_SHIFT;
     if id <= C_SPELL.TABLE_LAST then
       ItemSpell := id;
@@ -1848,8 +2033,19 @@ var
 begin
   size := 0;
   mode := GameDefs.spellTable[spell].area and $F;
+  if spell = C_SPELL.FEAR then begin
+    size := C_SPELL.FEAR_CONE_CELLS;
+    SpellArea := C_SPELL.AREA_CONE;
+  end else if spell = C_SPELL.CONE_OF_COLD then begin
+    { half the caster level, rounded up }
+    size := (CharHlp.GetCasterLevel(spell) + 1) div 2;
+    if size < 1 then
+      size := 1;
+    SpellArea := C_SPELL.AREA_CONE;
+  end else
   case mode of
     C_SPELL.AREA_MODE_SELF: SpellArea := C_SPELL.AREA_SELF;
+    C_SPELL.AREA_MODE_POOL: SpellArea := C_SPELL.AREA_POOL;
     C_SPELL.AREA_MODE_SPOT: SpellArea := C_SPELL.AREA_SPOT;
     C_SPELL.AREA_MODE_RADIUS_FIRST..C_SPELL.AREA_MODE_RADIUS_LAST:
       if spell = C_SPELL.LIGHTNING_BOLT then begin
@@ -1872,6 +2068,30 @@ begin
       SpellArea := C_SPELL.AREA_TARGETS;
     end;
   end;
+end;
+
+function PoolCost(spell: Byte; target: Types.PCharRecord): Byte;
+var
+  cost: Byte;
+begin
+  if spell = C_SPELL.FAERIE_FIRE then begin
+    case target^.iconDimensions and $7F of
+      0, 1: cost := 1;
+      2, 3: cost := 2;
+    else
+      cost := 4;
+    end;
+    if (target^.iconDimensions and Types.ICON_LARGE <> 0) and (cost < 2) then
+      cost := 2;
+  end else
+    case target^.levelHighest of
+      2: cost := 2;
+      3: cost := 4;
+      4..127: cost := 8;
+    else
+      cost := 1;
+    end;
+  PoolCost := cost;
 end;
 
 procedure SpellDuration(spell: Byte; var d: Types.TDurDice);
