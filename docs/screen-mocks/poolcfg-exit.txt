@@ -5,7 +5,7 @@ POOLCFG (#876): Leaving with changes
                ╔══════════════════ Main Menu ═══════════════════╗
                ║                                                ║
                ║   Hardware        Video, sound, intro, folders ║
-               ║   Game Settings   Speed, portraits, Quick Mode ║
+               ║   Game Settings   Speed, portraits, Journal    ║
                ║   Sound Settings  Music and sound effects      ║
                ║                                                ║
                ║  ╔══════════════════ Exit ══════════════════╗  ║

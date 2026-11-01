@@ -63,8 +63,9 @@ function KeyName(key: Byte): TName;
 function SettingName(opt: Byte): TName;
 
 { The page setting opt is on: C_OPT.OPT_PAGE_SOUND for the music and the sound (OPT_FIRST_SOUND to OPT_LAST_SOUND,
-  #1088), OPT_PAGE_CAMP for Auto Memorize and Fix's settings (OPT_FIRST_CAMP to OPT_LAST_CAMP, #1119, #1129), and
-  OPT_PAGE_GAME for the rest; the game's Settings screen and POOLCFG split them so. }
+  #1088), OPT_PAGE_CAMP for Auto Memorize and Fix's settings (OPT_FIRST_CAMP to OPT_LAST_CAMP, #1119, #1129),
+  OPT_PAGE_COMBAT for Quick Mode's, Aim Cycles, Retrieve Thrown and the combat log's (OPT_FIRST_COMBAT to
+  OPT_LAST_COMBAT, #1180), and OPT_PAGE_GAME for the rest; the game's Settings screen and POOLCFG split them so. }
 function SettingPage(opt: Byte): Byte;
 
 { The heading on the line above setting opt on its page, for a setting that starts a group: Quick Mode above
@@ -388,6 +389,8 @@ begin
     SettingPage := C_OPT.OPT_PAGE_SOUND
   else if (opt >= C_OPT.OPT_FIRST_CAMP) and (opt <= C_OPT.OPT_LAST_CAMP) then
     SettingPage := C_OPT.OPT_PAGE_CAMP
+  else if (opt >= C_OPT.OPT_FIRST_COMBAT) and (opt <= C_OPT.OPT_LAST_COMBAT) then
+    SettingPage := C_OPT.OPT_PAGE_COMBAT
   else
     SettingPage := C_OPT.OPT_PAGE_GAME;
 end;

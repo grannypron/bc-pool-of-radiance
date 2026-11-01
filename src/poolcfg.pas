@@ -28,9 +28,10 @@ const
   ITEM_SETTINGS = 2;
   ITEM_SOUND = 3;
   ITEM_CAMP = 4;
-  ITEM_SAVE = 5;
-  ITEM_QUIT = 6;
-  ITEMS = 6;
+  ITEM_COMBAT = 5;
+  ITEM_SAVE = 6;
+  ITEM_QUIT = 7;
+  ITEMS = 7;
   { the Hardware page's lines: the three with choices, then POOL.CFG's data and save paths, which the Paths page had
     before it went (#1177) }
   HW_VIDEO = 1;
@@ -358,6 +359,8 @@ begin
     Changed('Sound Settings');
   if SettingsChanged(C_OPT.OPT_PAGE_CAMP) then
     Changed('Camp Settings');
+  if SettingsChanged(C_OPT.OPT_PAGE_COMBAT) then
+    Changed('Combat Settings');
   if (changes = '') and PoolCfgDue then
     changes := 'none; saving writes POOL.CFG';
   if changes <> '' then
@@ -376,11 +379,12 @@ end;
 procedure DrawMain(sel: Byte);
 const
   NAMES: array[1..ITEMS] of string[19] = ('Hardware', 'Game Settings', 'Sound Settings', 'Camp Settings',
-    'Save and Exit', 'Exit Without Saving');
-  { each item's hot letter's place in its name: Sound Settings' O, as Save and Exit has S }
-  HOT: array[1..ITEMS] of Byte = (1, 1, 2, 1, 1, 2);
-  ABOUT: array[1..ITEM_SAVE - 1] of string[28] = ('Video, sound, intro, folders', 'Speed, portraits, Quick Mode',
-    'Music and sound effects', 'Auto Memorize, Fix');
+    'Combat Settings', 'Save and Exit', 'Exit Without Saving');
+  { each item's hot letter's place in its name: Sound Settings' O, as Save and Exit has S, and Combat Settings' M, as
+    Camp Settings has C }
+  HOT: array[1..ITEMS] of Byte = (1, 1, 2, 1, 3, 1, 2);
+  ABOUT: array[1..ITEM_SAVE - 1] of string[28] = ('Video, sound, intro, folders', 'Speed, portraits, Journal',
+    'Music and sound effects', 'Auto Memorize, Fix', 'Quick Mode, aim, combat log');
 var
   i: Byte;
 begin
@@ -936,8 +940,8 @@ begin
   end;
 end;
 
-{ Settings page page (C_OPT.OPT_PAGE_GAME, OPT_PAGE_SOUND or OPT_PAGE_CAMP): its settings, setting sel highlighted,
-  each heading (CfgFile.Heading) above the setting it comes before. }
+{ Settings page page (C_OPT.OPT_PAGE_GAME, OPT_PAGE_SOUND, OPT_PAGE_CAMP or OPT_PAGE_COMBAT): its settings, setting
+  sel highlighted, each heading (CfgFile.Heading) above the setting it comes before. }
 procedure DrawSettings(page, sel: Byte);
 var
   opt: Byte;
@@ -946,6 +950,7 @@ begin
   case page of
     C_OPT.OPT_PAGE_SOUND: TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Sound Settings (POOLOPT.CFG)');
     C_OPT.OPT_PAGE_CAMP: TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Camp Settings (POOLOPT.CFG)');
+    C_OPT.OPT_PAGE_COMBAT: TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Combat Settings (POOLOPT.CFG)');
   else
     TuiKit.Box(2, 2, 45, 24, TuiKit.A_FRAME, 'Game Settings (POOLOPT.CFG)');
   end;
@@ -1217,6 +1222,7 @@ begin
         'G': item := ITEM_SETTINGS;
         'O': item := ITEM_SOUND;
         'C': item := ITEM_CAMP;
+        'M': item := ITEM_COMBAT;
         'S': item := ITEM_SAVE;
         'X': item := ITEM_QUIT;
         C_KEYS.ESCAPE: AskToLeave;
@@ -1228,6 +1234,7 @@ begin
       ITEM_SETTINGS: SettingsPage(C_OPT.OPT_PAGE_GAME);
       ITEM_SOUND: SettingsPage(C_OPT.OPT_PAGE_SOUND);
       ITEM_CAMP: SettingsPage(C_OPT.OPT_PAGE_CAMP);
+      ITEM_COMBAT: SettingsPage(C_OPT.OPT_PAGE_COMBAT);
       ITEM_SAVE: SaveAndLeave;
       ITEM_QUIT: begin
                    exitCode := Ord(Unsaved);

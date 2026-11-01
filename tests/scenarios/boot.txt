@@ -17,3 +17,6 @@ checkpoint camp-settings
 # The Sound page; with SOUND=none (no sound device, #1156) Music and Sound read OFF and every line is grey.
 press s
 checkpoint sound-settings
+# The Combat page (#1180): Quick Mode under its heading, Aim Cycles, Retrieve Thrown and the combat log.
+press m
+checkpoint combat-settings

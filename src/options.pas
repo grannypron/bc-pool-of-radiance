@@ -3,7 +3,7 @@
   KEY=VALUE format used by both the game and POOLCFG (#876), while Collect and
   Apply translate between TSettings and GameVars.
 
-  The screen has Game, Sound, Camp, and System pages (#835, #1088). Combat-log settings are
+  The screen has Game, Sound, Camp, Combat and System pages (#835, #1088, #1180). Combat-log settings are
   editable only when CbtLog has a backing store (#841). Changes are written when
   the player leaves the screen. }
 {$O+,F+,I-}
@@ -31,7 +31,7 @@ function AdvisedVersion: CfgFile.TName;
 { Record version as the one the support part was last shown for, and save POOLOPT.CFG. }
 procedure SetAdvised(version: CfgFile.TName);
 
-{ Show the Settings screen until Exit or Escape. Game, Sound, Camp and System on the bottom line, which has no
+{ Show the Settings screen until Exit or Escape. Game, Sound, Camp, coMbat and System on the bottom line, which has no
   prompt, show its pages. On a settings page Up and Down (also Home and End) move the highlight through its settings,
   wrapping at either end, past its headings (Quick Mode, Fix); Enter, Left or Right turn the highlighted one over, at
   once. On the Game Speed and Log Lines lines Left and Right pick Slower or Faster (Less or More) instead, and Enter
@@ -54,17 +54,18 @@ const
     or More on the right. }
   CHOICE_LEFT = 0;
   CHOICE_RIGHT = 1;
-  { The pages, in the bottom line's order: the settings split over Game, Sound (#1088) and Camp (#1119, #1129), which
-    hold too many for one box, as CfgFile.SettingPage numbers them, then System. }
+  { The pages, in the bottom line's order: the settings split over Game, Sound (#1088), Camp (#1119, #1129) and Combat
+    (#1180), which hold too many for one box, as CfgFile.SettingPage numbers them, then System. }
   PAGE_GAME = C_OPT.OPT_PAGE_GAME;
   PAGE_SOUND = C_OPT.OPT_PAGE_SOUND;
   PAGE_CAMP = C_OPT.OPT_PAGE_CAMP;
+  PAGE_COMBAT = C_OPT.OPT_PAGE_COMBAT;
   PAGE_SYSTEM = C_OPT.OPT_PAGES + 1;
-  SETTINGS_PAGES = [PAGE_GAME, PAGE_SOUND, PAGE_CAMP];
+  SETTINGS_PAGES = [PAGE_GAME, PAGE_SOUND, PAGE_CAMP, PAGE_COMBAT];
   { One framed box from TOP_ROW to BOTTOM_ROW: the page's title on TOP_ROW, then its lines from FIRST_ROW, the row
-    below (the Game page's settings fill the box to BOTTOM_ROW). The Game page's settings have their labels at
-    LABEL_COL and their values at SETTING_COL, with each heading (CfgFile.Heading: Quick Mode, Fix) on its own row; the
-    other pages' values start at VALUE_COL. }
+    below, 20 rows to the row above BOTTOM_ROW. A settings page's settings have their labels at LABEL_COL and their
+    values at SETTING_COL, with each heading (CfgFile.Heading: Quick Mode, Fix) on its own row; the System page's
+    values start at VALUE_COL. }
   LEFT_COL = 1;
   RIGHT_COL = 38;
   TOP_ROW = 1;
@@ -73,8 +74,8 @@ const
   LABEL_COL = 2;
   SETTING_COL = 24;
   VALUE_COL = 20;
-  { the colours: titles, and the lines; the Game page's highlight is TITLE_COLOR too,
-    and a setting that cannot be changed here is OFF_COLOR }
+  { the colours: titles, and the lines; a settings page's highlight is TITLE_COLOR too, and a setting that cannot be
+    changed here is OFF_COLOR }
   TITLE_COLOR = White;
   LINE_COLOR = LightGreen;
   OFF_COLOR = DarkGray;
@@ -323,9 +324,9 @@ begin
     end;
 end;
 
-{ Settings page page (PAGE_GAME, PAGE_SOUND or PAGE_CAMP): its settings, setting sel highlighted, each heading
-  (CfgFile.Heading) on the row above the setting it comes before; the Sound page without a sound device says so two
-  rows under its last setting. }
+{ Settings page page (PAGE_GAME, PAGE_SOUND, PAGE_CAMP or PAGE_COMBAT): its settings, setting sel highlighted, each
+  heading (CfgFile.Heading) on the row above the setting it comes before; the Sound page without a sound device says
+  so two rows under its last setting. }
 procedure DrawSettingsPage(page, sel: Byte);
 var
   opt: Byte;
@@ -408,6 +409,10 @@ begin
                  TextRend.DisplayCentered(LEFT_COL, RIGHT_COL, TOP_ROW, TITLE_COLOR, 'Camp Settings');
                  Options.DrawSettingsPage(PAGE_CAMP, sel);
                end;
+    PAGE_COMBAT: begin
+                   TextRend.DisplayCentered(LEFT_COL, RIGHT_COL, TOP_ROW, TITLE_COLOR, 'Combat Settings');
+                   Options.DrawSettingsPage(PAGE_COMBAT, sel);
+                 end;
     PAGE_SYSTEM: begin
                    TextRend.DisplayCentered(LEFT_COL, RIGHT_COL, TOP_ROW, TITLE_COLOR, 'System Info');
                    Options.DrawSystemPage;
@@ -506,8 +511,8 @@ begin
     GameVars.horizChoice := page;
     MenuCore.arrowsToCaller := True;
     MenuCore.enterToCaller := True;
-    { no prompt: with Camp the pages fill the bottom line }
-    ch := MenuCore.MenuHorizontal('', 'Game Sound Camp sYstem Exit', LightMagenta, LightGreen, White, True,
+    { no prompt: with Camp the pages fill the bottom line; Combat's key is M, as C is Camp's }
+    ch := MenuCore.MenuHorizontal('', 'Game Sound Camp coMbat sYstem Exit', LightMagenta, LightGreen, White, True,
                                   False, ext);
     if ext then begin
       if page in SETTINGS_PAGES then begin
@@ -531,6 +536,8 @@ begin
                ShowPage(PAGE_SOUND);
         'C': if page <> PAGE_CAMP then
                ShowPage(PAGE_CAMP);
+        'M': if page <> PAGE_COMBAT then
+               ShowPage(PAGE_COMBAT);
         'Y': if page <> PAGE_SYSTEM then
                ShowPage(PAGE_SYSTEM);
       end;

@@ -179,9 +179,21 @@ begin
                 (CfgFile.SettingPage(C_OPT.OPT_SPELLS) = C_OPT.OPT_PAGE_SOUND),
                 'the music and the sound effects are the Sound page''s');
   TestKit.Check((CfgFile.SettingPage(C_OPT.OPT_AUTO_JOIN) = C_OPT.OPT_PAGE_GAME) and
-                (CfgFile.SettingPage(C_OPT.OPT_QUICK) = C_OPT.OPT_PAGE_GAME) and
-                (CfgFile.SettingPage(C_OPT.OPT_COMBAT_LOG) = C_OPT.OPT_PAGE_GAME),
-                'Auto Join, Quick Mode and the combat log are the Game page''s');
+                (CfgFile.SettingPage(C_OPT.OPT_NONHUMAN_CAP) = C_OPT.OPT_PAGE_GAME) and
+                (CfgFile.SettingPage(C_OPT.OPT_CLUES) = C_OPT.OPT_PAGE_GAME),
+                'Auto Join, Non-Human Level Cap and the Clue Book notes are the Game page''s');
+  TestKit.Check((CfgFile.SettingPage(C_OPT.OPT_QUICK) = C_OPT.OPT_PAGE_COMBAT) and
+                (CfgFile.SettingPage(C_OPT.OPT_AIM) = C_OPT.OPT_PAGE_COMBAT) and
+                (CfgFile.SettingPage(C_OPT.OPT_RETRIEVE) = C_OPT.OPT_PAGE_COMBAT) and
+                (CfgFile.SettingPage(C_OPT.OPT_LOG_LINES) = C_OPT.OPT_PAGE_COMBAT),
+                'Quick Mode, Aim Cycles, Retrieve Thrown and the combat log are the Combat page''s (#1180)');
+  bad := 0;
+  for opt := 2 to C_OPT.OPT_COUNT do
+    if CfgFile.SettingPage(opt) < CfgFile.SettingPage(opt - 1) then
+      Inc(bad);
+  TestKit.CheckEqualsL(0, bad, 'each page''s settings are one run of numbers, in page order (#1180)');
+  TestKit.CheckEqualsL(C_OPT.OPT_PAGE_COMBAT, CfgFile.SettingPage(C_OPT.OPT_COUNT),
+                       'the Combat page''s run is the last');
   TestKit.Check((CfgFile.SettingPage(C_OPT.OPT_AUTO_MEMORIZE) = C_OPT.OPT_PAGE_CAMP) and
                 (CfgFile.SettingPage(C_OPT.OPT_FIX_HEAL) = C_OPT.OPT_PAGE_CAMP),
                 'Auto Memorize and the Fix settings are the Camp page''s');
@@ -190,10 +202,12 @@ begin
   TestKit.CheckEqualsL(5, CfgFile.SettingLine(C_OPT.OPT_CONSOLIDATE), 'Consolidate Coin after Auto Join (#1179)');
   TestKit.CheckEqualsL(6, CfgFile.SettingLine(C_OPT.OPT_JOURNAL), 'the Journal after it (#1090)');
   TestKit.CheckEqualsL(7, CfgFile.SettingLine(C_OPT.OPT_NONHUMAN_CAP), 'Non-Human Level Cap after the Journal (#1176)');
-  TestKit.CheckEqualsL(9, CfgFile.SettingLine(C_OPT.OPT_QUICK), 'Quick Mode under its heading, past the sound');
-  TestKit.CheckEqualsL(11, CfgFile.SettingLine(C_OPT.OPT_GEAR), 'Allow Gear Changes under Quick Mode, after Use Magic');
-  TestKit.CheckEqualsL(13, CfgFile.SettingLine(C_OPT.OPT_RETRIEVE), 'Aim Cycles and Retrieve Thrown after it');
-  TestKit.CheckEqualsL(17, CfgFile.SettingLine(C_OPT.OPT_LOG_LINES), 'the Game page ends with the log lines');
+  TestKit.CheckEqualsL(8, CfgFile.SettingLine(C_OPT.OPT_COMPANION), 'the Companion Tools after it');
+  TestKit.CheckEqualsL(9, CfgFile.SettingLine(C_OPT.OPT_CLUES), 'the Game page ends with the Clue Book notes');
+  TestKit.CheckEqualsL(1, CfgFile.SettingLine(C_OPT.OPT_QUICK), 'the Combat page starts under the Quick Mode heading');
+  TestKit.CheckEqualsL(3, CfgFile.SettingLine(C_OPT.OPT_GEAR), 'Allow Gear Changes under Quick Mode, after Use Magic');
+  TestKit.CheckEqualsL(5, CfgFile.SettingLine(C_OPT.OPT_RETRIEVE), 'Aim Cycles and Retrieve Thrown after it');
+  TestKit.CheckEqualsL(7, CfgFile.SettingLine(C_OPT.OPT_LOG_LINES), 'the Combat page ends with the log lines');
   TestKit.CheckEqualsS('Quick Mode', CfgFile.Heading(C_OPT.OPT_QUICK), 'the Quick Mode heading');
   TestKit.CheckEqualsS('Fix', CfgFile.Heading(C_OPT.OPT_FIX_SCROLLS), 'the Fix heading (#1129)');
   TestKit.CheckEqualsS('', CfgFile.Heading(C_OPT.OPT_FIX_POTIONS), 'and none on the other lines');
@@ -223,8 +237,8 @@ begin
   CfgFile.Silenced(True, skip);
   TestKit.Check(skip = [C_OPT.OPT_FIRST_SOUND..C_OPT.OPT_LAST_SOUND, C_OPT.OPT_LOG_LINES],
                 'without one every Sound page setting is, Music and Sound among them');
-  TestKit.CheckEqualsL(C_OPT.OPT_QUICK, CfgFile.NextSetting(C_OPT.OPT_NONHUMAN_CAP, True, skip),
-                       'Down from Non-Human Level Cap passes them by');
+  TestKit.CheckEqualsL(C_OPT.OPT_AUTO_MEMORIZE, CfgFile.NextSetting(C_OPT.OPT_CLUES, True, skip),
+                       'Down from the Clue Book notes passes them by');
   skip := [];
   for opt := 1 to C_OPT.OPT_COUNT do
     if CfgFile.SettingPage(opt) <> C_OPT.OPT_PAGE_SOUND then

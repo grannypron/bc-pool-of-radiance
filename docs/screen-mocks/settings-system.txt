@@ -21,7 +21,7 @@
 | BUG REPORTS TO                       |
 | TALONIUS@BRAZENCROWS.COM.            |
 |======================================+
-GAME SOUND CAMP SYSTEM EXIT
+GAME SOUND CAMP COMBAT SYSTEM EXIT
 
 Color Key:
     KEY:                WHITE
@@ -31,5 +31,6 @@ Command Key:
     GAME                G
     SOUND               S
     CAMP                C
+    COMBAT              M
     SYSTEM              Y
     EXIT                E / ESCAPE

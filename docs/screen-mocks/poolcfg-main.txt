@@ -5,9 +5,10 @@ POOLCFG (#876): Main menu
                ╔══════════════════ Main Menu ═══════════════════╗
                ║                                                ║
                ║   Hardware        Video, sound, intro, folders ║
-               ║   Game Settings   Speed, portraits, Quick Mode ║
+               ║   Game Settings   Speed, portraits, Journal    ║
                ║   Sound Settings  Music and sound effects      ║
                ║   Camp Settings   Auto Memorize, Fix           ║
+               ║   Combat Settings Quick Mode, aim, combat log  ║
                ║                                                ║
                ║   Save and Exit                                ║
                ║   Exit Without Saving                          ║
@@ -20,7 +21,6 @@ POOLCFG (#876): Main menu
   ║ POOLOPT.CFG  C:\POOLRAD\SAVE\POOLOPT.CFG    not found: defaults          ║
   ║ Changes      none                                                        ║
   ╚══════════════════════════════════════════════════════════════════════════╝
-
 
 
 
@@ -44,6 +44,7 @@ Command Key:
     GAME SETTINGS       G
     SOUND SETTINGS      O
     CAMP SETTINGS       C
+    COMBAT SETTINGS     M
     SAVE AND EXIT       S / F10
     EXIT WITHOUT SAVING X
     SELECT              ENTER
