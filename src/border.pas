@@ -13,6 +13,9 @@ procedure ClearBox(ulCol, ulRow, lrCol, lrRow: ShortInt);
 
 procedure DrawWindow(ulCol, ulRow, lrCol, lrRow: ShortInt; corner, color: Byte; title: Types.TStr40);
 
+{ Put the corner symbol (corner, as DrawBorder's) at (col, row) of the 40x25 grid. }
+procedure PutCorner(col, row: ShortInt; corner: Byte);
+
 implementation
 
 uses TextRend, Sym8x8;
@@ -21,9 +24,25 @@ const
   { the 40x25 text grid }
   LAST_COL = 39;
   LAST_ROW = 24;
+  { where the lower-right corner of the map window (1,1,15,15) meets the message window's top edge (#1172) }
+  JOIN_COL = 16;
+  JOIN_ROW = 16;
+
+  { a border's corner is at (JOIN_COL, JOIN_ROW) and nothing has cleared it since (a typed constant, so it starts
+    False) }
+  joinCorner: Boolean = False;
+
+{ Put the corner symbol (corner, as DrawBorder's) at (col, row) of the 40x25 grid. }
+procedure PutCorner(col, row: ShortInt; corner: Byte);
+begin
+  Sym8x8.Put8x8Sym(col, row, corner * 3 + BORDER_SYM_BASE, False, False);
+end;
 
 { Draw a border one cell outside the requested text rectangle. Expand the coordinates to the border ring, then draw
-  symbol BORDER_SYM_BASE + corner*3 at the four corners, +2 along the top and bottom edges and +1 down both sides. }
+  symbol BORDER_SYM_BASE + corner*3 at the four corners, +2 along the top and bottom edges and +1 down both sides.
+  An edge across the map window's lower-right corner, (JOIN_COL, JOIN_ROW), leaves the corner there: the message
+  window's top edge, drawn after the map window (the wilderness's windows, a message window opened alone), wiped it
+  (#1172). }
 procedure DrawBorder(ulCol, ulRow, lrCol, lrRow: ShortInt; corner: Byte);
 var
   i: ShortInt;
@@ -46,6 +65,12 @@ begin
     Sym8x8.Put8x8Sym(ulCol, i, symBase + 1, False, False);
     Sym8x8.Put8x8Sym(lrCol, i, symBase + 1, False, False);
   end;
+  if ((ulCol = JOIN_COL) or (lrCol = JOIN_COL)) and ((ulRow = JOIN_ROW) or (lrRow = JOIN_ROW)) then
+    joinCorner := True
+  else if joinCorner and
+    ((((ulRow = JOIN_ROW) or (lrRow = JOIN_ROW)) and (ulCol < JOIN_COL) and (lrCol > JOIN_COL)) or
+     (((ulCol = JOIN_COL) or (lrCol = JOIN_COL)) and (ulRow < JOIN_ROW) and (lrRow > JOIN_ROW))) then
+    Border.PutCorner(JOIN_COL, JOIN_ROW, corner);
 end;
 
 { Clear a character-cell rectangle to black: cut to the 40x25 grid first, so a rectangle partly off the screen clears
@@ -56,6 +81,8 @@ begin
   if ulRow < 0 then ulRow := 0;
   if lrCol > LAST_COL then lrCol := LAST_COL;
   if lrRow > LAST_ROW then lrRow := LAST_ROW;
+  if (ulCol <= JOIN_COL) and (lrCol >= JOIN_COL) and (ulRow <= JOIN_ROW) and (lrRow >= JOIN_ROW) then
+    joinCorner := False;
   TextRend.ClearRect(ulCol, ulRow, lrCol, lrRow);
 end;
 

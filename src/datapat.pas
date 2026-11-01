@@ -18,8 +18,8 @@ uses C_DATA;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 108;
-  BYTE_COUNT = 3776;
+  PART_COUNT = 111;
+  BYTE_COUNT = 3941;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -369,6 +369,15 @@ begin
     [$6E6C] = 1, then COMBAT with no monsters }
   DataPat.Part(1091, C_DATA.FAMILY_ECL, 3, 0, 8038, 663, 2, 2);
   DataPat.Part(1091, C_DATA.FAMILY_ECL, 3, 0, 8038, 8038, 0, 117);
+  { #1168: outside City Hall (New Phlan, event 26) Skullcrusher leaves the party to go to his master, but SSI's search
+    for him ($AF56) passes over a member not in action, so a dead or unconscious Skullcrusher stayed in the party for
+    good. The search's call ($ABB8) goes to new code at the end of the script, after #1091's: the same search without
+    the in-action test ($AF56 stays as it is, the Mad Man's checks share it). The jump to his farewell ($ABC3) goes
+    there too: standing, SSI's farewell ($AD2C) as before; fallen, CADORNA'S PERSONAL GUARD CART THE FALLEN
+    SKULLCRUSHER AWAY. and the same removal ($AD56's), his items with him, the Return prompt and back to the search }
+  DataPat.Part(1168, C_DATA.FAMILY_ECL, 3, 0, 8155, 4796, 2, 2);
+  DataPat.Part(1168, C_DATA.FAMILY_ECL, 3, 0, 8155, 4807, 2, 2);
+  DataPat.Part(1168, C_DATA.FAMILY_ECL, 3, 0, 8155, 8155, 0, 157);
 end;
 
 { Every part's bytes, original then fixed, in table order. }
@@ -1332,6 +1341,45 @@ begin
   DataPat.Put(#$24);                                         { $B8D4 COMBAT }
   DataPat.Put(#$0E#$00#$FF);                                 { $B8D5 PICTURE $FF }
   DataPat.Put(#$00);                                         { $B8D8 EXIT }
+  { #1168 part 1, original }
+  DataPat.Put(#$56#$AF);                                     { $ABB8 GOSUB LAF56: the address }
+  { fixed: to the search without the in-action test, by new code }
+  DataPat.Put(#$D9#$B8);                                     { $ABB8 GOSUB LB8D9: the address }
+  { #1168 part 2, original }
+  DataPat.Put(#$2C#$AD);                                     { $ABC3 GOTO LAD2C: the address }
+  { fixed: to the standing or fallen choice, by new code }
+  DataPat.Put(#$16#$B9);                                     { $ABC3 GOTO LB916: the address }
+  { #1168 part 3, added at $B8D9, after #1091's: $AF56's search without its in-action test; then, Skullcrusher found,
+    standing he says farewell ($AD2C), fallen the guard carts him away and he is removed as at $AD56 }
+  DataPat.Put(#$09#$00#$00#$01#$02#$98);                     { $B8D9 SAVE $00, [$9802] }
+  DataPat.Put(#$0A#$01#$02#$98);                             { $B8DF LOAD CHARACTER [$9802] }
+  DataPat.Put(#$03#$81#$00#$6B#$81#$90#$98);                 { $B8E3 COMPARE str[$6B00], str[$9890] }
+  DataPat.Put(#$16);                                         { $B8EA IF = }
+  DataPat.Put(#$01#$01#$04#$B9);                             { $B8EB GOTO LB904 }
+  DataPat.Put(#$04#$00#$01#$01#$02#$98#$01#$02#$98);         { $B8EF ADD $01, [$9802], [$9802] }
+  DataPat.Put(#$03#$01#$02#$98#$00#$08);                     { $B8F8 COMPARE [$9802], $08 }
+  DataPat.Put(#$18);                                         { $B8FE IF < }
+  DataPat.Put(#$01#$01#$DF#$B8);                             { $B8FF GOTO LB8DF }
+  DataPat.Put(#$13);                                         { $B903 RETURN }
+  DataPat.Put(#$03#$01#$B8#$6B#$00#$80);                     { $B904 COMPARE [$6BB8], $80 }
+  DataPat.Put(#$18);                                         { $B90A IF < }
+  DataPat.Put(#$01#$01#$EF#$B8);                             { $B90B GOTO LB8EF }
+  DataPat.Put(#$09#$00#$01#$01#$05#$4A);                     { $B90F SAVE $01, [$4A05] }
+  DataPat.Put(#$13);                                         { $B915 RETURN }
+  DataPat.Put(#$03#$01#$00#$6C#$00#$7F);                     { $B916 COMPARE [$6C00], $7F }
+  DataPat.Put(#$19);                                         { $B91C IF > }
+  DataPat.Put(#$01#$01#$25#$B9);                             { $B91D GOTO LB925 }
+  DataPat.Put(#$01#$01#$2C#$AD);                             { $B921 GOTO LAD2C }
+  { $B925 PRINTCLEAR "CADORNA'S PERSONAL GUARD CART THE FALLEN SKULLCRUSHER AWAY." }
+  DataPat.Put(#$12#$80#$2D#$0C#$11#$0F#$48#$E0#$67#$4E#$04#$05#$49#$33#$CE#$04);
+  DataPat.Put(#$C8#$07#$54#$14#$84#$80#$30#$52#$52#$05#$08#$16#$01#$81#$30#$C1);
+  DataPat.Put(#$4E#$81#$32#$D5#$30#$C0#$D2#$55#$32#$05#$4A#$00#$57#$05#$9B#$80);
+  DataPat.Put(#$09#$00#$00#$01#$00#$6C);                     { $B955 SAVE $00, [$6C00] }
+  DataPat.Put(#$09#$00#$00#$01#$00#$6B);                     { $B95B SAVE $00, [$6B00] }
+  DataPat.Put(#$04#$00#$80#$01#$02#$98#$01#$02#$98);         { $B961 ADD $80, [$9802], [$9802] }
+  DataPat.Put(#$0A#$01#$02#$98);                             { $B96A LOAD CHARACTER [$9802] }
+  DataPat.Put(#$02#$01#$1F#$AF);                             { $B96E GOSUB LAF1F }
+  DataPat.Put(#$01#$01#$9A#$AB);                             { $B972 GOTO LAB9A }
 end;
 
 function LoadTable: Boolean;

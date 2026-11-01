@@ -81,6 +81,9 @@ The fixes below cover both visible bugs and rare failures that could damage a sa
 
 - A Potion of Extra Healing found in random treasure is now named "Potion Extra Healing", as every other one is, instead of "Potion of Extra".
 - A stack of Darts +1 now reads "5 Darts +1" instead of "5 Dart +1s".
+- A stack of potions now reads "2 Potions of Healing" instead of "2 Potion of Healings", and rings and other "X of Y" items the same way. Fix's report names the item it used once, without the stack's count or extra spaces.
+- Fix's report lines now begin with "Fix:" ("FIX: MORRIGAN LAID HANDS ON SHADOW.") instead of ending "during Fix.", which leaves more room on each line.
+- The gold corner where the map window meets the message window, missing in the wilderness and after resting in camp, is back.
 - The temple's Repair no longer quotes a healthy party a fortune. A non-player character who joined the party (Genheeris, for one) was counted as having lost 255 levels, and Repair priced a Restoration for each: 1,785,000 gold pieces. Such a character no longer counts as drained anywhere, and a party that needs nothing is told so and the message waits for a key.
 - The combat AI, the party's in Quick mode and the monsters' alike, casts a spell only where it obviously does something: no Hold Person or Charm Person on scorpions and skeletons, no Sleep on the undead, no Silence on creatures it hasn't seen cast, no second Bless. It favours the spell that does the most, still now and then not the best, and saves its area spells for two or more.
 - The combat AI casts Silence at a single enemy it has seen cast, no longer drops a Stinking Cloud on creatures already in one or already retching, and casts Resist Fire or Resist Cold only once an enemy has done fire or cold damage in the fight, and Protection From Normal Missiles only while an enemy holds a bow or other missile weapon.
@@ -241,6 +244,8 @@ The fixes below cover both visible bugs and rare failures that could damage a sa
 - Every cure of disease now works the same way, and the temple's and a paladin's Cure Disease no longer end the nausea of a Stinking Cloud.
 - A setting changed before your first save now sticks: the game makes the save folder (and, in the Linux, Windows and macOS versions, your own folder above it) before writing the settings, as a save does. Before, the settings were lost while the save folder was not there yet. POOLCFG makes a missing save folder the same way.
 - A dual-classed character can now be removed from the party and saved on her own. Before, the game said "Could not save" and kept her in the party. While it writes a file, the game now keeps its working copies in a TMP folder beside the file (SAVE\TMP, for example) instead of beside it under a name ending in $ or %. Because of that folder, a DOS data or save folder's path can be up to 59 characters long, down from 67.
+- A dead or unconscious Skullcrusher now leaves the party outside City Hall, as a standing one does: "Cadorna's personal guard cart the fallen Skullcrusher away." Before, he stayed in the party for good.
+- The game no longer leaves files such as BODY.$$$ in its folder: it builds its combined data files in the same TMP folder, and removes any such files an earlier version left.
 - A quick save moved from slot Q to slot Z keeps all its characters and its vault, even when the game was closed during the move and the move had to run again at the next start.
 - A save made after midnight, in a game started the day before, now shows the new date on the Load/Save menu in DOSBox-X. Before, it showed the day the game was started.
 

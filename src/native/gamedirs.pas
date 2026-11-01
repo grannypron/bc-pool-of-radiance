@@ -180,7 +180,7 @@ const
   { the file in the player's own folder that remembers the data folder }
   REMEMBER_NAME = 'datafolder.txt';
   { made and removed to see whether a folder may be written }
-  PROBE_NAME = 'poolrad.$$$';
+  PROBE_NAME = 'poolrad.tmp';
 
 { path with its closing separator }
 function Slashed(const path: ShortString): ShortString;

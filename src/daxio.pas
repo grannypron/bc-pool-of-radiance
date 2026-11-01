@@ -98,9 +98,9 @@ procedure PopState;
 
 {$IFDEF FPC}
 { The folder file name (a name and extension) is in, with its closing separator. Natively a file DataBld makes (a merged
-  archive, its temporary .$$$ copy, DATABLD.LOG) is in the writable folder, GameDirs.writeFolder, which is another than
-  the game's when the data must not be written (#1064); any other file is in GameVars.gameDir. Under DOS every file is
-  in GameVars.gameDir, and the callers name it themselves. }
+  archive, DATABLD.LOG; the archive's temporary copy is in TMP\ there) is in the writable folder, GameDirs.writeFolder,
+  which is another than the game's when the data must not be written (#1064); any other file is in GameVars.gameDir.
+  Under DOS every file is in GameVars.gameDir, and the callers name it themselves. }
 function FolderOf(name: Types.TStr20): Types.TPathStr;
 {$ENDIF}
 

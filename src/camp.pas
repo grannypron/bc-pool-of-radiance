@@ -858,8 +858,8 @@ var
       report[REPORT_LINES] := 'Fix used more than this list shows.';
   end;
 
-  { Carry out use, and note it: "<PC> used <item> during Fix.", naming the member it was used on when that is someone
-    else, or what the paladin did. }
+  { Carry out use, and note it: "Fix: <PC> used <item>.", naming the member it was used on when that is someone else,
+    or what the paladin did (#1171). The item is named once, without its stack's count (#1170). }
   procedure Perform(var use: FixPlan.TFixUse);
   var
     name: string[80];
@@ -870,23 +870,22 @@ var
                                   if ViewChar.PaladinHeal(use.user, use.target) then
                                     CharDisp.PrintHpRestoreMsg(use.target);
                                   if use.user = use.target then
-                                    Note(use.user^.name + ' laid on hands during Fix.')
+                                    Note('Fix: ' + use.user^.name + ' laid on hands.')
                                   else
-                                    Note(use.user^.name + ' laid hands on ' + use.target^.name + ' during Fix.');
+                                    Note('Fix: ' + use.user^.name + ' laid hands on ' + use.target^.name + '.');
                                 end;
       FixPlan.USE_PALADIN_CURE: begin
                                   ViewChar.PaladinCure(use.user, use.target);
-                                  Note(use.user^.name + ' cured ' + use.target^.name + '''s disease during Fix.');
+                                  Note('Fix: ' + use.user^.name + ' cured ' + use.target^.name + '''s disease.');
                                 end;
     else
-      { the label goes with the item, which the cast may use up }
-      CharHlp.ItemLabel(use.item, False);
-      name := use.item^.name;
+      { the name goes with the item, which the cast may use up; one is used, whatever the stack (#1170) }
+      name := CharHlp.ItemName(use.item, 1);
       Magic.CastItemSpellOn(use.user, use.item, use.spell, use.target);
       if use.user = use.target then
-        Note(use.user^.name + ' used ' + name + ' during Fix.')
+        Note('Fix: ' + use.user^.name + ' used ' + name + '.')
       else
-        Note(use.user^.name + ' used ' + name + ' on ' + use.target^.name + ' during Fix.');
+        Note('Fix: ' + use.user^.name + ' used ' + name + ' on ' + use.target^.name + '.');
     end;
   end;
 
