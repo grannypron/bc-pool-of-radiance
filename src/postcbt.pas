@@ -415,10 +415,10 @@ begin
     tail := ' Exit';
     hasDetect := False;
     if items then
-      while (i <= Types.SPELL_SLOT_LAST) and not hasDetect do begin
-        if GameVars.curChar^.memorizedSpells[i] in C_SPELL.DETECT_MAGIC then begin
+      while (i <= Types.MEMORIZED_LAST) and not hasDetect do begin
+        if CharHlp.MemorizedAt(GameVars.curChar, i) in C_SPELL.DETECT_MAGIC then begin
           hasDetect := True;
-          detectSpell := GameVars.curChar^.memorizedSpells[i];
+          detectSpell := CharHlp.MemorizedAt(GameVars.curChar, i);
         end;
         Inc(i);
       end;

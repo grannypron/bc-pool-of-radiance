@@ -255,8 +255,8 @@ begin
   if creature^.numberOfItems > 0 then
     menu := menu + 'Use ';
   hasSpell := False;
-  for i := 0 to SizeOf(creature^.memorizedSpells) div SizeOf(creature^.memorizedSpells[0]) - 1 do
-    if creature^.memorizedSpells[i] > 0 then
+  for i := 0 to Types.MEMORIZED_LAST do
+    if CharHlp.MemorizedAt(creature, i) > 0 then
       hasSpell := True;
   { Cast lists the memorized spells, while castAllowed, and the spells on readable scrolls }
   if ((hasSpell and (creature^.combatAddr^.castAllowed <> 0)) or CharHlp.HasScrollSpells(creature))

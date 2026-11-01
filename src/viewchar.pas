@@ -675,8 +675,8 @@ begin
     hasSpells := False;
     hasMoney := False;
     { every memorized-spell slot }
-    for i := 0 to Types.SPELL_SLOT_LAST do
-      if shown^.memorizedSpells[i] > 0 then
+    for i := 0 to Types.MEMORIZED_LAST do
+      if CharHlp.MemorizedAt(shown, i) > 0 then
         hasSpells := True;
     { every coin type, gems and jewelry included }
     for j := C_MONEY.COPPER to C_MONEY.JEWELRY do

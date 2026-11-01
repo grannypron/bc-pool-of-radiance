@@ -678,362 +678,362 @@ const
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 6; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 57 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 39; whenCast: 2;
      castTime: 0; aiPriority: 3; offensive: 0; aiRadius: 0),
     { Spell 58: Curse's Cure Serious Wounds, not cast here }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 59 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 38; whenCast: 2;
      castTime: 0; aiPriority: 1; offensive: 0; aiRadius: 0),
     { Spell 60 }
-    (castClass: 2; level: 6; rangeFixed: 4; rangeVar: 4;
+    (castClass: 3; level: 6; rangeFixed: 4; rangeVar: 4;
      durFixed: 0; durVar: 0; area: 4; target: 0;
      saveResult: 2; saveType: 4; effect: 0; whenCast: 1;
      castTime: 0; aiPriority: 7; offensive: 1; aiRadius: 0),
     { Spell 61 }
-    (castClass: 2; level: 6; rangeFixed: 6; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 6; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 4; target: 0;
      saveResult: 1; saveType: 0; effect: 52; whenCast: 1;
      castTime: 0; aiPriority: 7; offensive: 1; aiRadius: 0),
     { Spell 62 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 39; whenCast: 2;
      castTime: 0; aiPriority: 1; offensive: 0; aiRadius: 0),
     { Spell 63 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 7; target: 4;
      saveResult: 0; saveType: 4; effect: 71; whenCast: 2;
      castTime: 0; aiPriority: 2; offensive: 0; aiRadius: 0),
     { Spell 64 }
-    (castClass: 2; level: 6; rangeFixed: 7; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 7; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 11; target: 0;
      saveResult: 2; saveType: 4; effect: 0; whenCast: 1;
      castTime: 0; aiPriority: 7; offensive: 1; aiRadius: 3),
     { Spell 65 }
-    (castClass: 2; level: 6; rangeFixed: 12; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 12; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 4; target: 0;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 1;
      castTime: 0; aiPriority: 6; offensive: 1; aiRadius: 0),
     { Spell 66: Curse's Cause Serious Wounds, not cast here }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 67: Curse's Neutralize Poison, not cast here }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 68 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 69 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 70 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 71 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 72 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 73 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 74 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 75 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 76 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 77 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 78 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 79 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 80 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 81 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 82 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 83 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 84 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 85 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 86 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 87 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 88 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 89 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 90 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 91 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 92 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 93 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 94 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 95 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 96 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 97 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 98 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 99 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 100 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 101 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 102 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 103 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 104 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 105 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 106 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 107 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 108 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 109 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 110 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 111 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 112 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 113 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 114 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 115 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 116 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 117 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 118 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 119 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 120 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 121 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 122 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 123 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 124 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 125 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 126 }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0),
     { Spell 127: Keoghtom's Ointment, item effect 150 (#1121) }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 4; target: 2;
      saveResult: 0; saveType: 4; effect: 0; whenCast: 2;
      castTime: 0; aiPriority: 1; offensive: 0; aiRadius: 0),
     { Spell 128: Manual of Bodily Health, item effect 151 (#1121) }
-    (castClass: 2; level: 6; rangeFixed: 0; rangeVar: 0;
+    (castClass: 3; level: 6; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 0; area: 0; target: 1;
      saveResult: 0; saveType: 4; effect: 4; whenCast: 0;
      castTime: 0; aiPriority: 0; offensive: 0; aiRadius: 0));
@@ -1173,21 +1173,42 @@ const
     level n by spell level, before the Wisdom bonus; level 1's one slot is ClassCal.FirstLevelSlots'. }
   classExperience: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Types.TRuleXp = (
     (xp: (1501, 3001, 6001, 13001, 27501, 55001, 110001, 225001);
-     slots: ((2, 0, 0), (2, 1, 0), (3, 2, 0), (3, 3, 1), (3, 3, 2), (3, 3, 2), (3, 3, 3), (4, 4, 3))),
+     slots: ((2, 0, 0, 0, 0), (2, 1, 0, 0, 0), (3, 2, 0, 0, 0), (3, 3, 1, 0, 0), (3, 3, 2, 0, 0), (3, 3, 2, 1, 0),
+             (3, 3, 3, 2, 0), (4, 4, 3, 2, 1))),
     (xp: (-1, -1, -1, -1, -1, -1, -1, -1);
-     slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
+     slots: ((0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0),
+             (0, 0, 0, 0, 0), (0, 0, 0, 0, 0))),
     (xp: (2001, 4001, 8001, 18001, 35001, 70001, 125001, 250001);
-     slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
+     slots: ((0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0),
+             (0, 0, 0, 0, 0), (0, 0, 0, 0, 0))),
     (xp: (2751, 5501, 12001, 24001, 45001, 95001, 175001, 350001);
-     slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
+     slots: ((0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0),
+             (0, 0, 0, 0, 0), (0, 0, 0, 0, 0))),
     (xp: (2251, 4501, 10001, 20001, 40001, 90001, 150001, 225001);
-     slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
+     slots: ((0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0),
+             (0, 0, 0, 0, 0), (0, 0, 0, 0, 0))),
     (xp: (2501, 5001, 10001, 22501, 40001, 60001, 90001, 135001);
-     slots: ((2, 0, 0), (2, 1, 0), (3, 2, 0), (4, 2, 1), (4, 2, 2), (4, 3, 2), (4, 3, 3), (4, 3, 3))),
+     slots: ((2, 0, 0, 0, 0), (2, 1, 0, 0, 0), (3, 2, 0, 0, 0), (4, 2, 1, 0, 0), (4, 2, 2, 0, 0), (4, 3, 2, 1, 0),
+             (4, 3, 3, 2, 0), (4, 3, 3, 2, 1))),
     (xp: (1251, 2501, 5001, 10001, 20001, 42501, 70001, 110001);
-     slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
+     slots: ((0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0),
+             (0, 0, 0, 0, 0), (0, 0, 0, 0, 0))),
     (xp: (-1, -1, -1, -1, -1, -1, -1, -1);
-     slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))));
+     slots: ((0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0),
+             (0, 0, 0, 0, 0), (0, 0, 0, 0, 0))));
+  { The spells a paladin and a ranger cast (1st-edition PHB), by class level from PALADIN_SPELLS_FROM and
+    RANGER_SPELLS_FROM to C_LEVEL.LEVEL_LAST: the paladin's cleric slots, and the ranger's druid and magic-user slots,
+    each by spell level. ClassCal.RecalcBaseSkills adds them to the character's slots of that kind (#1121). }
+  PALADIN_SPELLS_FROM = 9;
+  RANGER_SPELLS_FROM = 8;
+  paladinSlots: array[PALADIN_SPELLS_FROM..C_LEVEL.LEVEL_LAST, 1..Types.CASTER_LEVEL_LAST] of Byte = (
+    (1, 0, 0, 0, 0));
+  rangerDruidSlots: array[RANGER_SPELLS_FROM..C_LEVEL.LEVEL_LAST, 1..Types.CASTER_LEVEL_LAST] of Byte = (
+    (1, 0, 0, 0, 0), (1, 0, 0, 0, 0));
+  rangerMageSlots: array[RANGER_SPELLS_FROM..C_LEVEL.LEVEL_LAST, 1..Types.CASTER_LEVEL_LAST] of Byte = (
+    (0, 0, 0, 0, 0), (1, 0, 0, 0, 0));
+  { the Wisdom a cleric needs for a fifth-level spell, which a level-9 cleric's table row gives (1st-edition PHB) }
+  CLERIC_FIFTH_LEVEL_WISDOM = 17;
 
 implementation
 

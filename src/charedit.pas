@@ -85,10 +85,7 @@ begin
     if classLevels[cls] = 1 then
       case cls of
         C_LEVEL.CLERIC: ClassCal.ResetClericSlots(Types.PCharRecord(GameVars.curChar));
-        C_LEVEL.MAGE: begin
-            FillChar(mageSpells, SizeOf(mageSpells), 0);
-            mageSpells[1] := 1;
-          end;
+        C_LEVEL.MAGE: ClassCal.FirstLevelSlots(Types.PCharRecord(GameVars.curChar), C_LEVEL.MAGE);
       end;
     { the level drained or lowered to is the creature's level, as EffHndlr's drain sets it }
     levelHighest := 0;
@@ -455,9 +452,9 @@ begin
     n := 0;
     for m := 1 to C_SPELL.LAST do
       with GameDefs.spellTable[m] do
-        if (castClass = cls) and (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST) then begin
+        if CharHlp.IsSpell(m) and (castClass = cls) and (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST) then begin
           mark := '  ';
-          if GameVars.curChar^.spellsKnown[m] <> 0 then
+          if CharHlp.KnowsSpell(GameVars.curChar, m) then
             mark := '* ';
           MenuCore.AppendMenuLine(head, tail, mark + StrUtil.NumStr(levelSp) + ' ' + GameDefs.spellNames[m], False);
           Inc(n);
@@ -473,8 +470,7 @@ begin
       k := MenuCore.ListIndex(head, sel) + 1;
     MenuCore.FreeStringList(head);
     if k <> 0 then
-      with GameVars.curChar^ do
-        spellsKnown[spells[k]] := Ord(spellsKnown[spells[k]] = 0);
+      CharHlp.SetSpellKnown(GameVars.curChar, spells[k], not CharHlp.KnowsSpell(GameVars.curChar, spells[k]));
   until k = 0;
 end;
 

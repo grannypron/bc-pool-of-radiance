@@ -256,8 +256,41 @@ function ItemReadable(it: Pointer): Boolean;
   cleric level with a cleric's scroll (base slot C_ITEM.SLOT_CLERIC_SCROLL), identifies it first. }
 function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 
-{ True when id is a named spell, 1..C_SPELL.LAST: one with a spellNames entry and its own spellTable row. }
+{ True when id is a named spell, 1..C_SPELL.LAST: one with a spellNames entry and its own spellTable row, cast by a
+  cleric, magic-user or druid (an item spell's row, or one that holds no spell, is C_SPELL.CLASS_SPECIAL's). }
 function IsSpell(id: Byte): Boolean;
+
+{ The spell slots creature has of kind (C_SPELL.CLASS_CLERIC..C_SPELL.SLOT_KIND_LAST) and spell level lvl, the Wisdom
+  bonus in: SSI's record holds the cleric's and magic-user's levels 1..Types.RECORD_SPELL_LEVELS, portExt the rest
+  (#1121). 0 for a kind or level past them. }
+function SpellSlots(creature: Types.PCharRecord; kind, lvl: ShortInt): Byte;
+
+{ Set creature's spell slots of kind and level lvl to n; a kind or level past them is left. }
+procedure SetSpellSlots(creature: Types.PCharRecord; kind, lvl: ShortInt; n: Byte);
+
+{ Empty creature's spell slots of kind, every level. }
+procedure ClearSpellSlots(creature: Types.PCharRecord; kind: ShortInt);
+
+{ True when creature knows spell id: spellsKnown to Types.KNOWN_RECORD_LAST, portExt.moreKnown past it (#1121). False
+  for an id past C_SPELL.LAST or 0. }
+function KnowsSpell(creature: Types.PCharRecord; id: Byte): Boolean;
+
+{ Mark spell id known or not; an id past C_SPELL.LAST or 0 is left. }
+procedure SetSpellKnown(creature: Types.PCharRecord; id: Byte; known: Boolean);
+
+{ Memorized-spell slot i (0..Types.MEMORIZED_LAST) of creature: memorizedSpells to Types.SPELL_SLOT_LAST, then
+  portExt.moreMemorized (#1121); 0 past them. }
+function MemorizedAt(creature: Types.PCharRecord; i: Byte): Byte;
+
+{ Set memorized-spell slot i of creature to b; one past Types.MEMORIZED_LAST is left. }
+procedure SetMemorizedAt(creature: Types.PCharRecord; i, b: Byte);
+
+{ Every memorized-spell slot of creature, in order, into all; PutMemorized puts all back. }
+procedure GetMemorized(creature: Types.PCharRecord; var all: Types.TMemorized);
+procedure PutMemorized(creature: Types.PCharRecord; var all: Types.TMemorized);
+
+{ Empty every memorized-spell slot of creature. }
+procedure ClearMemorized(creature: Types.PCharRecord);
 
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
 
@@ -1017,10 +1050,10 @@ var
   i: Byte;
 begin
   i := 0;
-  while (i <= Types.SPELL_SLOT_LAST) and (creature^.memorizedSpells[i] <> spell) do
+  while (i <= Types.MEMORIZED_LAST) and (CharHlp.MemorizedAt(creature, i) <> spell) do
     Inc(i);
-  if i <= Types.SPELL_SLOT_LAST then
-    creature^.memorizedSpells[i] := 0;
+  if i <= Types.MEMORIZED_LAST then
+    CharHlp.SetMemorizedAt(creature, i, 0);
 end;
 
 procedure FreeItemList(var list: Types.PItemRec);
@@ -1750,7 +1783,120 @@ end;
   spell. }
 function IsSpell(id: Byte): Boolean;
 begin
-  IsSpell := (id >= 1) and (id <= C_SPELL.LAST);
+  IsSpell := False;
+  if (id >= 1) and (id <= C_SPELL.LAST) then
+    IsSpell := GameDefs.spellTable[id].castClass <> C_SPELL.CLASS_SPECIAL;
+end;
+
+function SpellSlots(creature: Types.PCharRecord; kind, lvl: ShortInt): Byte;
+begin
+  SpellSlots := 0;
+  if (lvl >= 1) and (lvl <= Types.CASTER_LEVEL_LAST) then
+    with creature^ do
+      case kind of
+        C_SPELL.CLASS_CLERIC:
+          if lvl <= Types.RECORD_SPELL_LEVELS then
+            SpellSlots := clericSpells[lvl]
+          else
+            SpellSlots := portExt.moreSlots[kind, lvl];
+        C_SPELL.CLASS_MAGE:
+          if lvl <= Types.RECORD_SPELL_LEVELS then
+            SpellSlots := mageSpells[lvl]
+          else
+            SpellSlots := portExt.moreSlots[kind, lvl];
+        C_SPELL.CLASS_DRUID: SpellSlots := portExt.druidSlots[lvl];
+      end;
+end;
+
+procedure SetSpellSlots(creature: Types.PCharRecord; kind, lvl: ShortInt; n: Byte);
+begin
+  if (lvl >= 1) and (lvl <= Types.CASTER_LEVEL_LAST) then
+    with creature^ do
+      case kind of
+        C_SPELL.CLASS_CLERIC:
+          if lvl <= Types.RECORD_SPELL_LEVELS then
+            clericSpells[lvl] := n
+          else
+            portExt.moreSlots[kind, lvl] := n;
+        C_SPELL.CLASS_MAGE:
+          if lvl <= Types.RECORD_SPELL_LEVELS then
+            mageSpells[lvl] := n
+          else
+            portExt.moreSlots[kind, lvl] := n;
+        C_SPELL.CLASS_DRUID: portExt.druidSlots[lvl] := n;
+      end;
+end;
+
+procedure ClearSpellSlots(creature: Types.PCharRecord; kind: ShortInt);
+var
+  lvl: ShortInt;
+begin
+  for lvl := 1 to Types.CASTER_LEVEL_LAST do
+    CharHlp.SetSpellSlots(creature, kind, lvl, 0);
+end;
+
+function KnowsSpell(creature: Types.PCharRecord; id: Byte): Boolean;
+begin
+  if (id >= 1) and (id <= Types.KNOWN_RECORD_LAST) then
+    KnowsSpell := creature^.spellsKnown[id] <> 0
+  else if (id > Types.KNOWN_RECORD_LAST) and (id <= C_SPELL.LAST) then
+    KnowsSpell := creature^.portExt.moreKnown[(id - Types.KNOWN_RECORD_LAST - 1) div 8] and
+                  (1 shl ((id - Types.KNOWN_RECORD_LAST - 1) mod 8)) <> 0
+  else
+    KnowsSpell := False;
+end;
+
+procedure SetSpellKnown(creature: Types.PCharRecord; id: Byte; known: Boolean);
+var
+  k: Byte;
+  bit: Byte;
+begin
+  if (id >= 1) and (id <= Types.KNOWN_RECORD_LAST) then
+    creature^.spellsKnown[id] := Ord(known)
+  else if (id > Types.KNOWN_RECORD_LAST) and (id <= C_SPELL.LAST) then begin
+    k := (id - Types.KNOWN_RECORD_LAST - 1) div 8;
+    bit := 1 shl ((id - Types.KNOWN_RECORD_LAST - 1) mod 8);
+    if known then
+      creature^.portExt.moreKnown[k] := creature^.portExt.moreKnown[k] or bit
+    else
+      creature^.portExt.moreKnown[k] := creature^.portExt.moreKnown[k] and not bit;
+  end;
+end;
+
+function MemorizedAt(creature: Types.PCharRecord; i: Byte): Byte;
+begin
+  if i <= Types.SPELL_SLOT_LAST then
+    MemorizedAt := creature^.memorizedSpells[i]
+  else if i <= Types.MEMORIZED_LAST then
+    MemorizedAt := creature^.portExt.moreMemorized[i]
+  else
+    MemorizedAt := 0;
+end;
+
+procedure SetMemorizedAt(creature: Types.PCharRecord; i, b: Byte);
+begin
+  if i <= Types.SPELL_SLOT_LAST then
+    creature^.memorizedSpells[i] := b
+  else if i <= Types.MEMORIZED_LAST then
+    creature^.portExt.moreMemorized[i] := b;
+end;
+
+procedure GetMemorized(creature: Types.PCharRecord; var all: Types.TMemorized);
+begin
+  Move(creature^.memorizedSpells, all[0], SizeOf(creature^.memorizedSpells));
+  Move(creature^.portExt.moreMemorized, all[Types.SPELL_SLOT_LAST + 1], SizeOf(creature^.portExt.moreMemorized));
+end;
+
+procedure PutMemorized(creature: Types.PCharRecord; var all: Types.TMemorized);
+begin
+  Move(all[0], creature^.memorizedSpells, SizeOf(creature^.memorizedSpells));
+  Move(all[Types.SPELL_SLOT_LAST + 1], creature^.portExt.moreMemorized, SizeOf(creature^.portExt.moreMemorized));
+end;
+
+procedure ClearMemorized(creature: Types.PCharRecord);
+begin
+  FillChar(creature^.memorizedSpells, SizeOf(creature^.memorizedSpells), 0);
+  FillChar(creature^.portExt.moreMemorized, SizeOf(creature^.portExt.moreMemorized), 0);
 end;
 
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;

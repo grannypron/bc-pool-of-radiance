@@ -116,9 +116,9 @@ const
   { CureSpell's table, by condition }
   CURES: array[FIX_FIRST..FIX_LAST] of Byte = (C_SPELL.RESTORATION, C_SPELL.CURE_DISEASE, C_SPELL.CURE_BLINDNESS,
     C_SPELL.REMOVE_CURSE);
-  { the cleric's slot table (TRuleXp.slots) by class level, from level 2; RecalcBaseSkills reads no row past 6 }
+  { the cleric's slot table (TRuleXp.slots) by class level, from level 2 to the table's last (#1121) }
   SLOT_ROW_FIRST = 2;
-  SLOT_ROW_LAST = 6;
+  SLOT_ROW_LAST = C_LEVEL.LEVEL_LAST;
 
 function CureSpell(cond: Byte): Byte;
 begin
@@ -221,7 +221,7 @@ begin
   lvl := FixPlan.SpellLevel(spell);
   if (lvl >= 1) and (lvl <= Types.CASTER_LEVEL_LAST) then
     for j := 1 to plan.n do
-      if (plan.free[j, lvl] > 0) and (plan.members[j]^.spellsKnown[spell] <> 0) then
+      if (plan.free[j, lvl] > 0) and CharHlp.KnowsSpell(plan.members[j], spell) then
         if (best = 0) or (FixPlan.CasterTime(plan, j) < FixPlan.CasterTime(plan, best)) then
           best := j;
   if best <> 0 then begin
@@ -252,7 +252,7 @@ begin
     end;
     if p^.status = C_STATUS.OKAY then
       for lvl := 1 to Types.CASTER_LEVEL_LAST do
-        plan.free[plan.n, lvl] := p^.clericSpells[lvl];
+        plan.free[plan.n, lvl] := CharHlp.SpellSlots(p, C_SPELL.CLASS_CLERIC, lvl);
     p := p^.nextCharAddr;
   end;
   for cond := FIX_FIRST to FIX_LAST do
@@ -288,7 +288,7 @@ begin
   lvl := FixPlan.SpellLevel(spell);
   cl := CharHlp.GetClassLevel(cleric, C_LEVEL.CLERIC_BIT);
   if (cleric^.drainedLevels = 0) or (cl <= 0) or (lvl < 1) or (lvl > Types.CASTER_LEVEL_LAST) then Exit;
-  if cleric^.clericSpells[lvl] > 0 then Exit;
+  if CharHlp.SpellSlots(cleric, C_SPELL.CLASS_CLERIC, lvl) > 0 then Exit;
   Inc(cl, cleric^.drainedLevels);
   if cl > SLOT_ROW_LAST then
     cl := SLOT_ROW_LAST;

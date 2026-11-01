@@ -1,6 +1,8 @@
 { Saves the fields added to Types.TCharExt: the classes left by a dual-classed
-  human (#838) and the flags (EXT_*), which mark a creature that joined through
-  Animate Dead (#1089). SSI's 285-byte character format has no room for these
+  human (#838), the flags (EXT_*), which mark a creature that joined through
+  Animate Dead (#1089), and the spells past SSI's record: slots of levels 4 and
+  5 and a ranger's druid slots, spells known past 56, and memorized spells past
+  the record's 21 (#1121). SSI's 285-byte character format has no room for these
   fields, so they are stored in a separate .chx file. They remain part of the
   in-memory record, allowing normal record copies to preserve them. }
 {$O+,F+}
@@ -41,9 +43,10 @@ uses C_STATUS;
 const
   { EXT_SIG and EXT_VERSION open every .chx file; a file without both is not read }
   EXT_SIG = 'CEXT';
-  EXT_VERSION = 2;
-  { version 1's files hold the class left alone }
+  EXT_VERSION = 3;
+  { version 1's files hold the class left alone, version 2's the flags too }
   EXT_VERSION_1 = 1;
+  EXT_VERSION_2 = 2;
 
 type
   { A .chx file: the port fields, with the name and randByte of the character they belong to. }
@@ -53,6 +56,16 @@ type
     name: string[Types.NAME_LEN];
     randByte: Byte;
     portExt: Types.TCharExt;
+  end;
+
+  { A version 2 .chx file, from before the spells (#1121). }
+  TCharExtFile2 = record
+    sig: string[4];
+    version: Byte;
+    name: string[Types.NAME_LEN];
+    randByte: Byte;
+    formerClasses: Byte;
+    flags: Byte;
   end;
 
   { A version 1 .chx file, from before TCharExt.flags. }
@@ -70,8 +83,17 @@ begin
 end;
 
 function HasExt(creature: Types.PCharRecord): Boolean;
+var
+  p: Types.PBytes;
+  i: Word;
+  any: Boolean;
 begin
-  HasExt := (creature^.portExt.formerClasses <> 0) or (creature^.portExt.flags <> 0);
+  any := False;
+  p := @creature^.portExt;
+  for i := 0 to SizeOf(Types.TCharExt) - 1 do
+    if p^[i] <> 0 then
+      any := True;
+  HasExt := any;
 end;
 
 function WriteExt(var s: FileUtil.TFileSet; creature: Types.PCharRecord; base: FileUtil.TSetName): Boolean;
@@ -94,6 +116,7 @@ end;
 procedure ReadExt(creature: Types.PCharRecord; fn: Types.TPathStr);
 var
   rec: TCharExtFile;
+  rec2: TCharExtFile2;
   rec1: TCharExtFile1;
 begin
   FillChar(creature^.portExt, SizeOf(creature^.portExt), 0);
@@ -102,6 +125,12 @@ begin
     if (rec.sig = EXT_SIG) and (rec.version = EXT_VERSION) and (Length(rec.name) <= Types.NAME_LEN) and
         (rec.name = creature^.name) and (rec.randByte = creature^.randByte) then
       creature^.portExt := rec.portExt;
+  end else if FileUtil.ReadRecord(fn + '.chx', rec2, SizeOf(rec2)) then begin
+    if (rec2.sig = EXT_SIG) and (rec2.version = EXT_VERSION_2) and (Length(rec2.name) <= Types.NAME_LEN) and
+        (rec2.name = creature^.name) and (rec2.randByte = creature^.randByte) then begin
+      creature^.portExt.formerClasses := rec2.formerClasses;
+      creature^.portExt.flags := rec2.flags;
+    end;
   end else if FileUtil.ReadRecord(fn + '.chx', rec1, SizeOf(rec1)) then
     if (rec1.sig = EXT_SIG) and (rec1.version = EXT_VERSION_1) and (Length(rec1.name) <= Types.NAME_LEN) and
         (rec1.name = creature^.name) and (rec1.randByte = creature^.randByte) then

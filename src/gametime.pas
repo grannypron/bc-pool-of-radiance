@@ -185,7 +185,7 @@ begin
   end;
 end;
 
-{ Scan the 21 memorized-spell slots; bit 7 set = still memorizing. With done already True, return the first pending
+{ Scan the memorized-spell slots (CharHlp.MemorizedAt); bit 7 set = still memorizing. With done already True, return the first pending
   spell's level; otherwise clear the bit (spell finished), announce it and set done, so the scan goes on to return the
   next pending spell's level. Returns 0 when nothing (more) is pending. A slot whose spell id is outside 1..C_SPELL.LAST
   is passed over. }
@@ -193,18 +193,19 @@ function CheckMemorizeDone(creature: Types.PCharRecord; var done: Boolean): Byte
 var
   lvl: Byte;
   i: Byte;
+  b: Byte;
 begin
   lvl := 0;
   i := 0;
-  while (i <= Types.SPELL_SLOT_LAST) and (lvl = 0) do begin
-    if (creature^.memorizedSpells[i] > $7F) and
-        CharHlp.IsSpell(creature^.memorizedSpells[i] and C_SPELL.ID_MASK) then
+  while (i <= Types.MEMORIZED_LAST) and (lvl = 0) do begin
+    b := CharHlp.MemorizedAt(creature, i);
+    if (b > C_SPELL.ID_MASK) and CharHlp.IsSpell(b and C_SPELL.ID_MASK) then
       if done then
-        lvl := GameDefs.spellTable[creature^.memorizedSpells[i] and C_SPELL.ID_MASK].level
+        lvl := GameDefs.spellTable[b and C_SPELL.ID_MASK].level
       else begin
-        Dec(creature^.memorizedSpells[i], C_SPELL.PENDING_FLAG);
+        CharHlp.SetMemorizedAt(creature, i, b and C_SPELL.ID_MASK);
         GameTime.DisplayRestTime(0);
-        Magic.PrintCastSpellMsg(creature, 'has memorized', creature^.memorizedSpells[i]);
+        Magic.PrintCastSpellMsg(creature, 'has memorized', b and C_SPELL.ID_MASK);
         done := True;
       end;
     Inc(i);
@@ -248,7 +249,7 @@ begin
             GameTime.DisplayRestTime(0);
             { the chance to know the spell, rolled as the scribing ends (#59) }
             if Dice.RollDice(1, 100) <= AbilAdj.IntKnowSpellChance(creature^.intCur) then begin
-              creature^.spellsKnown[sp] := 1;
+              CharHlp.SetSpellKnown(creature, sp, True);
               Magic.PrintCastSpellMsg(creature, 'has scribed', sp);
             end else
               CharDisp.PrintTwoLines(creature^.name + ' failed to scribe ' + GameDefs.spellNames[sp] + '.',

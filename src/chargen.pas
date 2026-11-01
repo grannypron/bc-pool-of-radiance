@@ -38,7 +38,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 implementation
 
 uses Types, Crt, C_AREA, GameDefs, GameVars, SaveLoad, ViewChar, Border, C_CLASS, C_LEVEL, C_RACE,
-  C_KEYS, C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_STAT, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
+  C_KEYS, C_EFFECT, C_SPELL, C_STATUS, C_IFC, C_GBVM, C_STAT, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps, ChgClass, PartyMnu{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -770,6 +770,7 @@ var
   savedHp: Byte;
   savedHpCur: Byte;
   savedClericSpells: array[1..Types.CASTER_LEVEL_LAST] of Byte;
+  lvlSp: ShortInt;
   hold: ShortInt;
   key: Char;
   ext: Boolean;
@@ -852,7 +853,8 @@ begin
   savedHp := GameVars.curChar^.hpMax;
   savedHpCur := GameVars.curChar^.hpCur;
   { a Wisdom change recalculates the cleric spell slots }
-  Move(GameVars.curChar^.clericSpells, savedClericSpells, SizeOf(savedClericSpells));
+  for lvlSp := 1 to Types.CASTER_LEVEL_LAST do
+    savedClericSpells[lvlSp] := CharHlp.SpellSlots(GameVars.curChar, C_SPELL.CLASS_CLERIC, lvlSp);
   statIdx := 6;
   RedrawStat(False);
   statIdx := 0;
@@ -977,7 +979,8 @@ begin
               GameVars.curChar^.hpCur := hpMax;
               if levelled then
                 GameVars.curChar^.hpCur := savedHpCur;
-              Move(savedClericSpells, GameVars.curChar^.clericSpells, SizeOf(savedClericSpells));
+              for lvlSp := 1 to Types.CASTER_LEVEL_LAST do
+                CharHlp.SetSpellSlots(GameVars.curChar, C_SPELL.CLASS_CLERIC, lvlSp, savedClericSpells[lvlSp]);
               { a Wisdom change above cleric level 1 ran RecalcBaseSkills, whose thief skills read the Dexterity
                 then }
               if classLevels[C_LEVEL.THIEF] > 0 then
@@ -1037,9 +1040,9 @@ begin
       repeat
         sel := Magic.SpellMenu(4, 4, idx, notEmpty);
       until (sel > 0) or (not notEmpty);
-      { SpellMenu returns 0 when there is no spell left to learn; spellsKnown starts at 1 }
+      { SpellMenu returns 0 when there is no spell left to learn }
       if sel > 0 then
-        spellsKnown[sel] := 1;
+        CharHlp.SetSpellKnown(GameVars.curChar, sel, True);
     end;
     if not CharHlp.IsDualClass(GameVars.curChar) or (ClassCal.HitDice(GameVars.curChar, charClass) > 0) then begin
       rolled := ClassCal.RollFirstLevelHp(GameVars.curChar, trainable);

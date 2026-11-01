@@ -4,7 +4,7 @@ unit Types;
 
 interface
 
-uses C_GENDER, C_SAVE, C_EQUIP, C_LEVEL, C_STAT, C_MONEY, C_GBVM;
+uses C_GENDER, C_SAVE, C_EQUIP, C_LEVEL, C_STAT, C_MONEY, C_GBVM, C_SPELL;
 
 const
   { the longest name a character or creature has }
@@ -27,12 +27,21 @@ const
   LAST_DISK = 8;
   { a 3D map's last row and column: maps are 16 by 16 }
   MAP_LAST = 15;
-  { the last memorized-spell slot (TSpellSlots); Turbo Pascal 6 has no High() }
+  { the last memorized-spell slot in SSI's record (TCharRecord.memorizedSpells); Turbo Pascal 6 has no High() }
   SPELL_SLOT_LAST = 20;
+  { the last memorized-spell slot of all (TMemorized): the record's, then TCharExt.moreMemorized's, enough for a cleric
+    and magic-user both at level 9 with the Wisdom bonus (#1121); CharHlp.MemorizedAt reaches them }
+  MEMORIZED_LAST = 47;
   { the most classes a race takes (TRuleRaceClasses.classes), 1..RACE_CLASSES_LAST }
   RACE_CLASSES_LAST = 13;
-  { the highest spell level a cleric or magic-user casts here (TCharRecord.clericSpells and mageSpells) }
-  CASTER_LEVEL_LAST = 3;
+  { the highest spell level a character has slots for (CharHlp.SpellSlots), and the levels SSI's record holds
+    (TCharRecord.clericSpells and mageSpells); the rest are TCharExt's (#1121) }
+  CASTER_LEVEL_LAST = 5;
+  RECORD_SPELL_LEVELS = 3;
+  { the bytes of TCharExt.moreKnown: a bit for each spell id past the record's spellsKnown, KNOWN_RECORD_LAST + 1 to
+    C_SPELL.LAST }
+  KNOWN_RECORD_LAST = 56;
+  KNOWN_EXT_BYTES = 6;
   { the item types ITEMS holds, 0..BASE_ITEM_LAST; CharHlp.baseItems has one entry more, BASE_ITEM_OVERFLOW }
   BASE_ITEM_LAST = 127;
   BASE_ITEM_OVERFLOW = 128;
@@ -103,8 +112,11 @@ type
   PEffectRec = ^TEffectRec;
   PItemRec = ^TItemRec;
   TIconCols = array[1..6] of Byte;
-  { A character's spell slots: spell IDs, 0 = empty, C_SPELL.PENDING_FLAG set while still being memorized. }
+  { A character's memorized spells in SSI's record: spell IDs, 0 = empty, C_SPELL.PENDING_FLAG set while still being
+    memorized. }
   TSpellSlots = array[0..SPELL_SLOT_LAST] of Byte;
+  { All of a character's memorized spells, the record's and the port's (CharHlp.GetMemorized). }
+  TMemorized = array[0..MEMORIZED_LAST] of Byte;
   { The port's own fields of a character, kept past the record's saved bytes: no file of SSI's has them. A character's
     are kept in its .chx file (CharExt), read when it is loaded; a record from SSI's form (DiskRec.CharFromDisk: a
     .cha or .sav, a monster from MONxCHA.DAX) has them all zero. }
@@ -116,6 +128,13 @@ type
     formerClasses: Byte;
     { CharExt.EXT_* bits: EXT_ANIMATE_JOINED for a creature that joined the party through Animate Dead (#1089). }
     flags: Byte;
+    { The spells past SSI's record (#1121), read through CharHlp: the cleric's and magic-user's spell slots of levels
+      4 and 5, a ranger's druid slots, the spells known past KNOWN_RECORD_LAST (a bit each, id - KNOWN_RECORD_LAST - 1
+      from bit 0 of the first byte), and the memorized-spell slots past the record's. }
+    moreSlots: array[C_SPELL.CLASS_CLERIC..C_SPELL.CLASS_MAGE, RECORD_SPELL_LEVELS + 1..CASTER_LEVEL_LAST] of Byte;
+    druidSlots: array[1..CASTER_LEVEL_LAST] of Byte;
+    moreKnown: array[0..KNOWN_EXT_BYTES - 1] of Byte;
+    moreMemorized: array[SPELL_SLOT_LAST + 1..MEMORIZED_LAST] of Byte;
   end;
   TCharRecord = record
     { character name }
@@ -148,8 +167,8 @@ type
     age: Word;
     { hit points maximum }
     hpMax: Byte;
-    { Known spells, indexed by spell ID. }
-    spellsKnown: array[1..56] of Byte;
+    { Known spells, indexed by spell ID, to KNOWN_RECORD_LAST; the later ones are portExt.moreKnown's (CharHlp.KnowsSpell). }
+    spellsKnown: array[1..KNOWN_RECORD_LAST] of Byte;
     attackLevel: Byte;
     { the combat icon's size, with ICON_LARGE for a Large creature }
     iconDimensions: Byte;
@@ -202,9 +221,10 @@ type
     experience: LongInt;
     itemLimits: Byte;
     hpRolled: Byte;
-    { Cleric spell slots by level, including wisdom bonuses. }
-    clericSpells: array[1..CASTER_LEVEL_LAST] of Byte;
-    mageSpells: array[1..CASTER_LEVEL_LAST] of Byte;
+    { Cleric and magic-user spell slots by level, including wisdom bonuses, to RECORD_SPELL_LEVELS; CharHlp.SpellSlots
+      reads every level. }
+    clericSpells: array[1..RECORD_SPELL_LEVELS] of Byte;
+    mageSpells: array[1..RECORD_SPELL_LEVELS] of Byte;
     xpAward: Word;
     xpBonusPerHp: Byte;
     portraitHead: Byte;
@@ -265,11 +285,6 @@ type
     { One-based icon-color array for character customization and saving. }
     iconColors1: TIconCols);
       4: (
-    { skips to clericSpells }
-    slotsPad: array[0..161 + PTR_GROWTH] of Byte;
-    { Spell slots indexed by casting class and level. }
-    slots: array[0..1, 1..3] of Byte);
-      5: (
     { skips to gender }
     viewPad0: array[0..141 + PTR_GROWTH] of Byte;
     { gender as a 0..127 subrange -- ViewChar indexes genderNames with it }
@@ -551,8 +566,8 @@ type
   TRuleXp = record
     { XP to reach level; -1 = unavailable }
     xp: array[2..C_LEVEL.LEVEL_LAST] of LongInt;
-    { class level, spell level }
-    slots: array[2..9, 1..3] of Byte;
+    { a cleric's or magic-user's slots at class level 2..9, by spell level }
+    slots: array[2..9, 1..CASTER_LEVEL_LAST] of Byte;
   end;
   TSpecLoc = record
     x: Word;
@@ -754,7 +769,7 @@ type
   TSpellRec = record
     case Integer of
       0: (
-        { 0 cleric / 1 mage / 2 item/special }
+        { C_SPELL.CLASS_CLERIC, CLASS_MAGE, CLASS_DRUID or CLASS_SPECIAL (an item's, or no spell) }
         castClass: Byte;
         { spell level }
         level: Byte;

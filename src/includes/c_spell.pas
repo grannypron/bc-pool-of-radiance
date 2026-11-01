@@ -6,11 +6,15 @@ interface
 
 const
   KNOCK = 31;
-  { a spell's casting class (GameDefs.spellTable's castClass): a cleric's, a magic-user's, or one cast at a fixed
-    level }
+  { a spell's casting class (GameDefs.spellTable's castClass): a cleric's (a paladin's too), a magic-user's (a
+    ranger's too), a druid's (cast here only by a ranger, #1121), or one cast at a fixed level; the first three are also
+    the kinds of a character's spell slots (CharHlp.SpellSlots), CLASS_CLERIC..CLASS_DRUID }
   CLASS_CLERIC = 0;
   CLASS_MAGE = 1;
-  CLASS_SPECIAL = 2;
+  CLASS_DRUID = 2;
+  CLASS_SPECIAL = 3;
+  { the last kind of spell slot }
+  SLOT_KIND_LAST = CLASS_DRUID;
   { the caster level of a CLASS_SPECIAL spell, and of any other spell cast from an item }
   SPECIAL_CASTER_LEVEL = 12;
   ITEM_CASTER_LEVEL = 6;

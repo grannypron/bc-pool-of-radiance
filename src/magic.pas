@@ -538,8 +538,8 @@ end;
 { The indent-column marker for spell (bit 7 ignored) on a spell list, otherwise a blank: KNOWN_MARK for MARK_KNOWN when
   creature's spell book has it; NOT_KNOWN_MARK for MARK_NOT_KNOWN when the spell book lacks a spell creature's classes
   could learn. A class could learn a spell of its own (castClass 0 needs a cleric level, castClass 1 a magic-user level)
-  at spell level 1..3, the levels a character has slots for, whatever the character's current level. An ID outside the
-  spell book (1..56) gets a blank. }
+  at spell level 1..Types.CASTER_LEVEL_LAST, the levels a character has slots for, whatever the character's current
+  level. An ID that is no spell (CharHlp.IsSpell) gets a blank. }
 function SpellMark(creature: Types.PCharRecord; spell, mark: Byte): Char;
 var
   id: Byte;
@@ -547,19 +547,19 @@ var
 begin
   SpellMark := ' ';
   id := spell and C_SPELL.ID_MASK;
-  if (id >= 1) and (id <= SizeOf(creature^.spellsKnown)) then
+  if CharHlp.IsSpell(id) then
     case mark of
       MARK_KNOWN:
-        if creature^.spellsKnown[id] <> 0 then
+        if CharHlp.KnowsSpell(creature, id) then
           SpellMark := KNOWN_MARK;
       MARK_NOT_KNOWN:
-        if creature^.spellsKnown[id] = 0 then begin
+        if not CharHlp.KnowsSpell(creature, id) then begin
           learnable := False;
           with GameDefs.spellTable[id] do
-            if (levelSp >= 1) and (levelSp <= 3) then
+            if (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST) then
               case castClassSp of
-                0: learnable := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT) > 0;
-                1: learnable := CharHlp.GetClassLevel(creature, C_LEVEL.MAGE_BIT) > 0;
+                C_SPELL.CLASS_CLERIC: learnable := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT) > 0;
+                C_SPELL.CLASS_MAGE: learnable := CharHlp.GetClassLevel(creature, C_LEVEL.MAGE_BIT) > 0;
               end;
           if learnable then
             SpellMark := NOT_KNOWN_MARK;
@@ -692,8 +692,8 @@ var
   n: Byte;
 begin
   n := 0;
-  for j := 0 to Types.SPELL_SLOT_LAST do
-    if creature^.memorizedSpells[j] = creature^.memorizedSpells[i] then begin
+  for j := 0 to Types.MEMORIZED_LAST do
+    if CharHlp.MemorizedAt(creature, j) = CharHlp.MemorizedAt(creature, i) then begin
       if j < i then begin
         MemorizedCopies := 0;
         Exit;
@@ -711,7 +711,7 @@ var
 begin
   copies := Magic.MemorizedCopies(creature, i);
   if (copies = 0) or (lines > C_SPELL.LINE_LAST) then Exit;
-  Magic.AddSpellToList(creature, creature^.memorizedSpells[i], MARK_NONE);
+  Magic.AddSpellToList(creature, CharHlp.MemorizedAt(creature, i), MARK_NONE);
   Inc(lines);
   Magic.AddCopies(copies);
 end;
@@ -741,8 +741,8 @@ begin
   lines := 0;
   for lvl := 1 to SPELL_LEVEL_LAST do begin
     if memOk then
-      for i := 0 to Types.SPELL_SLOT_LAST do begin
-        id := creature^.memorizedSpells[i];
+      for i := 0 to Types.MEMORIZED_LAST do begin
+        id := CharHlp.MemorizedAt(creature, i);
         if CharHlp.IsSpell(id) then
           if GameDefs.spellTable[id].levelSp = lvl then
             Magic.AddMemorizedSpell(creature, i, lines);
@@ -786,27 +786,27 @@ begin
   scrollList := menuType = 2;
   case menuType of
     7: Magic.AddAvailableSpells(creature);
-    0: for i := 0 to Types.SPELL_SLOT_LAST do
-         if (creature^.memorizedSpells[i] > 0) and
-             (creature^.memorizedSpells[i] < C_SPELL.PENDING_FLAG) then
+    0: for i := 0 to Types.MEMORIZED_LAST do
+         if (CharHlp.MemorizedAt(creature, i) > 0) and
+             (CharHlp.MemorizedAt(creature, i) < C_SPELL.PENDING_FLAG) then
            Magic.AddMemorizedSpell(creature, i, lines);
-    5: for i := 0 to Types.SPELL_SLOT_LAST do
-         if creature^.memorizedSpells[i] > C_SPELL.ID_MASK then
+    5: for i := 0 to Types.MEMORIZED_LAST do
+         if CharHlp.MemorizedAt(creature, i) > C_SPELL.ID_MASK then
            Magic.AddMemorizedSpell(creature, i, lines);
     { every known spell, Restoration (56) too: SSI stopped at 55 }
-    1: for i := 1 to SizeOf(creature^.spellsKnown) do
-         if creature^.spellsKnown[i] <> 0 then
+    1: for i := 1 to C_SPELL.LAST do
+         if CharHlp.KnowsSpell(creature, i) then
            Magic.AddSpellToList(creature, i, MARK_NONE);
     { one scroll's list marks the spells the character could learn but does not know }
     2: Magic.AddScrollSpells(creature, False, MARK_NOT_KNOWN);
     { the scribe list marks the spells the character already knows }
     3: Magic.AddAllScrollSpells(creature, False, MARK_KNOWN);
     6: Magic.AddAllScrollSpells(creature, True, MARK_NONE);
-    { only spells inside slots[0..1, 1..3]: Restoration (spell 56, level 7) would read slots[0, 7], xpAward's low byte }
+    { a spell of a kind and level the character has slots for (CharHlp.SpellSlots; Restoration's level 7 has none) }
     4: for i := 1 to C_SPELL.LAST do
-         with GameDefs.spellTable[i] do
-           if (castClassSp >= 0) and (castClassSp <= 1) and (levelSp >= 1) and (levelSp <= 3) then
-             if (creature^.slots[castClassSp, levelSp] > 0) and (creature^.spellsKnown[i] = 0) then
+         if CharHlp.IsSpell(i) then
+           with GameDefs.spellTable[i] do
+             if (CharHlp.SpellSlots(creature, castClassSp, levelSp) > 0) and not CharHlp.KnowsSpell(creature, i) then
                Magic.AddSpellToList(creature, i, MARK_NONE);
   end;
   { a list of headings alone has nothing to pick: it counts as empty }
@@ -1521,8 +1521,7 @@ begin
           p^.levelUndead := 2;
           p^.attackLevel := 0;
           p^.movementBase := 6;
-          for i := 0 to Types.SPELL_SLOT_LAST do
-            p^.memorizedSpells[i] := 0;
+          CharHlp.ClearMemorized(p);
           { C_NPC.FLAG set }
           if CharHlp.IsNpc(p) then
             p^.npc := C_NPC.ANIMATED_NPC
