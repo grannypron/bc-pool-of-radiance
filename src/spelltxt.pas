@@ -1,6 +1,6 @@
 { Descriptions shown by the spell Info page (#839). They document this port's
   behavior, including places where its handlers differ from the rule book.
-  Entries 57..67 describe item-cast spells (#861); 66 is unused.
+  Entries 57..65, 127 and 128 describe item-cast spells (#861, #1121).
 
   Text is stored in chunks of up to six 36-column lines joined by #13. Keeping
   the literals in code puts them in the overlay instead of the data segment.
@@ -23,6 +23,8 @@ function LineCount(spell: Byte): Byte;
 function TextChunk(spell, chunk: Byte): string;
 
 implementation
+
+uses C_SPELL;
 
 function LineCount(spell: Byte): Byte;
 begin
@@ -84,7 +86,6 @@ begin
     55: LineCount := 4;
     56: LineCount := 3;
     57: LineCount := 4;
-    58: LineCount := 5;
     59: LineCount := 3;
     60: LineCount := 7;
     61: LineCount := 4;
@@ -92,7 +93,8 @@ begin
     63: LineCount := 8;
     64: LineCount := 6;
     65: LineCount := 3;
-    67: LineCount := 7;
+    C_SPELL.ITEM_OINTMENT: LineCount := 5;
+    C_SPELL.ITEM_BODILY_HEALTH: LineCount := 7;
   else
     LineCount := 0;
   end;
@@ -598,7 +600,7 @@ begin
           'YEAR. A SLOWED DRINKER INSTEAD LOSES'#13 +
           'SLOW.';
     { Keoghtum's Ointment }
-    58:
+    C_SPELL.ITEM_OINTMENT:
       if chunk = 0 then
         TextChunk :=
           'THE OINTMENT CURES THE RECIPIENT''S'#13 +
@@ -677,7 +679,7 @@ begin
           'DAMAGE UPON THE TARGETED CREATURE.'#13 +
           'SHIELD NEGATES IT.';
     { Manual of Bodily Health }
-    67:
+    C_SPELL.ITEM_BODILY_HEALTH:
       case chunk of
         0:
           TextChunk :=

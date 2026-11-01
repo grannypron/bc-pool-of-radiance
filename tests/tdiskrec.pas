@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TDiskRec;
 
-uses Types, C_MONEY, C_EQUIP, DiskRec, TestKit;
+uses Types, C_MONEY, C_EQUIP, C_ITEM, C_SPELL, DiskRec, TestKit;
 
 var
   ch: Types.TCharRecord;
@@ -104,5 +104,25 @@ begin
   itDisk[0] := 10;
   DiskRec.ItemFromDisk(itDisk, itBack);
   TestKit.CheckEqualsS('Long Sword', itBack.name, 'and a whole one is left alone');
+  { Keoghtom's Ointment and the Manual of Bodily Health move to spells 127 and 128 by their names (#1121): effect 61 and
+    the name parts 47..49 on disk }
+  itDisk[47] := 0;
+  itDisk[48] := C_ITEM.NAME_OINTMENT;
+  itDisk[49] := 182;
+  itDisk[61] := C_SPELL.OLD_OINTMENT_EFFECT;
+  DiskRec.ItemFromDisk(itDisk, itBack);
+  TestKit.CheckEqualsL(150, itBack.effect, 'an old Ointment gets effect 150');
+  itDisk[48] := C_ITEM.NAME_OF;
+  DiskRec.ItemFromDisk(itDisk, itBack);
+  TestKit.CheckEqualsL(C_SPELL.OLD_OINTMENT_EFFECT, itBack.effect, 'another item with effect 81 keeps it');
+  itDisk[47] := 175;
+  itDisk[48] := C_ITEM.NAME_OF;
+  itDisk[49] := C_ITEM.NAME_MANUAL;
+  itDisk[61] := C_SPELL.OLD_BODILY_HEALTH_EFFECT;
+  DiskRec.ItemFromDisk(itDisk, itBack);
+  TestKit.CheckEqualsL(151, itBack.effect, 'an old Manual of Bodily Health gets effect 151');
+  itDisk[61] := 151;
+  DiskRec.ItemFromDisk(itDisk, itBack);
+  TestKit.CheckEqualsL(151, itBack.effect, 'a new one keeps it');
   TestKit.Done;
 end.

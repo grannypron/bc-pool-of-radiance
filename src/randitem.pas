@@ -44,9 +44,9 @@ const
     { Template 10: Gauntlets of Ogre Power }
     (nameIds: (226, 167, 100); weight: 10; value: 15000;
      properties: (0, 38, 131)),
-    { Template 11: Keoghtum's Ointment }
+    { Template 11: Keoghtum's Ointment: effect 150, spell 127 (C_SPELL.ITEM_OINTMENT, #1121) }
     (nameIds: (0, 111, 182); weight: 1; value: 10000;
-     properties: (5, 81, 0)),
+     properties: (5, 150, 0)),
     { Template 12: Necklace of Missiles }
     (nameIds: (228, 167, 119); weight: 1; value: 16000;
      properties: (20, 87, 0)),

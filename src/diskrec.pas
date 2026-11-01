@@ -39,7 +39,10 @@ procedure EffectToDisk(var ef: Types.TEffectRec; var disk);
   are the bytes the file held, which the callers clear. A character's port fields (portExt) are cleared. A name whose
   length byte is past its field is cut to the field (StrUtil.FitLength, #917): a damaged save or DAX record is read
   whatever it holds. A character's drainedLevels of DRAINED_FILLER, SSI's monster records' filler, is read as no drain
-  (#1155). }
+  (#1155). An item that is Keoghtom's Ointment or the Manual of Bodily Health by its name parts and still has the
+  effect SSI's data gave it, spell 58's or 67's, gets its spell's new effect (C_SPELL.ITEM_OINTMENT's,
+  ITEM_BODILY_HEALTH's), as Curse's numbers have other spells there (#1121): a save, a vault, a script's item or a
+  shop's all come in through here. }
 procedure CharFromDisk(var disk; var c: Types.TCharRecord);
 procedure ItemFromDisk(var disk; var it: Types.TItemRec);
 procedure EffectFromDisk(var disk; var ef: Types.TEffectRec);
@@ -56,7 +59,7 @@ function EffectDiskSize: Word;
 
 implementation
 
-uses StrUtil;
+uses StrUtil, C_ITEM, C_SPELL;
 
 {$IFDEF FPC}
 type
@@ -195,6 +198,12 @@ begin
   end;
 end;
 
+{ True when one of item it's name parts is part. }
+function HasNamePart(var it: Types.TItemRec; part: Byte): Boolean;
+begin
+  HasNamePart := (it.nameIds[1] = part) or (it.nameIds[2] = part) or (it.nameIds[3] = part);
+end;
+
 procedure ItemFromDisk(var disk; var it: Types.TItemRec);
 var
   ok: Boolean;
@@ -205,6 +214,11 @@ begin
   Move(disk, it, ITEM_DISK_BYTES);
 {$ENDIF}
   ok := StrUtil.FitLength(it.name, SizeOf(it.name) - 1);
+  if (it.effect = C_SPELL.OLD_OINTMENT_EFFECT) and
+      (HasNamePart(it, C_ITEM.NAME_OINTMENT) or HasNamePart(it, C_ITEM.NAME_OINTMENT_2)) then
+    it.effect := C_SPELL.ITEM_OINTMENT + C_SPELL.ITEM_EFFECT_SHIFT
+  else if (it.effect = C_SPELL.OLD_BODILY_HEALTH_EFFECT) and HasNamePart(it, C_ITEM.NAME_MANUAL) then
+    it.effect := C_SPELL.ITEM_BODILY_HEALTH + C_SPELL.ITEM_EFFECT_SHIFT;
 end;
 
 procedure EffectFromDisk(var disk; var ef: Types.TEffectRec);

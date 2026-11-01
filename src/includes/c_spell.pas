@@ -18,14 +18,19 @@ const
   ATTACK_ROLL_RANGE = 255;
   PENDING_FLAG = $80;
   ID_MASK = $7F;
-  { Spell IDs: 1..56 are spells and 57..67 are item effects. }
+  { Spell IDs: 1..56 are spells; 57..65 and 127..128 are item spells, Curse's numbers (#1121). }
   { no spell selected (SpellMenu exit/cancel) }
   NONE = 0;
-  { the last spell; 57..67 are item effects }
+  { the last spell }
   LAST = 56;
-  { GameDefs.spellTable's last entry }
-  TABLE_LAST = 67;
-  { an item effect above LAST is the spell id effect - ITEM_EFFECT_SHIFT (item effects 80..90 are 57..67) }
+  { the ids below TABLE_LAST whose spellTable rows hold no spell: no handler but Magic.UnusedSpellHandler, no name, no
+    description }
+  EMPTY_IDS = [58, 66..126];
+  { GameDefs.spellTable's last entry: the last item spell, past every game's spell table (Pools' runs to 126) }
+  TABLE_LAST = 128;
+  { an item effect 1..ITEM_EFFECT_DIRECT_LAST is that spell; one above it is the spell effect - ITEM_EFFECT_SHIFT (SSI's
+    item effects 80..88 are 57..65, and 150 and 151 are 127 and 128) }
+  ITEM_EFFECT_DIRECT_LAST = 56;
   ITEM_EFFECT_SHIFT = 23;
   { the Javelin of Lightning's spell (item effect 83), and the cells its bolt runs past the aim cell }
   ITEM_JAVELIN_LIGHTNING = 60;
@@ -80,13 +85,14 @@ const
   READ_MAGIC = 18;
   SHIELD = 19;
   { the spells whose durations CharHlp.SpellDuration rolls: Cause Disease, and the item spells Potion of Speed, Giant
-    Strength, Wand of Paralyzation, Dust of Disappearance and Manual of Bodily Health }
+    Strength, Wand of Paralyzation, Dust of Disappearance and Manual of Bodily Health, which was spell 67 until Curse's
+    Neutralize Poison took the number (#1121) }
   CAUSE_DISEASE = 40;
   ITEM_SPEED = 57;
   ITEM_GIANT_STRENGTH = 59;
   ITEM_PARALYZATION = 61;
   ITEM_DISAPPEARANCE = 63;
-  ITEM_BODILY_HEALTH = 67;
+  ITEM_BODILY_HEALTH = 128;
   { spellFns[34] = SpellStinkingCloud }
   STINKING_CLOUD = 34;
   { spellFns[37] = SpellCureBlindness }
@@ -97,8 +103,13 @@ const
   REMOVE_CURSE = 43;
   { spellFns[56] = SpellRestoration, a level-7 cleric spell: here only from a scroll }
   RESTORATION = 56;
-  { the item spells Fix may use (#1129): Keoghtom's Ointment (spellFns[58]) and the Potion of Healing (spellFns[62]) }
-  ITEM_OINTMENT = 58;
+  { the item spells Fix may use (#1129): Keoghtom's Ointment (spellFns[127], 58 until Curse's Cure Serious Wounds took
+    the number, #1121) and the Potion of Healing (spellFns[62]) }
+  ITEM_OINTMENT = 127;
+  { the item effects SSI's data gave the Ointment and the Manual, spell 58's and 67's: DiskRec.ItemFromDisk moves an
+    item with one of them and the item's name to ITEM_OINTMENT's or ITEM_BODILY_HEALTH's }
+  OLD_OINTMENT_EFFECT = 81;
+  OLD_BODILY_HEALTH_EFFECT = 90;
   ITEM_HEALING = 62;
   { spellFns[47] and spellFns[64] (the item fireball) = SpellFireball }
   FIREBALL = 47;
@@ -135,9 +146,10 @@ const
   SAVE_SPECIAL = 3;
   { SpellInf's save table only: a save lessens the spell but does not end it (Stinking Cloud's cough) }
   SAVE_PARTIAL = 4;
-  { a spell list line's spell cast from an item (a scroll) rather than from memory, for SpellInf: the spell id with this
-    bit set }
-  FROM_ITEM = $80;
+  { a spell list line's spell cast from an item rather than from memory, for SpellInf: the spell id with this bit set,
+    above a byte, as the item spells run past ID_MASK (#1121); LINE_ID_MASK takes the spell id back out }
+  FROM_ITEM = $100;
+  LINE_ID_MASK = $FF;
 
 implementation
 

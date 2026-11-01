@@ -27,6 +27,8 @@ uses Types, Crt, C_AREA, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Opt
 { Install every spell handler in GameVars.spellFns and the noncombat cast-target menu; clear effectLock,
   GameVars.usingItem and GameVars.castTarget, and set invRedraw. }
 procedure InitSpellFns;
+var
+  i: Byte;
 begin
   GameVars.castTargetMenu := Magic.NoncombatCastTargetMenu;
   GameVars.effectLock := 0;
@@ -90,7 +92,7 @@ begin
   GameVars.spellFns[55] := Magic.SpellSlow;
   GameVars.spellFns[56] := Magic.SpellRestoration;
   GameVars.spellFns[57] := Magic.SpellPotionOfSpeed;
-  GameVars.spellFns[58] := Magic.KeoghtomsOintmentHandler;
+  GameVars.spellFns[58] := Magic.UnusedSpellHandler;
   GameVars.spellFns[59] := Magic.SpellGiantStrength;
   GameVars.spellFns[60] := Magic.SpellJavelinOfLightning;
   GameVars.spellFns[61] := Magic.SpellWandOfParalyzation;
@@ -98,8 +100,10 @@ begin
   GameVars.spellFns[63] := Magic.SpellDustOfDisappearance;
   GameVars.spellFns[64] := Magic.SpellFireball;
   GameVars.spellFns[65] := Magic.SpellWandOfMagicMissiles;
-  GameVars.spellFns[66] := Magic.UnusedSpellHandler;
-  GameVars.spellFns[67] := Magic.ManualBodilyHealthHandler;
+  for i := 66 to C_SPELL.ITEM_OINTMENT - 1 do
+    GameVars.spellFns[i] := Magic.UnusedSpellHandler;
+  GameVars.spellFns[C_SPELL.ITEM_OINTMENT] := Magic.KeoghtomsOintmentHandler;
+  GameVars.spellFns[C_SPELL.ITEM_BODILY_HEALTH] := Magic.ManualBodilyHealthHandler;
 end;
 
 { Install the effect handlers: REAR_CLAW_RAKE and BITE_HOLD are CbtActs' combat actions, and DRAGON_BREATH is Magic's. }

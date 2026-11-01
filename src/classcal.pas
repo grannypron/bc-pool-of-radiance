@@ -535,8 +535,8 @@ const
   character), and for cleric or magic-user levels above 1 set the spell slots (clerics also get the Wisdom bonus and
   every cleric spell of a level with slots marked known, KnowClericSpells; a level-1 caster's slots are FirstLevelSlots'
   and left as they are). The slot table runs to C_LEVEL.LEVEL_LAST, and a higher level takes its last row, so the
-  slots follow the real level (#1121): Genheeris, a level 7 magic-user who joins the party, has level 7's. classThac0 covers
-  levels 0..10, and a level outside that uses the nearer end. A dual-classed human's itemLimits are set
+  slots follow the real level (#1121): Genheeris, a level 7 magic-user who joins the party, has level 7's. classThac0
+  covers levels 0..10, and a level outside that uses the nearer end. A dual-classed human's itemLimits are set
   (ItemLimitsFor). Each class counts at the level the creature can use
   (CharHlp.GetClassLevel): a class a dual-classed human has left and cannot use yet gives nothing, and a resting
   cleric's or magic-user's slots are emptied (#838); levelHighest takes the levels as they are. Then call RecalcSaves

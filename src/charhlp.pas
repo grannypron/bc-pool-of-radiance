@@ -261,9 +261,9 @@ function IsSpell(id: Byte): Boolean;
 
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
 
-{ The spell Use casts from item: its effect, an effect past C_SPELL.LAST being item spell effect -
-  C_SPELL.ITEM_EFFECT_SHIFT (item effects 80..90 are spells 57..67). C_SPELL.NONE for a scroll, whose spells are picked
-  from its list, for an item with no effect or one readying applies (special $80 and up), and for an effect past the
+{ The spell Use casts from item: its effect, an effect past C_SPELL.ITEM_EFFECT_DIRECT_LAST being item spell effect -
+  C_SPELL.ITEM_EFFECT_SHIFT (item effects 80..88 are spells 57..65, 150 and 151 are 127 and 128). C_SPELL.NONE for a
+  scroll, whose spells are picked from its list, for an item with no effect or one readying applies (special $80 and up), and for an effect past the
   spell table, from corrupt or edited item data (#708). }
 function ItemSpell(item: Types.PItemRec): Byte;
 
@@ -1772,7 +1772,7 @@ begin
   ItemSpell := C_SPELL.NONE;
   if not CharHlp.ItemReadable(item) and (item^.effect > 0) and (item^.special < $80) then begin
     id := item^.effect;
-    if id > C_SPELL.LAST then
+    if id > C_SPELL.ITEM_EFFECT_DIRECT_LAST then
       id := id - C_SPELL.ITEM_EFFECT_SHIFT;
     if id <= C_SPELL.TABLE_LAST then
       ItemSpell := id;

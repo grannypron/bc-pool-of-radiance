@@ -154,11 +154,16 @@ begin
   TestKit.CheckEqualsL(C_SPELL.FIREBALL, CharHlp.ItemSpell(it), 'the Wand of Fireballs casts Fireball');
   TestKit.Check(SpellInf.HasItemPage(it), 'and has its page');
   SetItem(WAND_TYPE, 89, 0, 0);
-  TestKit.CheckEqualsL(66, CharHlp.ItemSpell(it), 'effect 89: the unused spell 66');
+  TestKit.CheckEqualsL(66, CharHlp.ItemSpell(it), 'effect 89: spell 66, which holds no spell here');
   TestKit.Check(not SpellInf.HasItemPage(it), 'which has no page');
+  SetItem(WAND_TYPE, 150, 0, 0);
+  TestKit.CheckEqualsL(C_SPELL.ITEM_OINTMENT, CharHlp.ItemSpell(it), 'effect 150: Keoghtom''s Ointment, 127 (#1121)');
+  TestKit.Check(SpellInf.HasItemPage(it), 'with its page');
+  SetItem(WAND_TYPE, 151, 0, 0);
+  TestKit.CheckEqualsL(C_SPELL.ITEM_BODILY_HEALTH, CharHlp.ItemSpell(it), 'effect 151: the Manual, 128');
   SetItem(WAND_TYPE, 89, 133, 0);
   TestKit.CheckEqualsL(C_SPELL.NONE, CharHlp.ItemSpell(it), 'readying applies a special of $80 and up: no spell');
-  SetItem(WAND_TYPE, 91, 0, 0);
+  SetItem(WAND_TYPE, C_SPELL.TABLE_LAST + C_SPELL.ITEM_EFFECT_SHIFT + 1, 0, 0);
   TestKit.CheckEqualsL(C_SPELL.NONE, CharHlp.ItemSpell(it), 'an effect past the spell table: no spell');
   SetItem(WAND_TYPE, 0, 0, 0);
   TestKit.CheckEqualsL(C_SPELL.NONE, CharHlp.ItemSpell(it), 'no effect: no spell');
@@ -186,7 +191,7 @@ begin
   GameVars.ifcState := C_IFC.IN_COMBAT;
   TestKit.CheckEqualsS('2D10 TURNS', SpellInf.DurationText(63 or C_SPELL.FROM_ITEM, True), 'and in combat');
   GameVars.ifcState := C_IFC.CAMPING;
-  TestKit.CheckEqualsS('RNG SELF  DUR 24 HR  CAMP', SpellInf.Summary(67 or C_SPELL.FROM_ITEM),
+  TestKit.CheckEqualsS('RNG SELF  DUR 24 HR  CAMP', SpellInf.Summary(C_SPELL.ITEM_BODILY_HEALTH or C_SPELL.FROM_ITEM),
                        'the Manual of Bodily Health: a day''s study');
   TestKit.CheckEqualsS('HALVES DAMAGE (VS SPELL)', SpellInf.SaveText(C_SPELL.ITEM_FIREBALL, True),
                        'the item fireball''s save');
@@ -228,10 +233,11 @@ begin
   TestKit.Check(fits, 'every summary within 38 columns and every page value within 24');
   TestKit.Check(rolled, 'the save table rolls a save where the spell table does');
 
-  { every description fits the page; the unused item spell 66 has none }
+  { every description fits the page; the ids that hold no spell have none }
   texts := True;
   for spell := 1 to C_SPELL.TABLE_LAST do begin
-    if ((SpellTxt.LineCount(spell) < 1) and (spell <> 66)) or (SpellTxt.LineCount(spell) > SpellInf.TEXT_LINES) then
+    if ((SpellTxt.LineCount(spell) < 1) and not (spell in C_SPELL.EMPTY_IDS)) or
+        (SpellTxt.LineCount(spell) > SpellInf.TEXT_LINES) then
       texts := False;
     for n := 1 to SpellTxt.LineCount(spell) do begin
       line := SpellInf.TextLine(spell, n);

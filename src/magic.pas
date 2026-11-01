@@ -286,7 +286,7 @@ end;
 
 { Member n of spellList as SpellInf takes a list line: its spell id, with C_SPELL.FROM_ITEM set when it is read from a
   scroll (the one-scroll list, or a Cast line with a scroll); 0 for a level heading or past the list. }
-function LineSpell(n: Integer): Byte;
+function LineSpell(n: Integer): Word;
 var
   p: Types.PItemRec;
   line: Integer;

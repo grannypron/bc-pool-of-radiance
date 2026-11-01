@@ -18,8 +18,8 @@ uses C_DATA;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 108;
-  BYTE_COUNT = 3776;
+  PART_COUNT = 109;
+  BYTE_COUNT = 3778;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -369,6 +369,9 @@ begin
     [$6E6C] = 1, then COMBAT with no monsters }
   DataPat.Part(1091, C_DATA.FAMILY_ECL, 3, 0, 8038, 663, 2, 2);
   DataPat.Part(1091, C_DATA.FAMILY_ECL, 3, 0, 8038, 8038, 0, 117);
+  { #1121: the Manual of Bodily Health placed in Phlan (ITEM2 block 1, record 0) casts spell 67 by effect 90, which is
+    Curse's Neutralize Poison; the Manual's spell moves to 128, effect 151 (C_SPELL.ITEM_BODILY_HEALTH) }
+  DataPat.Part(1121, C_DATA.FAMILY_ITEM, 2, 1, 63, 61, 1, 1);
 end;
 
 { Every part's bytes, original then fixed, in table order. }
@@ -1332,6 +1335,10 @@ begin
   DataPat.Put(#$24);                                         { $B8D4 COMBAT }
   DataPat.Put(#$0E#$00#$FF);                                 { $B8D5 PICTURE $FF }
   DataPat.Put(#$00);                                         { $B8D8 EXIT }
+  { #1121, original: effect 90 }
+  DataPat.Put(#$5A);
+  { fixed: effect 151 }
+  DataPat.Put(#$97);
 end;
 
 function LoadTable: Boolean;
