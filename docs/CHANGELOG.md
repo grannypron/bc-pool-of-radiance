@@ -125,6 +125,7 @@ The fixes below cover both visible bugs and rare failures that could damage a sa
 - A random potion found as treasure is always a potion. Before, about one in eleven was a nameless item that did nothing.
 - The lightning on the second title screen now flashes at the same pace on every computer, and in the native version, where it never flashed before.
 - In CGA, the Companion Tools map's legend now names the colour your notes are drawn in, magenta, instead of saying yellow.
+- In CGA, greyed-out text (a party menu command that is not offered, a Settings line you cannot change, a class the Dual Class screen will not take) is drawn in magenta. Before, it came out white, as bright as the text around it.
 - A locked or barred door offers Knock only when someone in the party can cast it, from memory or from a scroll they can read, and a scroll's Knock works on it; before, a barred door offered Knock to any party with a magic-user, and choosing it did nothing.
 - Standing at the edge of a map, the 3D view now shows the walls of the squares beyond it that you would walk into, not those of the edge squares again.
 - Scribing a spell from a scroll that holds it twice now takes the copy you chose off the scroll; before, the other copy went, and a long rest could scribe the chosen one again.
