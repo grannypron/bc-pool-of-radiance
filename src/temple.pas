@@ -25,6 +25,11 @@ procedure TempleRules(var r: TTempleRules);
 { TownCore's race (TownCore.RACE_*) for one of this game's (C_RACE); RACE_MONSTER for any other value. }
 function CanonRace(race: ShortInt): Byte;
 
+{ Reads the current character for TownCore: its status, hit points, Constitution (PoR keeps only the one score, which
+  the survival roll and system shock both read), canonical race, highest class level, the effects the temple cures
+  (a cursed item counts whether it is readied or not, as Remove Curse lifts every one) and its drained levels. }
+procedure Look(var c: TTempleChar);
+
 implementation
 
 uses Types, Crt, C_MSG, C_MONEY, C_LEVEL, GameVars, TextRend, Money, Magic, FxEngine, C_EFFECT, C_KEYS, C_STATUS,
@@ -58,9 +63,6 @@ begin
   end;
 end;
 
-{ Reads the current character for TownCore: its status, hit points, Constitution (PoR keeps only the one score, which
-  the survival roll and system shock both read), canonical race, highest class level, the effects the temple cures
-  (a cursed item counts whether it is readied or not, as Remove Curse lifts every one) and its drained levels. }
 procedure Look(var c: TTempleChar);
 var
   cr: Types.PCharRecord;
@@ -236,7 +238,8 @@ end;
   (TownCore.RepairPlan) are added up into one quote, paid once from the current character or else the pool, and carried
   out with no further question, the survival roll and system shock rolled as each service rolls them (#752, #1004). A
   member the temple will not raise, or one gone, is named first and left out. When a roll fails, the services that
-  member still had coming are not done, and the priests put their price in the pool. }
+  member still had coming are not done, and the priests put their price in the pool. A party that needs nothing is
+  told so, with no quote. }
 procedure RepairParty;
 var
   plans: array[1..Types.MAX_PARTY] of TRepairPlan;
@@ -271,8 +274,10 @@ begin
     end;
   GameVars.curChar := buyer;
   if total = 0 then begin
-    TextRend.ShowMessage(LightGreen, True, 'The party needs nothing the temple can give.');
-    TextRend.PauseOnly;
+    { held until a key: a timed pause is gone at once at the fastest game speed, and the player is left not knowing
+      what Repair did (#1155) }
+    CharDisp.MessageText('The party needs nothing the temple can give.', LightGreen, True);
+    CharDisp.MessageWait;
   end else if Temple.Pay(TownCore.RepairQuote(rules, total), total) then begin
     undone := 0;
     for i := 1 to n do begin
