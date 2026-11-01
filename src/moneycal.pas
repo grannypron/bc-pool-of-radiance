@@ -41,6 +41,11 @@ function CreatureGold(creature: Types.PCharRecord): LongInt;
 
 procedure MakeChange(rem, cap: LongInt; var m: Types.TMoney);
 
+{ Change the five coin types in m into the fewest coins of the same value (MakeChange, each type at most
+  C_MONEY.MAX_COINS); gems and jewelry are kept. Each coin is worth a whole number of the next smaller, so nothing is
+  lost (#1179). }
+procedure Consolidate(var m: Types.TMoney);
+
 { Selects buyer or the treasure pool as the payment source, or PAY_NOBODY when
   neither can cover the price. }
 function WhoPays(buyer: Types.PCharRecord; gp: LongInt): Byte;
@@ -130,6 +135,11 @@ begin
     m[i] := n;
     Dec(rem, n * GameDefs.coinValues[i]);
   end;
+end;
+
+procedure Consolidate(var m: Types.TMoney);
+begin
+  MoneyCal.MakeChange(MoneyCal.CopperValue(m), C_MONEY.MAX_COINS, m);
 end;
 
 function WhoPays(buyer: Types.PCharRecord; gp: LongInt): Byte;

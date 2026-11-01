@@ -51,6 +51,9 @@ var
   { the Auto Join setting: nonzero has a stackable item join its like as it comes into an inventory
     (CharHlp.AddToInventory, #1088) }
   autoJoinOn: Byte;
+  { the Consolidate Coin setting: nonzero changes a character's purse into the fewest coins of its value whenever it
+    picks coins up (Money.Consolidate, #1179) }
+  consolidateOn: Byte;
   { the Journal setting: nonzero lists only the items the party has found (JrnlSeen), zero every item (#1090) }
   journalFoundOn: Byte;
   { nonzero: PostCbt and SaveLoad.LoadChar take the party's characters off Quick after each fight and on loading }

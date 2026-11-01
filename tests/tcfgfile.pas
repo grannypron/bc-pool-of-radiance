@@ -150,7 +150,8 @@ begin
   TestKit.CheckEqualsL(1, s.speed, 'the default speed is 1');
   TestKit.CheckEqualsL(50, s.logLines, 'the default log keeps 50 lines');
   for opt := C_OPT.OPT_FIRST_FLAG to C_OPT.OPT_LAST_FLAG do
-    if opt in [C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION, C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL] then
+    if opt in [C_OPT.OPT_CONSOLIDATE, C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION,
+               C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL] then
       TestKit.CheckEqualsL(0, CfgFile.Flag(s, opt), CfgFile.KeyName(opt) + ' is off by default')
     else
       TestKit.CheckEqualsL(1, CfgFile.Flag(s, opt), CfgFile.KeyName(opt) + ' is on by default');
@@ -186,11 +187,12 @@ begin
                 'Auto Memorize and the Fix settings are the Camp page''s');
   TestKit.CheckEqualsL(0, CfgFile.SettingLine(C_OPT.OPT_SPEED), 'the Game page starts with the speed');
   TestKit.CheckEqualsL(4, CfgFile.SettingLine(C_OPT.OPT_AUTO_JOIN), 'Auto Join after the portraits');
-  TestKit.CheckEqualsL(5, CfgFile.SettingLine(C_OPT.OPT_JOURNAL), 'the Journal after Auto Join (#1090)');
-  TestKit.CheckEqualsL(7, CfgFile.SettingLine(C_OPT.OPT_QUICK), 'Quick Mode under its heading, past the sound');
-  TestKit.CheckEqualsL(9, CfgFile.SettingLine(C_OPT.OPT_GEAR), 'Allow Gear Changes under Quick Mode, after Use Magic');
-  TestKit.CheckEqualsL(11, CfgFile.SettingLine(C_OPT.OPT_RETRIEVE), 'Aim Cycles and Retrieve Thrown after it');
-  TestKit.CheckEqualsL(15, CfgFile.SettingLine(C_OPT.OPT_LOG_LINES), 'the Game page ends with the log lines');
+  TestKit.CheckEqualsL(5, CfgFile.SettingLine(C_OPT.OPT_CONSOLIDATE), 'Consolidate Coin after Auto Join (#1179)');
+  TestKit.CheckEqualsL(6, CfgFile.SettingLine(C_OPT.OPT_JOURNAL), 'the Journal after it (#1090)');
+  TestKit.CheckEqualsL(8, CfgFile.SettingLine(C_OPT.OPT_QUICK), 'Quick Mode under its heading, past the sound');
+  TestKit.CheckEqualsL(10, CfgFile.SettingLine(C_OPT.OPT_GEAR), 'Allow Gear Changes under Quick Mode, after Use Magic');
+  TestKit.CheckEqualsL(12, CfgFile.SettingLine(C_OPT.OPT_RETRIEVE), 'Aim Cycles and Retrieve Thrown after it');
+  TestKit.CheckEqualsL(16, CfgFile.SettingLine(C_OPT.OPT_LOG_LINES), 'the Game page ends with the log lines');
   TestKit.CheckEqualsS('Quick Mode', CfgFile.Heading(C_OPT.OPT_QUICK), 'the Quick Mode heading');
   TestKit.CheckEqualsS('Fix', CfgFile.Heading(C_OPT.OPT_FIX_SCROLLS), 'the Fix heading (#1129)');
   TestKit.CheckEqualsS('', CfgFile.Heading(C_OPT.OPT_FIX_POTIONS), 'and none on the other lines');
@@ -248,6 +250,9 @@ begin
   TestKit.Check((CfgFile.Flag(s, C_OPT.OPT_FIX_SCROLLS) = 1) and (CfgFile.Flag(s, C_OPT.OPT_FIX_POTIONS) = 1) and
                 (CfgFile.Flag(s, C_OPT.OPT_FIX_CURE) = 1) and (CfgFile.Flag(s, C_OPT.OPT_FIX_HEAL) = 1),
                 'the four Fix settings on');
+  TestKit.Check(ReadText('consolidatecoin = On' + CRLF) = CfgFile.CFG_READ, 'CONSOLIDATECOIN reads (#1179)');
+  TestKit.CheckEqualsL(1, CfgFile.Flag(s, C_OPT.OPT_CONSOLIDATE), 'Consolidate Coin on');
+  TestKit.CheckEqualsS('Consolidate Coin', CfgFile.SettingName(C_OPT.OPT_CONSOLIDATE), 'its label');
   TestKit.Check(ReadText('SPEED=9' + CRLF + 'SPEED=A' + CRLF + 'LOGLINES=60' + CRLF + 'LOGLINES=61' + CRLF +
                          'LOGLINES=9' + CRLF + 'LOGLINES=abc' + CRLF + 'MUSIC=maybe' + CRLF + 'SPEED=10')
                 = CfgFile.CFG_FIXED, 'bad values are a fixed read');
@@ -283,8 +288,9 @@ begin
   TestKit.Check(CfgFile.WriteOptions('', s), 'POOLOPT.CFG is written');
   TestKit.CheckEqualsL(1, LineNo(C_OPT.OPT_NAME, 'SPEED=4'), 'the keys start with SPEED');
   TestKit.CheckEqualsL(2, LineNo(C_OPT.OPT_NAME, 'ALLPORTRAITS=ON'), 'in their order');
-  TestKit.CheckEqualsL(15, LineNo(C_OPT.OPT_NAME, 'WALLHIT=OFF'), 'a setting turned off');
+  TestKit.CheckEqualsL(C_OPT.OPT_WALL, LineNo(C_OPT.OPT_NAME, 'WALLHIT=OFF'), 'a setting turned off');
   TestKit.CheckEqualsL(5, LineNo(C_OPT.OPT_NAME, 'AUTOJOIN=ON'), 'Auto Join on by default, after the portraits');
+  TestKit.CheckEqualsL(6, LineNo(C_OPT.OPT_NAME, 'CONSOLIDATECOIN=OFF'), 'Consolidate Coin off by default, after it');
   TestKit.CheckEqualsL(C_OPT.OPT_JOURNAL, LineNo(C_OPT.OPT_NAME, 'JOURNAL=FOUND'),
                        'the Journal FOUND by default, after Auto Join');
   TestKit.CheckEqualsL(C_OPT.OPT_GEAR, LineNo(C_OPT.OPT_NAME, 'GEARCHANGES=ON'), 'Allow Gear Changes on by default');

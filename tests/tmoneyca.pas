@@ -92,6 +92,19 @@ begin
   MoneyCal.MakeChange(5000, 2, m);
   CheckMoney(m, 2, 2, 2, 2, 2, 9, 4, 'a cap of 2 loses what it cannot hold');
 
+  { Consolidate Coin (#1179): the fewest coins of the same value, gems and jewelry kept }
+  SetMoney(m, 15, 12, 3, 7, 0, 6, 2);
+  MoneyCal.Consolidate(m);
+  CheckMoney(m, 5, 3, 0, 4, 1, 6, 2, '7 gp, 3 ep, 12 sp and 15 cp (1,835 cp)');
+  MoneyCal.Consolidate(m);
+  CheckMoney(m, 5, 3, 0, 4, 1, 6, 2, 'a purse already consolidated');
+  SetMoney(m, 1000, 0, 0, 0, 0, 0, 0);
+  MoneyCal.Consolidate(m);
+  CheckMoney(m, 0, 0, 0, 0, 1, 0, 0, '1,000 copper is a platinum, 999 coins lighter');
+  SetMoney(m, 0, 0, 20, 10, 65535, 0, 0);
+  MoneyCal.Consolidate(m);
+  CheckMoney(m, 0, 0, 0, 20, 65535, 0, 0, 'platinum at its cap: the rest in gold, nothing lost');
+
   { who pays: the buyer with 10 gp, else a pool with 50 gp }
   FillChar(c^.coins, SizeOf(c^.coins), 0);
   c^.coins[C_MONEY.GOLD] := 10;
