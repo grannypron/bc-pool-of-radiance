@@ -18,5 +18,13 @@ begin
   TestKit.Check(not AdvPlan.SpeedSlow(AdvPlan.SLOW_CLOCKS), 'nor one right at the limit');
   TestKit.Check(AdvPlan.SpeedSlow(AdvPlan.SLOW_CLOCKS + 1), 'past it is slow');
   TestKit.Check(AdvPlan.SpeedSlow(2000000), 'and far past it');
+  { the cycles the measurement matches (#1178) }
+  TestKit.CheckEqualsL(0, AdvPlan.CyclesOf(0), 'no cycles for a check that did not run');
+  TestKit.CheckEqualsL(30000, AdvPlan.CyclesOf(11932), '10.0 ms is 30,000 cycles, GOG''s setting');
+  TestKit.CheckEqualsL(20000, AdvPlan.CyclesOf(17900), '15.0 ms is 20,000');
+  TestKit.CheckEqualsL(3000, AdvPlan.CyclesOf(119900), '100.5 ms is 3,000, DOSBox''s default');
+  TestKit.CheckEqualsL(18000, AdvPlan.CyclesOf(AdvPlan.SLOW_CLOCKS), 'the slow limit is about 18,000');
+  TestKit.CheckEqualsL(0, AdvPlan.CyclesOf(10000000), 'far slower than DOSBox''s default rounds to 0');
+  TestKit.CheckEqualsL(357954600, AdvPlan.CyclesOf(1), 'one clock does not overflow');
   TestKit.Done;
 end.

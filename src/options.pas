@@ -341,8 +341,8 @@ begin
 end;
 
 { The System page: the video and sound device the game runs with, the build, the data archives and memory, the speed
-  check's time, the STING, NORAND and ADVISE switches when they are given, and where to send questions and bug
-  reports. }
+  check's time and the DOSBox cycles it matches (#1178), the STING, NORAND and ADVISE switches when they are given, and
+  where to send questions and bug reports. The page's 20 rows are full. }
 procedure DrawSystemPage;
 var
   merged: Byte;
@@ -368,6 +368,7 @@ begin
     Options.DrawInfo(FIRST_ROW + 10, 'EMS Active', 'No');
 {$ENDIF}
   Options.DrawInfo(FIRST_ROW + 11, 'Speed Check', Advisory.SpeedText);
+  Options.DrawInfo(FIRST_ROW + 12, 'Cycles', Advisory.CyclesText);
   switches := '';
   if GameVars.stingArg then
     switches := 'STING ';
@@ -376,13 +377,13 @@ begin
   if GameVars.adviseArg then
     switches := switches + 'ADVISE';
   if switches <> '' then
-    Options.DrawInfo(FIRST_ROW + 12, 'Switches', switches);
+    Options.DrawInfo(FIRST_ROW + 13, 'Switches', switches);
   { the startup advisory's support lines (#1173), wrapped to the box }
-  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 14, LINE_COLOR, 'This is a modified version of the');
-  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 15, LINE_COLOR, 'game. GOG, Steam and SNEG can''t help');
-  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 16, LINE_COLOR, 'with it. Please send questions and');
-  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 17, LINE_COLOR, 'bug reports to');
-  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 18, TITLE_COLOR, Advisory.SUPPORT_EMAIL + '.');
+  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 15, LINE_COLOR, 'This is a modified version of the');
+  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 16, LINE_COLOR, 'game. GOG, Steam and SNEG can''t help');
+  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 17, LINE_COLOR, 'with it. Please send questions and');
+  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 18, LINE_COLOR, 'bug reports to');
+  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 19, TITLE_COLOR, Advisory.SUPPORT_EMAIL + '.');
 end;
 
 { Clear the screen and draw page with its title in the frame, setting sel highlighted on a settings page. }
