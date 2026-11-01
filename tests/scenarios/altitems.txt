@@ -7,21 +7,21 @@ ignore POOL OF RADIANCE V
 wait RADIANCE
 put saves/wild
 press l g
-wait CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press alt-2
 wait TRADE 20
 checkpoint items
 press esc
-wait CAST VIEW ENCAMP 20
+wait ^(MOVE )?CAST VIEW ENCAMP 20
 checkpoint items-closed
 press alt-7
-wait CAST VIEW ENCAMP 20
+wait ^(MOVE )?CAST VIEW ENCAMP 20
 checkpoint no-member-7
 press f1
 wait HELP 20
 checkpoint keys
 press esc
-wait CAST VIEW ENCAMP 20
+wait ^(MOVE )?CAST VIEW ENCAMP 20
 press e
 wait CAMP 60
 press alt-1

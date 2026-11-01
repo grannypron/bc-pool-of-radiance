@@ -772,6 +772,7 @@ var
   slot: Byte;
   g: Byte;
   d: Byte;
+  facing: Byte;
 begin
   CharHlp.CountTeams;
   for slot := 1 to Types.ARENA_SLOTS do
@@ -779,10 +780,13 @@ begin
   CbtMap.BuildArenaArrays;
   placeX[0] := 0;
   placeY[0] := 0;
-  teamDir[0] := GameVars.gFacing div 2;
-  placeX[1] := GameDefs.dirDX[GameVars.gFacing] * GameVars.zone1^[C_GBVM.MONSTER_DIST] + placeX[0];
-  placeY[1] := GameDefs.dirDY[GameVars.gFacing] * GameVars.zone1^[C_GBVM.MONSTER_DIST] + placeY[0];
-  teamDir[1] := (GameVars.gFacing + 4) mod 8 div 2;
+  { a diagonal facing, from a wilderness Move step (#1159), places as the cardinal before it, as a saved game keeps it
+    (SaveLoad): the placement tables have the four cardinal directions only }
+  facing := GameVars.gFacing and 6;
+  teamDir[0] := facing div 2;
+  placeX[1] := GameDefs.dirDX[facing] * GameVars.zone1^[C_GBVM.MONSTER_DIST] + placeX[0];
+  placeY[1] := GameDefs.dirDY[facing] * GameVars.zone1^[C_GBVM.MONSTER_DIST] + placeY[0];
+  teamDir[1] := (facing + 4) mod 8 div 2;
   for team := 0 to 1 do
     teamRows[team] := (GameVars.teamCount[team] + 1) div 2;
   for team := 0 to 1 do

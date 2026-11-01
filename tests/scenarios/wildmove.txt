@@ -1,0 +1,29 @@
+# The wilderness menu's Move (#1159), from save G in the central wilderness at 27,27 (saves/wild): Move turns the
+# bottom line to Exit; Page Up steps north-east and Home north-west, each 18 hours, and the Right arrow east, 12 hours;
+# Escape gives the menu back, where Home picks the previous character again. A golden build has no Move, so it fails
+# until the goldens are recorded from a build with it.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/wild
+press l g
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+checkpoint menu
+press m
+wait ^EXIT 20
+checkpoint move
+press pgup
+wait ^EXIT 60
+checkpoint northeast
+press home
+wait ^EXIT 60
+checkpoint northwest
+press right
+wait ^EXIT 60
+checkpoint east
+press esc
+wait ^(MOVE )?CAST VIEW ENCAMP 20
+checkpoint menu-again
+press home
+wait ^(MOVE )?CAST VIEW ENCAMP 20
+checkpoint previous-character

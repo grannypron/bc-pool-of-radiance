@@ -7,69 +7,69 @@ wait RADIANCE
 put saves/wild
 # Load the slot directly by pressing its letter (#652).
 press l g
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press up
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press right
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press down
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press left
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press up
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press right
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press down
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press left
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press up
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press right
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press down
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press left
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press up
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press right
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press down
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press left
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press up
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press right
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press down
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press left
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press up
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press right
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press down
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press left
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press up
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press right
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press down
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press left
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press up
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press right
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press down
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 press left
 wait ^COMBAT WAIT FLEE PARLAY 60
 checkpoint encounter
