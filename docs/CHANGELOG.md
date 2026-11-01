@@ -68,6 +68,7 @@ Most of these changes are small on their own, but together they make the game ea
 
 The fixes below cover both visible bugs and rare failures that could damage a save, hang combat, or behave differently across platforms.
 
+- The temple's Repair no longer quotes a healthy party a fortune. A non-player character who joined the party (Genheeris, for one) was counted as having lost 255 levels, and Repair priced a Restoration for each: 1,785,000 gold pieces. Such a character no longer counts as drained anywhere, and a party that needs nothing is told so and the message waits for a key.
 - The combat AI, the party's in Quick mode and the monsters' alike, casts a spell only where it obviously does something: no Hold Person or Charm Person on scorpions and skeletons, no Sleep on the undead, no Silence on creatures it hasn't seen cast, no second Bless. It favours the spell that does the most, still now and then not the best, and saves its area spells for two or more.
 - The combat AI casts Silence at a single enemy it has seen cast, no longer drops a Stinking Cloud on creatures already in one or already retching, and casts Resist Fire or Resist Cold only once an enemy has done fire or cold damage in the fight, and Protection From Normal Missiles only while an enemy holds a bow or other missile weapon.
 - In Quick mode your characters no longer pick out magic weapons and shields you haven't identified: an unidentified +2 sword looks like any other sword to them, as it does to you, and they don't use an unidentified wand or other magic item.

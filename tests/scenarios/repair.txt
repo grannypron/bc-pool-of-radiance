@@ -1,0 +1,30 @@
+# Tests Repair for a healthy party (#1155), from Brian's save: seven members at full hit points, the seventh the NPC
+# Genheeris, whose record (from SSI's MONxCHA, as every monster's) holds $FF drained levels. Repair quoted 255
+# Restorations, 1785000 gold pieces; it should now find nothing to do. The fixture is the save as Brian sent it, put in
+# slot H (its savgam's member names CHRDATA1..7 made CHRDATH1..7) and moved onto the Temple of Tyr's square in New
+# Phlan, (8,4), as madman's is. Repair is this build's alone (the golden build has none), and its answer is held until
+# a key.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/repair
+# Load the slot directly by pressing its letter (#652).
+press l h
+wait AREA 120
+press l
+wait YES NO
+press y
+wait APPRAISE
+checkpoint temple
+press h
+wait HEAL.*EXIT
+candidate: press r
+candidate: wait PRESS ANY KEY
+candidate: checkpoint repair
+candidate: press ret
+candidate: wait HEAL.*EXIT
+press esc
+wait APPRAISE
+press e
+wait AREA
+checkpoint view
