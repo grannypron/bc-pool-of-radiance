@@ -1,5 +1,5 @@
-{ Program entry: initialize the game, bring the merged data archives up to date, show the introduction, run CharGen's
-  main menu, then run the game loop and shut down. }
+{ Program entry: initialize the game, bring the merged data archives up to date, show the introduction and the
+  startup advisory (#1173), run CharGen's main menu, then run the game loop and shut down. }
 {$F+}
 {$I COMPILER.INC}
 program FixMain;
@@ -14,8 +14,10 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
   VidOps, PicCga, PicEga, PicTdy, PicVga, UsualSpl, SaveLoad, CharGen, Camp,
   Journal1, Journal2, Journal3, Journal4, JrnlList, JrnlQst, JrnlView, Options, CbtLog, LogWrap, LogView,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclVars, EclMenu, Shop, PostCbt, TownCore, Temple,
-  EclVm, BldShow, DataPat, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault, VaultMnu, EclTrace, KeyHelp;
+  EclVm, BldShow, DataPat, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault, VaultMnu, EclTrace, KeyHelp, Advisory;
 
+{$O Advisory}
+{$O AdvPlan}
 {$O EclTrace}
 {$O Vault}
 {$O VaultMnu}
@@ -109,6 +111,10 @@ begin
   end;
   { the title theme, still playing under the credits, ends at the main menu (#1070) }
   SoundDrv.StopMusic;
+  { before the main menu, with the sound timer gone from the PIT: the speed check, and the startup advisory when one of
+    its parts is due (#1173) }
+  Advisory.Measure;
+  Advisory.Show;
   { the vault of a game left unsaved last time is gone with it }
   Vault.ForgetSessionVault;
   { the main menu's Exit is the way out; a destroyed party ends GameLoop and the game returns to the main menu }

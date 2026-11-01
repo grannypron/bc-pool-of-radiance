@@ -22,8 +22,14 @@ procedure LoadOptions;
   keeps the old file intact if writing fails. }
 procedure SaveOptions;
 
-{ Applies s to GameVars and retains its later-game paths for the next save. }
+{ Applies s to GameVars and retains its later-game paths and the version advised for the next save. }
 procedure Apply(var s: CfgFile.TSettings);
+
+{ The version POOLOPT.CFG says the startup advisory's support part was last shown for (#1173), '' for none. }
+function AdvisedVersion: CfgFile.TName;
+
+{ Record version as the one the support part was last shown for, and save POOLOPT.CFG. }
+procedure SetAdvised(version: CfgFile.TName);
 
 { Show the Settings screen until Exit or Escape. Game, Sound, Camp, Paths and System on the bottom line, which has no
   prompt, show its pages. On a settings page Up and Down (also Home and End) move the highlight through its settings,
@@ -38,7 +44,7 @@ procedure OptionsMenu;
 implementation
 
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_KEYS, C_SOUND, C_DATA, C_OPT, GameVars, TextRend, Border, MenuCore,
-  GameIo, SoundDrv, DaxIo, DataArc, GameDefs, VidOps, CbtLog, StrUtil;
+  GameIo, SoundDrv, DaxIo, DataArc, GameDefs, VidOps, CbtLog, StrUtil, Advisory;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -178,6 +184,18 @@ begin
       C_OPT.OPT_COMBAT_LOG: GameVars.combatLogOn := s.flags[opt];
     end;
   cur.paths := s.paths;
+  cur.advised := s.advised;
+end;
+
+function AdvisedVersion: CfgFile.TName;
+begin
+  AdvisedVersion := cur.advised;
+end;
+
+procedure SetAdvised(version: CfgFile.TName);
+begin
+  cur.advised := CfgFile.Tidy(version);
+  Options.SaveOptions;
 end;
 
 { The row of setting opt on its page: its line (CfgFile.SettingLine) from FIRST_ROW. }
@@ -360,8 +378,9 @@ begin
   end;
 end;
 
-{ The System page: the video and sound device the game runs with, the build, the data archives and memory, and the
-  STING and NORAND switches when they are given. }
+{ The System page: the video and sound device the game runs with, the build, the data archives and memory, the speed
+  check's time, the STING, NORAND and ADVISE switches when they are given, and where to send questions and bug
+  reports. }
 procedure DrawSystemPage;
 var
   merged: Byte;
@@ -386,13 +405,22 @@ begin
   else
     Options.DrawInfo(FIRST_ROW + 10, 'EMS Active', 'No');
 {$ENDIF}
+  Options.DrawInfo(FIRST_ROW + 11, 'Speed Check', Advisory.SpeedText);
   switches := '';
   if GameVars.stingArg then
     switches := 'STING ';
   if GameVars.norandArg then
-    switches := switches + 'NORAND';
+    switches := switches + 'NORAND ';
+  if GameVars.adviseArg then
+    switches := switches + 'ADVISE';
   if switches <> '' then
     Options.DrawInfo(FIRST_ROW + 12, 'Switches', switches);
+  { the startup advisory's support lines (#1173), wrapped to the box }
+  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 14, LINE_COLOR, 'This is a modified version of the');
+  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 15, LINE_COLOR, 'game. GOG, Steam and SNEG can''t help');
+  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 16, LINE_COLOR, 'with it. Please send questions and');
+  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 17, LINE_COLOR, 'bug reports to');
+  Advisory.DisplayText(LABEL_COL, FIRST_ROW + 18, TITLE_COLOR, Advisory.SUPPORT_EMAIL + '.');
 end;
 
 { Clear the screen and draw page with its title in the frame, setting sel highlighted on a settings page. }

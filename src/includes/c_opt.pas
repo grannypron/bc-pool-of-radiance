@@ -105,7 +105,10 @@ const
   { POOLOPT.CFG's keys past the settings: the later games' data and save paths (Curse's, Secret's, then Pools') }
   KEY_PATHS = OPT_COUNT;
   LATER_PATHS = 6;
-  KEY_COUNT = KEY_PATHS + LATER_PATHS;
+  { and the last version the startup advisory's support part was shown for (#1173): Advisory shows it again when this
+    is not the build's own }
+  KEY_ADVISED = KEY_PATHS + LATER_PATHS + 1;
+  KEY_COUNT = KEY_ADVISED;
   { the game speed: 0 the fastest, SLOWEST the slowest, and the default }
   SLOWEST = 9;
   SPEED_DEFAULT = 1;

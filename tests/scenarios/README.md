@@ -3,7 +3,9 @@
 Each `.txt` file here is a scenario that `tests/regress.sh` replays, through goldbox-player's emulator harness,
 against a golden build and the build under test, comparing the screen text (read exactly from the game's font) and the
 save files at its checkpoints. Every scenario boots with `NORAND`, so the dice fall the same way every run, and starts
-from the default saved games the harness copies in (`goldbox-player/saves/`).
+from the default saved games the harness copies in (`goldbox-player/saves/`). The harness boots the game as `START
+STING`, and STING skips the startup advisory (#1173), so a scenario starts at the main menu even though those saves
+have no POOLOPT.CFG; `advisory` shows the advisory by typing a start with `ADVISE` at the DOS prompt.
 
 The format, one step a line (`#` starts a comment):
 
@@ -76,5 +78,6 @@ the text matches (an animated picture) is only a warning.
 | `coffinbare` | the vampire's coffin with nothing holy (#1096, `saves/coffinbare`): SANCTIFY refused, and the coffin as it was |
 | `outpost` | the Zhentil Keep Outpost before the mission (#1116), save A in the western wilderness at (3,33) (`saves/outpost`): a step north, the riders' warning, LEAVE, the map back |
 | `magicshop` | New Phlan's magic shop (#1091, #1158), save A on its square, (11,12) (`saves/magicshop`): the greeting, the counter, the stock (the wares, then the twelve scrolls), Buy on the first scroll listing its spells and asking, No; the golden build has the arms shop there, so its greeting and stock differ by design |
+| `advisory` | the startup advisory (#1173): Exit to DOS, then `START STING NORAND ADVISE` typed at the prompt on a fresh install (no POOLOPT.CFG): the support part (not the speed part, at the harness's 30000 cycles), a key to the main menu, and the next typed start straight to the main menu; the golden build has no advisory, so it fails until the goldens are recorded from a build with one |
 | `repair` | Repair for a healthy party (#1155), from the save on the issue, its slot A put in slot H (`saves/repair`) on the Temple of Tyr's square in New Phlan, (8,4): the temple, "The party needs nothing the temple can give." held until a key (this build only), the view restored |
 | `ssiformat` | against SSI's own v1.3 (`tests/regress.sh drive_c/POOLRAD/SSI obj tests/scenarios/ssiformat.txt`): the `.CHA` file Remove writes and the files saving A into D writes are SSI's (`CHARLIST.TXT` is left out: a party member stays on the roster, #754), with SSI's heap pointers, the unused name bytes and the saved script masked |

@@ -89,6 +89,9 @@ var
   stingArg: Boolean;
   { Started with NORAND as the second argument: the random numbers are seeded with 1. GameBoot sets it with stingArg. }
   norandArg: Boolean;
+  { Started with ADVISE after STING: the startup advisory runs as it does without STING, which skips it (#1173), so a
+    scenario can see it. GameBoot sets it with stingArg. }
+  adviseArg: Boolean;
   { STING Ctrl-L (#612): the script trace log is open; each opcode's mnemonic goes to debugFile (debug.txt), and Ctrl-Z
     writes the creatures' effects there }
   debugTraceEnabled: Boolean;

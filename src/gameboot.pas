@@ -135,10 +135,22 @@ begin
 end;
 {$ENDIF}
 
+{ True when word is one of the program's arguments after the first. }
+function SwitchGiven(word: string): Boolean;
+var
+  i: Integer;
+begin
+  SwitchGiven := False;
+  for i := 2 to ParamCount do
+    if ParamStr(i) = word then
+      SwitchGiven := True;
+end;
+
 { Game startup runs through this unit's initialization section. }
 begin
   GameVars.stingArg := ParamStr(1) = 'STING';
   GameVars.norandArg := ParamStr(2) = 'NORAND';
+  GameVars.adviseArg := GameVars.stingArg and GameBoot.SwitchGiven('ADVISE');
 {$IFDEF FPC}
   DataPick.FindGame;
   GameVars.ovrInEms := False;

@@ -8,7 +8,7 @@ This project is a source reconstruction and expanded edition of SSI's DOS versio
 - *Pool of Radiance*, *Forgotten Realms*, *Dungeons & Dragons*, Strategic Simulations, Inc. and all related names, trademarks, copyrights, artwork, writing, game data and other rights belong to their respective owners. I do not claim ownership of them. This project is not affiliated with or endorsed by those owners.
 - The only game executables and data files included in project releases are ones I compiled or generated from this source. SSI's original retail game data is not included. You need to own a copy of *Pool of Radiance* to play. It is sold as part of *Forgotten Realms: The Archives — Collection Two* on [GOG](https://www.gog.com/en/game/forgotten_realms_the_archives_collection_two) and [Steam](https://store.steampowered.com/app/1904580/Forgotten_Realms_The_Archives__Collection_Two/).
 - AI coding tools were used throughout the project: Anthropic's Claude Code, OpenAI Codex, and the Pi coding agent with Qwen3-Next-Coder.
-- This is a hobby and preservation project. It is provided as-is, without warranty, customer service or a promise that it will work on your system. Back up your game and saved characters before replacing anything. Please do not ask GOG, Steam, SNEG or the original rights holders for support with this project.
+- This is a hobby and preservation project. It is provided as-is, without warranty, customer service or a promise that it will work on your system. Back up your game and saved characters before replacing anything. Please do not ask GOG, Steam, SNEG or the original rights holders for support with this project; see [Questions and bug reports](#questions-and-bug-reports).
 - Because the reconstructed game code and the project's new code are interwoven, this repository does not make a blanket open-source license grant. Making the source visible does not grant rights to the original game or its derived material. Anyone reusing or redistributing material from this repository is responsible for determining what they may legally use.
 
 Laws concerning reverse engineering and derived works vary. You are responsible for complying with the laws and terms that apply to your copy of the game.
@@ -45,6 +45,12 @@ See [the changelog](docs/changelog.md) for the player-facing list and [the detai
 On its first start, the game builds combined archives from your legally obtained game data. This allows the project to patch scripts and other data without distributing the original files. The originals are only read. The build normally happens once and writes its progress to `DATABLD.LOG`; if the combined files cannot be created, the game can still run, but data fixes will not be active.
 
 Installation should be similar for macOS and Linux users: drop the files into the appropriate directory and start the game normally.
+
+This version needs a faster computer than SSI's did. DOSBox's default speed (`cycles=auto`, which runs DOS games at 3,000 cycles) is too slow for it: the game measures the speed when it starts and, when the computer is too slow, says so before the main menu. In DOSBox, raise the CPU cycles: `cycles=max`, or for example `cycles=fixed 20000`. GOG's DOSBox settings for the game (`cycles=fixed 30000`) are fast enough.
+
+## Questions and bug reports
+
+This is a modified version of the game. GOG, Steam and SNEG can't help with it. Please send questions and bug reports to talonius@brazencrows.com. The game says so too, on its first start after each new version and on the System page of the Settings screen.
 
 ## Building From Source
 

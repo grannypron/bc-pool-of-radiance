@@ -158,7 +158,9 @@ begin
   TestKit.CheckEqualsS('C:\POOLS\SAVE\', s.paths[6], 'Pools'' save path');
   TestKit.CheckEqualsS('Game Speed (1)', CfgFile.SettingLabel(s, C_OPT.OPT_SPEED), 'the speed''s label');
   TestKit.CheckEqualsS('  Log Lines (50)', CfgFile.SettingLabel(s, C_OPT.OPT_LOG_LINES), 'the log lines'' label');
-  TestKit.CheckEqualsS('POOLSSAVE', CfgFile.KeyName(C_OPT.KEY_COUNT), 'the last key');
+  TestKit.CheckEqualsS('', s.advised, 'no version advised by default (#1173)');
+  TestKit.CheckEqualsS('POOLSSAVE', CfgFile.KeyName(C_OPT.KEY_PATHS + C_OPT.LATER_PATHS), 'the last path key');
+  TestKit.CheckEqualsS('ADVISED', CfgFile.KeyName(C_OPT.KEY_COUNT), 'the last key, the version advised');
 
   { keys and values }
   TestKit.CheckEqualsS('a B', CfgFile.Trim(#9' a B '#9), 'Trim takes spaces and tabs off both ends, keeping case');
@@ -256,6 +258,12 @@ begin
   TestKit.CheckEqualsL(6, bad, 'six values refused');
   TestKit.Check(ReadText('SPEED=4' + CRLF + 'SPEED=5') = CfgFile.CFG_READ, 'a file with no newline at its end reads');
   TestKit.CheckEqualsL(5, s.speed, 'the last of a key given twice wins, the last line too');
+  { the version the startup advisory's support part was last shown for (#1173) }
+  TestKit.Check(ReadText('advised = v1.3-1600 ' + CRLF) = CfgFile.CFG_READ, 'ADVISED reads');
+  TestKit.CheckEqualsS('V1.3-1600', s.advised, 'tidied');
+  TestKit.CheckEqualsS('V1.3-1600', CfgFile.StoredValue(s, C_OPT.KEY_ADVISED), 'and is kept so');
+  TestKit.Check(ReadText('ADVISED=' + CRLF) = CfgFile.CFG_READ, 'a blank ADVISED reads');
+  TestKit.CheckEqualsS('', s.advised, 'as none advised');
   body := '';
   for i := 1 to C_OPT.MAX_LINES - 1 do
     body := body + CRLF;
@@ -271,6 +279,7 @@ begin
   CfgFile.Defaults(s);
   s.speed := 4;
   CfgFile.SetFlag(s, C_OPT.OPT_WALL, 0);
+  s.advised := 'V1.3-1600';
   TestKit.Check(CfgFile.WriteOptions('', s), 'POOLOPT.CFG is written');
   TestKit.CheckEqualsL(1, LineNo(C_OPT.OPT_NAME, 'SPEED=4'), 'the keys start with SPEED');
   TestKit.CheckEqualsL(2, LineNo(C_OPT.OPT_NAME, 'ALLPORTRAITS=ON'), 'in their order');
@@ -287,7 +296,9 @@ begin
   TestKit.CheckEqualsL(C_OPT.OPT_FIX_SCROLLS, LineNo(C_OPT.OPT_NAME, 'FIXSCROLLS=OFF'), 'Use Scrolls off by default');
   TestKit.CheckEqualsL(C_OPT.OPT_FIX_HEAL, LineNo(C_OPT.OPT_NAME, 'FIXPALADINHEAL=OFF'),
                        'Use Paladin''s Heal off by default');
-  TestKit.CheckEqualsL(C_OPT.KEY_COUNT, LineNo(C_OPT.OPT_NAME, 'POOLSSAVE=C:\POOLS\SAVE\'), 'the last key');
+  TestKit.CheckEqualsL(C_OPT.KEY_PATHS + C_OPT.LATER_PATHS, LineNo(C_OPT.OPT_NAME, 'POOLSSAVE=C:\POOLS\SAVE\'),
+                       'the last path key');
+  TestKit.CheckEqualsL(C_OPT.KEY_COUNT, LineNo(C_OPT.OPT_NAME, 'ADVISED=V1.3-1600'), 'the last key, the version');
   TestKit.CheckEqualsL(C_OPT.KEY_COUNT + 1, LineNo(C_OPT.OPT_NAME, 'NEWKEY=1'), 'then the unknown lines');
   TestKit.CheckEqualsL(C_OPT.KEY_COUNT + 2, LineNo(C_OPT.OPT_NAME, '; a note'), 'in their order, the blank dropped');
   TestKit.CheckEqualsL(0, LineNo(C_OPT.OPT_NAME, 'SPEED=2'), 'an old known line is not kept');
