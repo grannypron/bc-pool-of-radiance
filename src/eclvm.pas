@@ -1698,7 +1698,7 @@ begin
     a := address + i;
     c := EclVars.ReadGbvm(a) + 1;
     if c > 1 then begin
-      TextRend.RenderChar(GameVars.curCol, GameVars.curRow, White, 1, c, 0);
+      TextRend.RenderChar(GameVars.curCol, GameVars.curRow, White, Black, 1, c, 0);
       Inc(GameVars.curCol);
       Inc(i);
     end else

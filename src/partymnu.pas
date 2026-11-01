@@ -62,8 +62,8 @@ function StepCmd(offered: TCmdSet; cmd: Byte; step: ShortInt): Byte;
 function OtherColumn(offered: TCmdSet; cmd, top: Byte): Byte;
 
 { Draw the two-column menu with the headings on row top: the headings in light magenta, so the highlighted command
-  stands out (#1071), a command offered in light green with its key in white, cur wholly in white, and one not offered
-  in dark gray. }
+  stands out (#1071), a command offered in light green with its key in white, cur in inverse video (black on white,
+  #1160), and one not offered in dark gray. }
 procedure Draw(offered: TCmdSet; top, cur: Byte);
 
 { Wait for a command of the two-column menu with the version (GameDefs.GAME_VERSION) on the bottom line. Up and Down
@@ -186,8 +186,8 @@ begin
     end;
 end;
 
-{ Draw command cmd of the two-column menu: offered in light green with its key in white, or wholly white as the
-  highlighted one, or dark gray when not offered. }
+{ Draw command cmd of the two-column menu: offered in light green with its key in white, or in inverse video (black on
+  white) as the highlighted one, or dark gray when not offered. }
 procedure DrawCmd(offered: TCmdSet; top, cmd, cur: Byte);
 var
   col: Byte;
@@ -201,7 +201,7 @@ begin
   if not (cmd in offered) then
     TextRend.DisplayString(col, row, DarkGray, name)
   else if cmd = cur then
-    TextRend.DisplayString(col, row, White, name)
+    TextRend.DisplayStringOn(col, row, Black, White, name)
   else begin
     TextRend.DisplayString(col, row, LightGreen, name);
     i := 1;

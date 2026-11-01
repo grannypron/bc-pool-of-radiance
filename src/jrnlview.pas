@@ -85,14 +85,20 @@ begin
     end;
 end;
 
-{ Draws the label of a visible place n on its list row in the requested color. }
-procedure DrawLabel(n: Integer; color: Byte);
+{ Draws the label of a visible place n on its list row: in inverse video (black on white, #1160) when highlighted, else
+  in light green. }
+procedure DrawLabel(n: Integer; highlighted: Boolean);
+var
+  s: Types.TStr40;
 begin
-  TextRend.DisplayString(LIST_LEFT, TOP_ROW + n - top, color,
-                         Copy(JrnlList.EntryLabel(items[n]), 1, LIST_RIGHT - LIST_LEFT + 1));
+  s := Copy(JrnlList.EntryLabel(items[n]), 1, LIST_RIGHT - LIST_LEFT + 1);
+  if highlighted then
+    TextRend.DisplayStringOn(LIST_LEFT, TOP_ROW + n - top, Black, White, s)
+  else
+    TextRend.DisplayString(LIST_LEFT, TOP_ROW + n - top, LightGreen, s);
 end;
 
-{ Clear the list column and draw the labels from place top, the highlighted one in White. }
+{ Clear the list column and draw the labels from place top, the highlighted one in inverse video. }
 procedure DrawList;
 var
   n: Integer;
@@ -100,10 +106,7 @@ begin
   Border.ClearBox(LIST_LEFT, TOP_ROW, LIST_RIGHT, BOTTOM_ROW);
   n := top;
   while (n <= count) and (n - top <= BOTTOM_ROW - TOP_ROW) do begin
-    if n = sel then
-      JrnlView.DrawLabel(n, White)
-    else
-      JrnlView.DrawLabel(n, LightGreen);
+    JrnlView.DrawLabel(n, n = sel);
     Inc(n);
   end;
 end;
@@ -350,9 +353,9 @@ begin
     sel := n;
     JrnlView.DrawList;
   end else begin
-    JrnlView.DrawLabel(sel, LightGreen);
+    JrnlView.DrawLabel(sel, False);
     sel := n;
-    JrnlView.DrawLabel(sel, White);
+    JrnlView.DrawLabel(sel, True);
   end;
   JrnlView.Moved(old);
 end;

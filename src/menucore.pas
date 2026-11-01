@@ -71,26 +71,26 @@ function PageRows(list: Types.PItemRec; ulRow, lrRow: ShortInt; paged: Boolean):
 procedure DrawMore(leftCol, rightCol, row: Byte);
 
 { Bottom-line menu: query in qCol, then menu with its digits and capital letters (the hotkeys) in hlCol, the current
-  option (GameVars.horizChoice, reset to 1 when out of range) wholly in hlCol and the rest in mCol. ',' and '.' move the
-  current option, and so do the Left and Right arrows unless arrowsToCaller is set. A hotkey (returned upper-cased, and
-  made the current option), a key in extraKeys (returned upper-cased) or space ends the menu; Enter, when mCol or hlCol
-  is nonzero, returns the current option's hotkey (#13 for a menu without options, or while enterToCaller is set);
-  Escape returns #0. With reinterpret, any other extended key returns its scan code and digits 1-9 and backslash map to
-  keypad scan codes, all with ext set; F1 returns its scan code, with ext set, only under helpToCaller. The picture
-  animates when animate is set or the GBVM menuAnimation flag is nonzero (that flag also advances a frame every pass and
-  is cleared on exit). }
+  option (GameVars.horizChoice, reset to 1 when out of range) in inverse video (black on hlCol, #1160) and the rest in
+  mCol. ',' and '.' move the current option, and so do the Left and Right arrows unless arrowsToCaller is set. A hotkey
+  (returned upper-cased, and made the current option), a key in extraKeys (returned upper-cased) or space ends the menu;
+  Enter, when mCol or hlCol is nonzero, returns the current option's hotkey (#13 for a menu without options, or while
+  enterToCaller is set); Escape returns #0. With reinterpret, any other extended key returns its scan code and digits
+  1-9 and backslash map to keypad scan codes, all with ext set; F1 returns its scan code, with ext set, only under
+  helpToCaller. The picture animates when animate is set or the GBVM menuAnimation flag is nonzero (that flag also
+  advances a frame every pass and is cleared on exit). }
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
                         var ext: Boolean): Char;
 
 { Vertical list menu in the box ulCol,ulRow..lrCol,lrRow with menu (plus Next/Prev/Exit as they apply) on the bottom
-  line. The Up arrow or Home moves the highlight up a line and the Down arrow or End moves it down, wrapping within the
-  page; Page Up and Page Down turn the page. idx is zero-based, held to the list, and the page opens on it; redraw
-  requests repainting. Label rows have inUse set; they are drawn in qCol and skipped by the cursor. An empty list, Exit
-  or Escape returns #0 with sel=nil (an empty list also sets idx=0). Any other menu key returns that key with sel set to
-  the highlighted entry. With listOnly set, a list that fits on one page is drawn and #0 returned with sel=nil at once.
-  With movesToCaller set, a key that moves the highlight returns too. A key in extraKeys returns as any other menu key
-  does, on every key the list waits for. Under fullPaging a list longer than the box offers Next and Prev on every page
-  and marks a page with more below it. }
+  line. The highlighted entry is drawn in inverse video, black on hlCol (#1160). The Up arrow or Home moves the
+  highlight up a line and the Down arrow or End moves it down, wrapping within the page; Page Up and Page Down turn the
+  page. idx is zero-based, held to the list, and the page opens on it; redraw requests repainting. Label rows have inUse
+  set; they are drawn in qCol and skipped by the cursor. An empty list, Exit or Escape returns #0 with sel=nil (an empty
+  list also sets idx=0). Any other menu key returns that key with sel set to the highlighted entry. With listOnly set, a
+  list that fits on one page is drawn and #0 returned with sel=nil at once. With movesToCaller set, a key that moves the
+  highlight returns too. A key in extraKeys returns as any other menu key does, on every key the list waits for. Under
+  fullPaging a list longer than the box offers Next and Prev on every page and marks a page with more below it. }
 function MenuVertical(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; ulCol, ulRow, lrCol, lrRow: ShortInt;
                       list: Types.PItemRec; addExit: Boolean; var redraw: Boolean; var idx: Integer;
                       var sel: Types.PItemRec): Char;
@@ -227,8 +227,8 @@ var
     OptionAt := j;
   end;
 
-  { Draw the menu after the query with option cur wholly in hlCol, the other hotkeys in hlCol (but not an unmarked
-    option's) and the rest in mCol, then blank the rest of the line. }
+  { Draw the menu after the query with option cur in inverse video (black on hlCol), the other hotkeys in hlCol (but
+    not an unmarked option's) and the rest in mCol, then blank the rest of the line. }
   procedure DisplayOption(cur: Byte);
   var
     i: Byte;
@@ -237,14 +237,14 @@ var
       for i := 1 to mLen do
         if (opt[cur].first <= i) and (opt[cur].last >= i)
            and (hlCol <> 0) then
-          TextRend.RenderChar(qLen + i - 1, 24, hlCol, 1, Ord(menu[i]), 1)
+          TextRend.RenderChar(qLen + i - 1, 24, Black, hlCol, 1, Ord(menu[i]), 1)
         else if (menu[i] in ['0'..'9', 'A'..'Z']) and not (OptionAt(i) in unmarked) then
-          TextRend.RenderChar(qLen + i - 1, 24, hlCol, 1, Ord(menu[i]), 1)
+          TextRend.RenderChar(qLen + i - 1, 24, hlCol, Black, 1, Ord(menu[i]), 1)
         else
-          TextRend.RenderChar(qLen + i - 1, 24, mCol, 1, Ord(menu[i]), 1);
+          TextRend.RenderChar(qLen + i - 1, 24, mCol, Black, 1, Ord(menu[i]), 1);
       { columns qLen + mLen..39 are blanked, so a 39-column line still clears column 39 }
       if qLen + mLen <= 39 then
-        TextRend.RenderChar(qLen + mLen, 24, Black, 39 - mLen - qLen + 1, 32, 1);
+        TextRend.RenderChar(qLen + mLen, 24, Black, Black, 39 - mLen - qLen + 1, 32, 1);
     end;
   end;
 
@@ -437,7 +437,7 @@ var
       else
         TextRend.DisplayString(ulCol, row, mCol, pp^.name);
       if Length(pp^.name) < width then
-        TextRend.RenderChar(ulCol + Length(pp^.name), row, Black, width - Length(pp^.name), 32, 1);
+        TextRend.RenderChar(ulCol + Length(pp^.name), row, Black, Black, width - Length(pp^.name), 32, 1);
       pp := pp^.next;
       Inc(row);
     end;
@@ -469,7 +469,7 @@ var
     LastNonBlank := n;
   end;
 
-  { Redraw the text of member n, without its surrounding blanks, in hlCol. }
+  { Redraw the text of member n, without its surrounding blanks, in inverse video: black on hlCol. }
   procedure HighlightLine(n: Integer);
   var
     pp: Types.PItemRec;
@@ -479,7 +479,8 @@ var
     pp := MenuCore.FindListMember(n, list);
     a := FirstNonBlank(pp^.name);
     b := LastNonBlank(pp^.name) - a + 1;
-    TextRend.DisplayString(ulCol + a - 1, ulRow + (n - GameVars.verticalMenuTop), hlCol, Copy(pp^.name, a, b));
+    TextRend.DisplayStringOn(ulCol + a - 1, ulRow + (n - GameVars.verticalMenuTop), Black, hlCol,
+                             Copy(pp^.name, a, b));
   end;
 
   { Redraw the text of member n, without its surrounding blanks, in its normal color. }

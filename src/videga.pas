@@ -157,22 +157,27 @@ begin
   end;
 end;
 
-{ all four planes: the font row in each plane of color, 0 in the others }
-procedure DrawGlyph(col, row, color, glyph: Byte);
+{ all four planes: in each plane, the font row's set bits take fg's bit and its clear bits bg's }
+procedure DrawGlyph(col, row, fg, bg, glyph: Byte);
 var
   dstOff: Word;
   plane: Byte;
   fontRow: Byte;
+  bits: Byte;
+  planeByte: Byte;
 begin
   dstOff := (row * 8) * 40 + col;
   Port[C_EGA.SEQ_ADDR_PORT] := C_EGA.SEQ_MAP_MASK_REG;
   for fontRow := 0 to 7 do begin
+    bits := GameVars.gameFont^[glyph][fontRow];
     for plane := 0 to 3 do begin
       Port[C_EGA.SEQ_DATA_PORT] := GameDefs.egaPlaneBit[plane];
-      if (GameDefs.egaPlaneBit[plane] and color) > 0 then
-        Mem[egaCurPage: dstOff] := GameVars.gameFont^[glyph][fontRow]
-      else
-        Mem[egaCurPage: dstOff] := 0;
+      planeByte := 0;
+      if (GameDefs.egaPlaneBit[plane] and fg) > 0 then
+        planeByte := bits;
+      if (GameDefs.egaPlaneBit[plane] and bg) > 0 then
+        planeByte := planeByte or (bits xor $FF);
+      Mem[egaCurPage: dstOff] := planeByte;
     end;
     Inc(dstOff, 40);
   end;

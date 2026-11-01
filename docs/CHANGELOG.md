@@ -43,6 +43,7 @@ This update is a broad one: it adds an easier setup process, smarter inventory h
 
 Most of these changes are small on their own, but together they make the game easier to understand and harder to operate by accident.
 
+- Menus mark the highlighted choice in inverse video, black on the highlight colour, as the later Gold Box games do, in place of a change of text colour. That covers every bottom-line menu (the map, camp, shop and Yes/No prompts among them), every list (Items, spells, shop stock, the roster), the training hall's party menu, the Load/Save slots (the slot's letter), the Journal, the Bestiary, the rest timer, the Dual Class and Levels screens, and the Settings screen, where the highlighted setting's chosen value is the one marked.
 - POOLCFG takes Borland's colours, in homage to the Turbo Pascal it was first written in: yellow text on the deep blue, and grey menus with black text and red keys. On Linux and macOS, in a terminal with 24-bit colour, it shows the VGA's own blue and the rest rather than the terminal's palette's.
 - In the Linux, Windows and macOS versions, Command-Q, the app menu's Quit, the window's close button and Alt-F4 now ask "Quit Pool of Radiance? Progress since your last save will be lost." before ending the game, with Quit and Cancel; Return and Escape choose Cancel. On a Mac the game's Alt is Option, so Option-Q is Quick: reaching for Alt-Q no longer loses your game. The macOS README says so.
 - On the Load/Save menu, Quit now just asks "Exit to DOS?", without offering to save first, and X chooses Exit.
