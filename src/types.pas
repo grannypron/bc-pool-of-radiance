@@ -108,6 +108,8 @@ type
   TIconCols = array[1..6] of Byte;
   { A character's spell slots: spell IDs, 0 = empty, C_SPELL.PENDING_FLAG set while still being memorized. }
   TSpellSlots = array[0..SPELL_SLOT_LAST] of Byte;
+  { a count for each class, by C_LEVEL slot }
+  TClassCounts = array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Byte;
   { One level an energy drain took (#1174): the experience it cost (the experience before less the experience after),
     the hit points it took and the class it lowered (a C_LEVEL slot). Restoration gives back that level, those hit
     points and that experience. }

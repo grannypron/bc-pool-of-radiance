@@ -189,6 +189,11 @@ function RestorableClass(tgt: Types.PCharRecord; cls: ShortInt): Boolean;
   the pick when its level is not above the current pick's and its next-level XP is smaller. -1 when there is none. }
 function RestoreClass(tgt: Types.PCharRecord): ShortInt;
 
+{ The levels each class of creature has lost to energy drains, as the View page marks them (#1161): an entry on the
+  drain log counts for the class it lowered; a drained level the log does not hold counts for the class Restoration
+  would give it to (RestoreClass, after the logged levels have come back). }
+procedure DrainedByClass(creature: Types.PCharRecord; var counts: Types.TClassCounts);
+
 procedure SpellPotionOfSpeed;
 
 procedure KeoghtomsOintmentHandler;
@@ -2010,6 +2015,48 @@ begin
       tgt^.experience := levelXp;
   end;
   ClassCal.RecalcBaseSkills(tgt);
+end;
+
+procedure DrainedByClass(creature: Types.PCharRecord; var counts: Types.TClassCounts);
+var
+  cls: ShortInt;
+  j: ShortInt;
+  i: Byte;
+  unlogged: Byte;
+  raised: Types.TClassCounts;
+begin
+  FillChar(counts, SizeOf(counts), 0);
+  FillChar(raised, SizeOf(raised), 0);
+  for i := 1 to creature^.portExt.drainCount do begin
+    cls := creature^.portExt.drains[i].cls;
+    if (cls >= C_LEVEL.CLERIC) and (cls <= C_LEVEL.MONK) then
+      Inc(counts[cls]);
+  end;
+  if creature^.drainedLevels <= creature^.portExt.drainCount then
+    Exit;
+  unlogged := creature^.drainedLevels - creature^.portExt.drainCount;
+  { the logged levels come back first; then each unlogged level goes where Restoration would put it, the levels raised
+    for the look ahead and taken off again after }
+  for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
+    raised[cls] := counts[cls];
+    Inc(creature^.classLevels[cls], raised[cls]);
+  end;
+  for i := 1 to unlogged do begin
+    cls := Magic.RestoreClass(creature);
+    { with no class to raise, the level stays on the class a drain takes first: the highest one not left }
+    if cls < 0 then
+      for j := C_LEVEL.CLERIC to C_LEVEL.MONK do
+        if (creature^.portExt.formerClasses and (1 shl j) = 0) and (creature^.classLevels[j] > 0) then
+          if (cls < 0) or (creature^.classLevels[j] >= creature^.classLevels[cls]) then
+            cls := j;
+    if cls >= 0 then begin
+      Inc(counts[cls]);
+      Inc(raised[cls]);
+      Inc(creature^.classLevels[cls]);
+    end;
+  end;
+  for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
+    Dec(creature^.classLevels[cls], raised[cls]);
 end;
 
 { Restoration: give back one drained level (RestoreLevel). A class the restored level passes wakes again

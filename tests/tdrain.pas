@@ -1,12 +1,13 @@
 { Tests for the drain log (#1174): what an energy drain records (EffHndlr.DrainLevels, CharExt.PushDrain), how
   Restoration gives a level back with the experience and hit points the drain took (Magic.RestoreLevel), the rule for
   levels the log does not hold (an old save's), training's forfeit (CharExt.TrainDrain), a class change clearing the
-  log, and the .chx file at version 3 and the versions before it. }
+  log, the .chx file at version 3 and the versions before it, and what the View page shows (#1161): the levels each
+  class lost (Magic.DrainedByClass) and the secondary statuses (ViewChar.SecondaryStatus). }
 {$I COMPILER.INC}
 program TDrain;
 
-uses Types, C_ALIGN, C_CLASS, C_LEVEL, C_RACE, C_STAT, C_STATUS, GameVars, FileUtil, ClassCal, CharExt,
-  EffHndlr, Magic, VidVga, TestKit;
+uses Types, C_ALIGN, C_CLASS, C_EFFECT, C_LEVEL, C_RACE, C_STAT, C_STATUS, GameVars, FileUtil, ClassCal, CharExt,
+  EffHndlr, Magic, ViewChar, VidVga, TestKit;
 
 const
   FN = 'TDR';
@@ -27,6 +28,8 @@ var
   d: Types.PCharRecord;
   s: FileUtil.TFileSet;
   e: Types.TDrainRec;
+  counts: Types.TClassCounts;
+  poison: Types.TEffectRec;
   old: TExtFile2;
   f: file;
   i: Byte;
@@ -89,6 +92,9 @@ begin
   TestKit.CheckEqualsL(2, c^.portExt.drainCount, 'two entries');
   TestKit.CheckEqualsL(2000, c^.portExt.drains[2].xp, 'the second took 2000');
   TestKit.CheckEqualsL(2, c^.drainedLevels, 'two drained levels');
+  TestKit.CheckEqualsS(', Drained', ViewChar.SecondaryStatus(c), 'the View page says Drained');
+  Magic.DrainedByClass(c, counts);
+  TestKit.CheckEqualsL(2, counts[C_LEVEL.CLERIC], 'and the cleric level -2');
   Inc(c^.experience, 15);
   TestKit.Check(Magic.RestoreLevel(c), 'Restoration gives a level back');
   TestKit.CheckEqualsL(3, c^.classLevels[C_LEVEL.CLERIC], 'level 3 again');
@@ -102,6 +108,7 @@ begin
   TestKit.CheckEqualsL(0, c^.drainedLevels, 'no drained level left');
   TestKit.CheckEqualsL(0, c^.drainedHps, 'nor hit points');
   TestKit.CheckEqualsL(0, c^.portExt.drainCount, 'nor entries');
+  TestKit.CheckEqualsS('', ViewChar.SecondaryStatus(c), 'no secondary status');
   TestKit.Check(not Magic.RestoreLevel(c), 'a third Restoration does nothing');
 
   { a two-level drain makes two entries }
@@ -118,6 +125,8 @@ begin
   c^.hpMax := 12;
   c^.drainedLevels := 2;
   c^.drainedHps := 12;
+  Magic.DrainedByClass(c, counts);
+  TestKit.CheckEqualsL(2, counts[C_LEVEL.CLERIC], 'an old save''s two drained levels are the cleric''s');
   TestKit.Check(Magic.RestoreLevel(c), 'an old save''s drain is restored');
   TestKit.CheckEqualsL(3, c^.classLevels[C_LEVEL.CLERIC], 'a level back');
   TestKit.CheckEqualsL(3001, c^.experience, 'experience raised to its start');
@@ -156,6 +165,10 @@ begin
   CharExt.PushDrain(c, 100, 2, C_LEVEL.FIGHTER);
   CharExt.PushDrain(c, 200, 2, C_LEVEL.THIEF);
   CharExt.PushDrain(c, 300, 2, C_LEVEL.FIGHTER);
+  Magic.DrainedByClass(c, counts);
+  TestKit.CheckEqualsL(2, counts[C_LEVEL.FIGHTER], 'a triple class: the fighter lost two levels');
+  TestKit.CheckEqualsL(0, counts[C_LEVEL.MAGE], 'the magic-user none');
+  TestKit.CheckEqualsL(1, counts[C_LEVEL.THIEF], 'the thief one');
   TestKit.Check(CharExt.TrainDrain(c, C_LEVEL.THIEF, e) and (e.xp = 200), 'training the thief drops its entry');
   TestKit.CheckEqualsL(2, c^.portExt.drainCount, 'two left');
   TestKit.CheckEqualsL(300, c^.portExt.drains[2].xp, 'the later fighter entry moved down');
@@ -164,6 +177,14 @@ begin
                 'a class with no entry drops the most recent');
   c^.drainedLevels := 2;
   TestKit.Check(not CharExt.TrainDrain(c, C_LEVEL.MAGE, e), 'unless an unlogged level is there to take');
+  c^.portExt.drainCount := 0;
+  c^.drainedLevels := 1;
+  Magic.DrainedByClass(c, counts);
+  TestKit.CheckEqualsL(1, counts[C_LEVEL.FIGHTER] + counts[C_LEVEL.MAGE], 'an unlogged level goes where Restoration '
+                       + 'would put it: the fighter or magic-user, the lowest');
+  TestKit.CheckEqualsL(0, counts[C_LEVEL.THIEF], 'not the thief, a level higher');
+  TestKit.CheckEqualsL(3, c^.classLevels[C_LEVEL.FIGHTER], 'and the look ahead leaves the levels as they were');
+  TestKit.CheckEqualsL(4, c^.classLevels[C_LEVEL.THIEF], 'every one');
 
   { a class change clears the log }
   NewChar(C_RACE.HUMAN, C_CLASS.FIGHTER);
@@ -208,6 +229,16 @@ begin
   Ship;
   FileUtil.NewSet(s, '');
   TestKit.Check(CharExt.WriteExt(s, c, FN) and FileUtil.CommitSet(s), 'an ordinary character''s save erases it');
+
+  { the secondary statuses }
+  Ship;
+  c^.status := C_STATUS.DEAD_STATUS;
+  FillChar(poison, SizeOf(poison), 0);
+  poison.id := C_EFFECT.POISONED;
+  c^.effectsAddr := @poison;
+  TestKit.CheckEqualsS(', Poisoned', ViewChar.SecondaryStatus(c), 'killed by poison: Dead, Poisoned');
+  c^.drainedLevels := 2;
+  TestKit.CheckEqualsS(', Poisoned, Drained', ViewChar.SecondaryStatus(c), 'and drained too');
 
   FreeMem(c, SizeOf(Types.TCharRecord));
   FreeMem(d, SizeOf(Types.TCharRecord));
