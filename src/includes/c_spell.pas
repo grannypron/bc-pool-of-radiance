@@ -185,16 +185,15 @@ const
   CLOUDKILL_SIDE = 3;
   { Cloudkill's rules (1st-edition PHB): a creature of up to CLOUDKILL_DIES_LAST levels or hit dice dies; one of
     CLOUDKILL_HARD_SAVE saves vs. poison at CLOUDKILL_HARD_MOD or dies; one up to CLOUDKILL_SAVE_LAST saves vs. poison
-    or dies; one above takes 1d CLOUDKILL_DAMAGE_DIE poison damage each round it stays (FxEngine.CloudkillFate) }
+    or dies; one above is untouched (FxEngine.CloudkillFate) }
   CLOUDKILL_DIES_LAST = 4;
   CLOUDKILL_HARD_SAVE = 5;
   CLOUDKILL_HARD_MOD = -4;
   CLOUDKILL_SAVE_LAST = 6;
-  CLOUDKILL_DAMAGE_DIE = 10;
-  { what a Cloudkill does to a creature (FxEngine.CloudkillFate): kills it, kills it unless it saves, or hurts it }
+  { what a Cloudkill does to a creature (FxEngine.CloudkillFate): kills it, kills it unless it saves, or spares it }
   CLOUDKILL_KILLS = 0;
   CLOUDKILL_SAVE = 1;
-  CLOUDKILL_HURTS = 2;
+  CLOUDKILL_SPARES = 2;
   { the shape of the cells a spell reaches, as CharHlp.SpellArea gives it from spellTable's area mode and the handlers'
     own shapes: the caster alone (area mode 0); some creatures picked one at a time (modes 1..4, 6, 7); creatures picked
     against a pool (mode 5: Faerie Fire's caster level by size, Charm Monsters' 2d4 by level); one creature, or a bare

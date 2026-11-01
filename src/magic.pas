@@ -2696,12 +2696,6 @@ begin
         CharDisp.PrintNameString(creature, 'is Unaffected', 10, True)
       else
         killed := True;
-  else
-    begin
-      GameVars.elementMask := C_EFFECT.ELEM_POISON;
-      FxEngine.InflictNonWeaponDamage(creature, Dice.RollDice(1, C_SPELL.CLOUDKILL_DAMAGE_DIE), 0, False);
-      GameVars.elementMask := 0;
-    end;
   end;
   if killed then begin
     CharDisp.PrintNameString(creature, 'is Poisoned', 10, False);

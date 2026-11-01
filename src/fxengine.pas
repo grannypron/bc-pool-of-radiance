@@ -72,14 +72,15 @@ function CloudSpares(creature: Types.PCharRecord): Boolean;
   resistance refused it still coughed or retched (POR-0218, #939). }
 procedure ConsiderStinkingCloud(creature: Types.PCharRecord);
 
-{ True when a Cloudkill cannot touch creature (#1193): it is animated dead (C_EFFECT.ANIMATE_DEAD), whose zombies the
-  Monster Manual makes proof against poison, or is immune to poison (NO_PARA_POISON, NO_CHARM_POISON). }
+{ True when a Cloudkill cannot touch creature (#1193): it is above C_SPELL.CLOUDKILL_SAVE_LAST levels or hit dice,
+  which the 1st-edition PHB's cloud leaves alone, it is animated dead (C_EFFECT.ANIMATE_DEAD), whose zombies the
+  Monster Manual makes proof against poison, or it is immune to poison (NO_PARA_POISON, NO_CHARM_POISON). }
 function CloudkillProof(creature: Types.PCharRecord): Boolean;
 
 { What a Cloudkill does each round to a creature of level (or hit dice) level, by the 1st-edition PHB: up to
   C_SPELL.CLOUDKILL_DIES_LAST it dies (C_SPELL.CLOUDKILL_KILLS); at CLOUDKILL_HARD_SAVE it saves vs. poison at
-  CLOUDKILL_HARD_MOD, and up to CLOUDKILL_SAVE_LAST at 0, or dies (CLOUDKILL_SAVE, saveMod the modifier); above, it
-  takes poison damage (CLOUDKILL_HURTS). Curse's left those above level 6 alone. }
+  CLOUDKILL_HARD_MOD, and up to CLOUDKILL_SAVE_LAST at 0, or dies (CLOUDKILL_SAVE, saveMod the modifier); above, it is
+  untouched (CLOUDKILL_SPARES), as in Curse. }
 function CloudkillFate(level: ShortInt; var saveMod: ShortInt): Byte;
 
 { The lowest cloud number, at most 15, that none of the caster's clouds on the GameVars.cloudHead list has, of either
@@ -583,7 +584,8 @@ function CloudkillProof(creature: Types.PCharRecord): Boolean;
 var
   effect: Types.PEffectRec;
 begin
-  CloudkillProof := CharHlp.HasEffect(creature, C_EFFECT.ANIMATE_DEAD, effect) or
+  CloudkillProof := (creature^.levelHighest > C_SPELL.CLOUDKILL_SAVE_LAST) or
+                    CharHlp.HasEffect(creature, C_EFFECT.ANIMATE_DEAD, effect) or
                     CharHlp.HasEffect(creature, C_EFFECT.NO_PARA_POISON, effect) or
                     CharHlp.HasEffect(creature, C_EFFECT.NO_CHARM_POISON, effect);
 end;
@@ -598,7 +600,7 @@ begin
       saveMod := C_SPELL.CLOUDKILL_HARD_MOD;
     CloudkillFate := C_SPELL.CLOUDKILL_SAVE;
   end else
-    CloudkillFate := C_SPELL.CLOUDKILL_HURTS;
+    CloudkillFate := C_SPELL.CLOUDKILL_SPARES;
 end;
 
 function FreeCloudNumber(caster: Types.PCharRecord): Byte;

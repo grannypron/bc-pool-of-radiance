@@ -182,13 +182,18 @@ begin
   CheckKillProof(C_EFFECT.NO_PARA_POISON, True, 'nor one immune to paralysis and poison');
   CheckKillProof(C_EFFECT.NO_CHARM_POISON, True, 'nor one immune to charm and poison');
   CheckKillProof(C_EFFECT.STINKING_CLOUD_COUGH, False, 'coughing keeps no Cloudkill off');
+  b^.levelHighest := C_SPELL.CLOUDKILL_SAVE_LAST;
+  CheckKillProof(0, False, 'level 6 still breathes it');
+  b^.levelHighest := C_SPELL.CLOUDKILL_SAVE_LAST + 1;
+  CheckKillProof(0, True, 'level 7 is beyond it');
+  b^.levelHighest := 0;
   CheckFate(0, C_SPELL.CLOUDKILL_KILLS, 0, 'level 0 dies');
   CheckFate(-1, C_SPELL.CLOUDKILL_KILLS, 0, 'so does a level below it');
   CheckFate(4, C_SPELL.CLOUDKILL_KILLS, 0, 'level 4 dies');
   CheckFate(5, C_SPELL.CLOUDKILL_SAVE, -4, 'level 5 saves at -4');
   CheckFate(6, C_SPELL.CLOUDKILL_SAVE, 0, 'level 6 saves at 0');
-  CheckFate(7, C_SPELL.CLOUDKILL_HURTS, 0, 'level 7 is hurt');
-  CheckFate(12, C_SPELL.CLOUDKILL_HURTS, 0, 'level 12 too');
+  CheckFate(7, C_SPELL.CLOUDKILL_SPARES, 0, 'level 7 is spared');
+  CheckFate(12, C_SPELL.CLOUDKILL_SPARES, 0, 'level 12 too');
 
   { the clouds' cells }
   CheckCell(C_SPELL.STINKING_CLOUD_SIDE, 1, 10, 10, 'Stinking Cloud: the aim cell first');
