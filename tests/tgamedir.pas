@@ -188,7 +188,7 @@ begin
                 'MustNotWrite: the Mac app''s data, though this folder may be written');
   TestKit.Check(not GameDirs.MustNotWrite(base + 'empty'), 'a folder that may be written');
   TestKit.Check(GameDirs.MustNotWrite(base + 'no such folder'), 'nor one that is not there');
-  TestKit.Check(not FileExists(base + 'empty' + PathDelim + 'poolrad.$$$'), 'the test leaves no file behind');
+  TestKit.Check(not FileExists(base + 'empty' + PathDelim + 'poolrad.tmp'), 'the test leaves no file behind');
 
   { the per-user folders and the default roots }
   TestKit.CheckEqualsS(Native('/h/Library/Application Support/Pool of Radiance/'),
