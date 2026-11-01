@@ -173,6 +173,22 @@ procedure SpellSlow;
 
 procedure SpellRestoration;
 
+{ Restoration's change to tgt's record, without its messages: one drained level comes back (#1174). With an entry on
+  the drain log (CharExt.PopDrain), its hit points come back, the class it lowered gains the level when it still may
+  (RestorableClass), else the class RestoreClass picks, and the experience it cost is added to the experience tgt has
+  now, which is at least the restored level's start. A level the log does not hold (an old save's, or one past its
+  entries) is restored as SSI's was: drainedHps div drainedLevels hit points, the class RestoreClass picks, and the
+  experience raised to that level's start if lower. False when tgt has no drained level. }
+function RestoreLevel(tgt: Types.PCharRecord): Boolean;
+
+{ True when Restoration may give tgt a level in class cls: tgt has the class, it is not one a dual-classed human has
+  left, it has a next level in the experience table, and it is not at its racial cap (CharHlp.AtLevelCap). }
+function RestorableClass(tgt: Types.PCharRecord; cls: ShortInt): Boolean;
+
+{ The class Restoration gives a level the drain log does not hold: scanning classes 0..7, a RestorableClass becomes
+  the pick when its level is not above the current pick's and its next-level XP is smaller. -1 when there is none. }
+function RestoreClass(tgt: Types.PCharRecord): ShortInt;
+
 procedure SpellPotionOfSpeed;
 
 procedure KeoghtomsOintmentHandler;
@@ -224,7 +240,7 @@ implementation
 
 uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, TextRend, Border,
   CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_KEYS, C_LEVEL, C_STATUS, C_IFC, C_DIR,
-  C_SPELL, AbilAdj, StrUtil, ChgClass, SpellInf, CbtLog, C_SPRITE, Bestiary, C_BEAST;
+  C_SPELL, AbilAdj, StrUtil, ChgClass, SpellInf, CbtLog, C_SPRITE, Bestiary, C_BEAST, CharExt;
 
 var
   { the menu string list }
@@ -1919,58 +1935,95 @@ begin
   Magic.HasteSlowLogic(C_EFFECT.HASTED, 1 - CharHlp.Team(GameVars.curChar), 'is Slowed');
 end;
 
-{ Restoration: give back one drained level. hpMax, hpCur and hpRolled regain drainedHps div drainedLevels. Scanning
-  classes 0..7, a class becomes the pick when its level is not above the current pick's, its next-level XP is nonzero
-  and smaller, and it is not at its level cap. The pick gains a level and experience is raised to its next-level XP if
-  lower; with no pick the hit points alone come back. A class a dual-classed human has left is never the pick, as
-  Curse restores classLevels alone (curse-disassembly v13 magic.pas:2016-2047), and a class the restored level passes
-  wakes again (ChgClass.AnnounceWoken, #838). }
-procedure SpellRestoration;
+function RestorableClass(tgt: Types.PCharRecord; cls: ShortInt): Boolean;
 var
-  tgt: Types.PCharRecord;
-  share: Byte;
+  lvl: ShortInt;
+begin
+  lvl := tgt^.classLevels[cls];
+  if tgt^.portExt.formerClasses and (1 shl cls) <> 0 then
+    lvl := 0;
+  { xp[] runs to level LEVEL_LAST }
+  RestorableClass := (lvl > 0) and (lvl < C_LEVEL.LEVEL_LAST) and
+                     (GameDefs.classExperience[cls].xp[Succ(lvl)] > 0) and (not CharHlp.AtLevelCap(tgt, cls));
+end;
+
+function RestoreClass(tgt: Types.PCharRecord): ShortInt;
+var
   bestLvl: ShortInt;
   lvl: ShortInt;
   bestXp: LongInt;
-  bestCls: ShortInt;
   cls: ShortInt;
-  resting: Byte;
 begin
-  tgt := GameVars.spellTargets[1];
-  if tgt^.drainedLevels > 0 then begin
-    resting := ChgClass.RestingMask(tgt);
-    share := tgt^.drainedHps div tgt^.drainedLevels;
-    Inc(tgt^.hpMax, share);
-    Inc(tgt^.hpCur, share);
-    Inc(tgt^.hpRolled, share);
-    Dec(tgt^.drainedHps, share);
-    Dec(tgt^.drainedLevels);
-    { above any class level, so the first eligible class passes lvl <= bestLvl }
-    bestLvl := C_LEVEL.LEVEL_LAST + 1;
-    { sentinel above any table entry }
-    bestXp := 10000000;
-    { no class picked yet }
-    bestCls := -1;
-    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
+  { above any class level, so the first eligible class passes lvl <= bestLvl }
+  bestLvl := C_LEVEL.LEVEL_LAST + 1;
+  { sentinel above any table entry }
+  bestXp := 10000000;
+  { no class picked yet }
+  RestoreClass := -1;
+  for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
+    if Magic.RestorableClass(tgt, cls) then begin
       lvl := tgt^.classLevels[cls];
-      if tgt^.portExt.formerClasses and (1 shl cls) <> 0 then
-        lvl := 0;
-      { xp[] runs to level LEVEL_LAST }
-      if (lvl > 0) and (lvl < C_LEVEL.LEVEL_LAST) and (lvl <= bestLvl) and
-          (GameDefs.classExperience[cls].xp[Succ(lvl)] > 0) and
-          (GameDefs.classExperience[cls].xp[Succ(lvl)] < bestXp) and
-          (not CharHlp.AtLevelCap(tgt, cls)) then begin
+      if (lvl <= bestLvl) and (GameDefs.classExperience[cls].xp[Succ(lvl)] < bestXp) then begin
         bestLvl := lvl;
-        bestCls := cls;
+        RestoreClass := cls;
         bestXp := GameDefs.classExperience[cls].xp[Succ(lvl)];
       end;
     end;
-    if bestCls >= 0 then begin
-      Inc(tgt^.classLevels[bestCls]);
-      if tgt^.experience < bestXp then
-        tgt^.experience := bestXp;
-    end;
-    ClassCal.RecalcBaseSkills(tgt);
+end;
+
+function RestoreLevel(tgt: Types.PCharRecord): Boolean;
+var
+  entry: Types.TDrainRec;
+  logged: Boolean;
+  share: Byte;
+  cls: ShortInt;
+  levelXp: LongInt;
+begin
+  RestoreLevel := tgt^.drainedLevels > 0;
+  if tgt^.drainedLevels = 0 then
+    Exit;
+  logged := CharExt.PopDrain(tgt, entry);
+  if logged then begin
+    share := entry.hp;
+    if share > tgt^.drainedHps then
+      tgt^.drainedHps := 0
+    else
+      Dec(tgt^.drainedHps, share);
+  end else begin
+    share := tgt^.drainedHps div tgt^.drainedLevels;
+    Dec(tgt^.drainedHps, share);
+  end;
+  Inc(tgt^.hpMax, share);
+  Inc(tgt^.hpCur, share);
+  Inc(tgt^.hpRolled, share);
+  Dec(tgt^.drainedLevels);
+  if logged and Magic.RestorableClass(tgt, entry.cls) then
+    cls := entry.cls
+  else
+    cls := Magic.RestoreClass(tgt);
+  if cls >= 0 then begin
+    levelXp := GameDefs.classExperience[cls].xp[Succ(tgt^.classLevels[cls])];
+    Inc(tgt^.classLevels[cls]);
+    if logged then
+      Inc(tgt^.experience, entry.xp);
+    if tgt^.experience < levelXp then
+      tgt^.experience := levelXp;
+  end;
+  ClassCal.RecalcBaseSkills(tgt);
+end;
+
+{ Restoration: give back one drained level (RestoreLevel). A class the restored level passes wakes again
+  (ChgClass.AnnounceWoken, #838). SSI's gave back the average drainedHps div drainedLevels and raised the class with the
+  lowest next level, not the one drained, and only to that level's start; a class a dual-classed human has left is
+  never raised, as Curse restores classLevels alone (curse-disassembly v13 magic.pas:2016-2047). }
+procedure SpellRestoration;
+var
+  tgt: Types.PCharRecord;
+  resting: Byte;
+begin
+  tgt := GameVars.spellTargets[1];
+  resting := ChgClass.RestingMask(tgt);
+  if Magic.RestoreLevel(tgt) then begin
     CharDisp.PrintNameString(tgt, 'is restored', 10, True);
     if resting <> 0 then
       ChgClass.AnnounceWoken(tgt, resting);
