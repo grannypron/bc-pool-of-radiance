@@ -252,7 +252,8 @@ const
   WRITE_REG2 = $B9;
   READ_REG1 = $FB;
   READ_REG2 = $FC;
-  { the party's facing as stored (0, 2, 4, 6) }
+  { the party's facing as stored: 0, 2, 4 or 6, or in the wilderness's Move mode a diagonal too (1, 3, 5, 7, #1159),
+    which SSI's wilderness scripts handle }
   FACING_RAW = $33D;
   { read: handled, no value }
   CELL_35F = $35F;

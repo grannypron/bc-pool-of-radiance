@@ -6,16 +6,16 @@ wait RADIANCE
 put saves/wild
 # Load the slot directly by pressing its letter (#652).
 press l g
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 checkpoint wilderness
 press up
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 checkpoint north
 press right
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 checkpoint east
 press down
-wait ^CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
 checkpoint south
 # Record overlay loads and memory with STING Ctrl-Y. These values are reported but not compared. Also capture the heap
 # and picture-memory lines to show what the wilderness leaves allocated for phase 6.

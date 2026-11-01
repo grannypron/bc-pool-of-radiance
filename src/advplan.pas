@@ -18,6 +18,9 @@ const
     start is within a third of max's and a fight near GOG's; below it each step down costs more. So the limit is
     16.7 ms, about 18,000 cycles: 20000 passes (17,900 clocks), 17500 does not (20,500). }
   SLOW_CLOCKS = 19900;
+  { The PIT clocks the loop takes at one DOSBox-X cycle, from the same measurements: 300,000 ms at 1,193.182 clocks a
+    millisecond. A measurement's cycles are this over its clocks (#1178). }
+  CYCLE_CLOCKS = 357954600;
 
 { True when the support part is due: the version it was last shown for (advised, as POOLOPT.CFG keeps it: tidied, ''
   when it never was) is not this build's (version, in any case). }
@@ -26,6 +29,11 @@ function SupportDue(advised, version: string): Boolean;
 { True when the speed part is due: the speed check's loop took more than SLOW_CLOCKS. clocks is 0 when the check did
   not run (natively, which measures only the host), and that is never slow. }
 function SpeedSlow(clocks: LongInt): Boolean;
+
+{ The DOSBox-X fixed cycles the speed check's clocks match (CYCLE_CLOCKS over them), to the nearest 100, as the System
+  page shows them (#1178): 30,000 for 11,932 clocks. 0 for 0, a check that did not run; a computer far slower than
+  DOSBox's 3,000 cycles may give 0 too. Under another DOSBox, or on a real PC, it is a comparison, not its setting. }
+function CyclesOf(clocks: LongInt): LongInt;
 
 implementation
 
@@ -39,6 +47,18 @@ end;
 function SpeedSlow(clocks: LongInt): Boolean;
 begin
   SpeedSlow := clocks > SLOW_CLOCKS;
+end;
+
+function CyclesOf(clocks: LongInt): LongInt;
+var
+  cycles: LongInt;
+begin
+  if clocks <= 0 then
+    CyclesOf := 0
+  else begin
+    cycles := (CYCLE_CLOCKS + clocks div 2) div clocks;
+    CyclesOf := (cycles + 50) div 100 * 100;
+  end;
 end;
 
 end.

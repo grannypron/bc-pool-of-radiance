@@ -6,11 +6,11 @@ ignore POOL OF RADIANCE V
 wait RADIANCE
 put saves/outpost
 press l a
-wait ^CAST VIEW ENCAMP 120
+wait ^(MOVE )?CAST VIEW ENCAMP 120
 checkpoint wilderness
 press up
 wait LEAVE
 checkpoint warned
 press l
-wait ^CAST VIEW ENCAMP
+wait ^(MOVE )?CAST VIEW ENCAMP
 checkpoint left

@@ -141,7 +141,9 @@ function FindAmmo(creature: Types.PCharRecord; w: Types.PItemRec; var sel: Types
 
 { Check the racial level limit for a class: a fighter's, and a half-elf ranger's, from FIGHTER_CAP by the character's
   PermanentStrength, a half-elf cleric's (HALFELF_CLERIC_CAP), and a half-orc cleric's and thief's by Wisdom and
-  Dexterity (HalfOrcCap, #956); a level at or past the cap counts. }
+  Dexterity (HalfOrcCap, #956); a level at or past the cap counts. None with the Non-Human Level Cap setting off
+  (GameVars.nonHumanCapOn, #1176): which classes a race may take is not this test's, so off lifts limits without
+  opening classes. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 
 { The Strength points the creature's disease (eff 43) has taken so far, which a cure gives back: the upper nibble of the
@@ -1534,6 +1536,8 @@ var
   str: Byte;
 begin
   AtLevelCap := False;
+  if GameVars.nonHumanCapOn = 0 then
+    Exit;
   with creature^ do begin
     lvl := classLevels[cls];
     if lvl <= 0 then

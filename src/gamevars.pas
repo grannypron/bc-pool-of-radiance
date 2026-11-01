@@ -51,8 +51,15 @@ var
   { the Auto Join setting: nonzero has a stackable item join its like as it comes into an inventory
     (CharHlp.AddToInventory, #1088) }
   autoJoinOn: Byte;
+  { the Consolidate Coin setting: nonzero changes a character's purse into the fewest coins of its value whenever it
+    picks coins up (Money.Consolidate, #1179) }
+  consolidateOn: Byte;
   { the Journal setting: nonzero lists only the items the party has found (JrnlSeen), zero every item (#1090) }
   journalFoundOn: Byte;
+  { the Non-Human Level Cap setting: nonzero applies the racial level limits (CharHlp.AtLevelCap), zero lets the
+    demihumans train as far as the experience table goes (#1176). It starts zeroed, as off, until GameInit applies the
+    settings' defaults; a test of the caps sets it. }
+  nonHumanCapOn: Byte;
   { nonzero: PostCbt and SaveLoad.LoadChar take the party's characters off Quick after each fight and on loading }
   quickEnds: Byte;
   { the Quick Mode Magic setting: CombatSt starts every fight with quickMagic set from it; Alt-M then turns quickMagic
