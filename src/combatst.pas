@@ -851,8 +851,9 @@ begin
 end;
 
 { Prepare combat: release the animation and portrait pictures, clear combat state, build the arena, initialize and place
-  creatures, and allocate the moving-icon frames. Centre the view on the first creature, draw the combat interface,
-  trigger start-of-combat effects and calculate the hostile hit-point percentage. }
+  creatures, let the paladins lead the NPCs (CbtActs.UseLeadership, #1124), and allocate the moving-icon frames. Centre
+  the view on the first creature, draw the combat interface, trigger start-of-combat effects and calculate the hostile
+  hit-point percentage. }
 procedure CombatStart;
 var
   p: Types.PCharRecord;
@@ -890,6 +891,8 @@ begin
   GameIo.DiscardPendingKeys;
   CombatSt.PlaceAllCreatures;
   GameIo.DiscardPendingKeys;
+  { the paladins' leadership (#1124): it needs the combat records, and comes before the combat screen is drawn }
+  CbtActs.UseLeadership;
   Blit.AllocPic(24, 3, 4, 1, GameVars.moveIconSheet);
   GameVars.arenaPtr^.ox := CbtMap.CombatCellX(GameVars.creatureList) - 3;
   GameVars.arenaPtr^.oy := CbtMap.CombatCellY(GameVars.creatureList) - 3;
