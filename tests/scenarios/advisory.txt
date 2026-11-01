@@ -24,3 +24,7 @@ press s t a r t spc shift-s shift-t shift-i shift-n shift-g spc shift-n shift-o 
 press shift-a shift-d shift-v shift-i shift-s shift-e ret
 wait RADIANCE 60
 checkpoint main-menu-again
+# The System page carries the same lines, the address with its at sign.
+ignore COMMIT  |VERSION  |FREE MEMORY|LARGEST BLOCK|SPEED CHECK|SWITCHES
+press g y
+checkpoint system

@@ -26,8 +26,8 @@ procedure Measure;
   N/A when it did not run. }
 function SpeedText: Types.TStr20;
 
-{ Draw s at column col of row in color in the game font, as TextRend.DisplayString does, but an '@' in the font's own
-  at sign, which its 6-bit table has no place for. }
+{ Draw s at column col of row in color in the game font, as TextRend.DisplayString does, but an '@' as AT_BITMAP, an at
+  sign the font lacks: its 6-bit table has no place for one, and its glyph 64, the nearest, reads as a C (#1173). }
 procedure DisplayText(col, row, color: Byte; s: string);
 
 { The advisory: when the support part (AdvPlan.SupportDue) or the speed part (AdvPlan.SpeedSlow) is due, a screen
@@ -40,8 +40,11 @@ implementation
 uses Crt, GameDefs, GameVars, TextRend, GameIo, SoundDrv, Options, AdvPlan, StrUtil;
 
 const
-  { the font's at sign, past the 64 characters DisplayString reaches }
-  AT_GLYPH = 64;
+  { The at sign DisplayText draws, in the font's 8x8 rows and its two-pixel strokes. Every video driver draws a glyph
+    from gameFont as it stands, so DisplayText lends it AT_SLOT's rows for the one character: glyph 64, past the 64
+    characters DisplayString reaches, which SSI's font draws as a C-like at sign. }
+  AT_SLOT = 64;
+  AT_BITMAP: array[0..7] of Byte = ($3C, $66, $DB, $DB, $DE, $C0, $7C, $00);
   { the text colours: the game's name, the version, the paragraphs, the address and the prompt }
   NAME_COLOR = Yellow;
   VERSION_COLOR = LightCyan;
@@ -147,11 +150,20 @@ end;
 procedure DisplayText(col, row, color: Byte; s: string);
 var
   i: Byte;
+  r: Byte;
+  saved: array[0..7] of Byte;
 begin
   for i := 1 to Length(s) do begin
-    if s[i] = '@' then
-      TextRend.RenderChar(col, row, color, 1, AT_GLYPH, 0)
-    else
+    if (s[i] = '@') and (GameVars.gameFont <> nil) then begin
+      { AT_SLOT holds the at sign while it is drawn, and its own rows again after }
+      for r := 0 to 7 do begin
+        saved[r] := GameVars.gameFont^[AT_SLOT][r];
+        GameVars.gameFont^[AT_SLOT][r] := AT_BITMAP[r];
+      end;
+      TextRend.RenderChar(col, row, color, 1, AT_SLOT, 0);
+      for r := 0 to 7 do
+        GameVars.gameFont^[AT_SLOT][r] := saved[r];
+    end else
       TextRend.RenderChar(col, row, color, 1, Ord(s[i]), 1);
     Inc(col);
   end;
