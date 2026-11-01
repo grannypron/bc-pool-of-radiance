@@ -358,6 +358,30 @@ procedure CastItemSpellOn(user: Types.PCharRecord; item: Types.PItemRec; spell: 
 
 procedure UseItem(item: Types.PItemRec; var done: Boolean);
 
+const
+  { a spell list's markers, in the indent column (SpellMark): none; KNOWN_MARK on a spell already in the creature's
+    spell book; or NOT_KNOWN_MARK on a spell the creature's classes could learn but its spell book lacks }
+  MARK_NONE = 0;
+  MARK_KNOWN = 1;
+  MARK_NOT_KNOWN = 2;
+  KNOWN_MARK = '-';
+  NOT_KNOWN_MARK = '+';
+
+{ The indent-column marker for spell (bit 7 ignored) on a spell list, otherwise a blank: KNOWN_MARK for MARK_KNOWN when
+  creature's spell book has it; NOT_KNOWN_MARK for MARK_NOT_KNOWN when the spell book lacks a spell creature's classes
+  could learn. A class could learn a spell of its own (castClass 0 needs a cleric level, castClass 1 a magic-user level)
+  at spell level 1..Types.CASTER_LEVEL_LAST, the levels a character has slots for, whatever the character's current
+  level. An ID that is no spell (CharHlp.IsSpell) gets a blank. }
+function SpellMark(creature: Types.PCharRecord; spell, mark: Byte): Char;
+
+{ A spell list's line for spell (#900): two blanks, the marker in the third column and the spell's name, so the name
+  sits indented under its level heading. Bit 7 set (pending memorization or scribing) puts '*' in the marker column;
+  otherwise it holds SpellMark's character for mark. The magic shop's scroll lists its spells the same way (#1196). }
+function SpellLine(creature: Types.PCharRecord; spell, mark: Byte): Types.TStr40;
+
+{ A spell list's heading for spell level level, '1st Level' to '9th Level'; '' for any other level. }
+function LevelHeading(level: Byte): Types.TStr40;
+
 implementation
 
 uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, TextRend, Border,
@@ -379,13 +403,6 @@ var
   scrollList: Boolean;
 
 const
-  { AddSpellToList's markers, in the indent column: none; KNOWN_MARK on a spell already in the creature's spell book; or
-    NOT_KNOWN_MARK on a spell the creature's classes could learn but its spell book lacks }
-  MARK_NONE = 0;
-  MARK_KNOWN = 1;
-  MARK_NOT_KNOWN = 2;
-  KNOWN_MARK = '-';
-  NOT_KNOWN_MARK = '+';
   { a Cast line's scroll marker, in the indent column just before the spell name }
   SCROLL_MARK = '-';
   { the highest spell level in spellTable (Restoration's 7) }
@@ -395,8 +412,18 @@ const
   { a spell line's marker column, in the indent before its name (#900): a level heading starts in the list's first
     column, and a spell's name three columns in }
   MARK_COL = 3;
+  { Spell-list headings indexed by spell level }
+  spellLevelNames: array[1..9] of String[9] = (
+    '1st Level',
+    '2nd Level',
+    '3rd Level',
+    '4th Level',
+    '5th Level',
+    '6th Level',
+    '7th Level',
+    '8th Level',
+    '9th Level');
 
-function SpellMark(creature: Types.PCharRecord; spell, mark: Byte): Char; forward;
 procedure ShowCombatOnly(name: Types.TStr40; kind: Types.TStr20); forward;
 
 procedure WalkBolt(boltLen, damage: Byte; saveType: ShortInt; bounce, trace: Boolean; var cells: Types.TCellList);
@@ -612,23 +639,10 @@ begin
   MenuCore.FreeStringList(spellList);
 end;
 
-{ Append spell to spellList, first adding a level heading entry (inUse = 1) when its spell level differs from the
-  previous spell's. The spell's name is indented under its heading (#900): bit 7 set (pending memorization or
-  scribing) puts '*' in MARK_COL; otherwise MARK_COL holds SpellMark's character for mark (MARK_NONE, MARK_KNOWN or
-  MARK_NOT_KNOWN). Stores spell and $7F in spellIds at the entry's selectable index. }
+{ Append spell to spellList, first adding a level heading entry (inUse = 1, LevelHeading) when its spell level differs
+  from the previous spell's. The spell's line is SpellLine's, indented under its heading (#900), with mark (MARK_NONE,
+  MARK_KNOWN or MARK_NOT_KNOWN). Stores spell and $7F in spellIds at the entry's selectable index. }
 procedure AddSpellToList(creature: Types.PCharRecord; spell, mark: Byte);
-const
-  { Spell-list headings indexed by spell level }
-  spellLevelNames: array[1..9] of String[9] = (
-    '1st Level',
-    '2nd Level',
-    '3rd Level',
-    '4th Level',
-    '5th Level',
-    '6th Level',
-    '7th Level',
-    '8th Level',
-    '9th Level');
 var
   p: Types.PItemRec;
   count: ShortInt;
@@ -658,26 +672,33 @@ begin
   end;
   p^.next := nil;
   if GameDefs.spellTable[spell and C_SPELL.ID_MASK].levelSp <> lastLevel then begin
-    p^.name := spellLevelNames[GameDefs.spellTable[spell and C_SPELL.ID_MASK].levelSp];
+    p^.name := Magic.LevelHeading(GameDefs.spellTable[spell and C_SPELL.ID_MASK].levelSp);
     p^.inUse := 1;
     GetMem(p^.next, SizeOf(Types.TMenuNode));
     p := p^.next;
     p^.next := nil;
   end;
-  if spell > C_SPELL.ID_MASK then
-    p^.name := '  *'
-  else
-    p^.name := '  ' + Magic.SpellMark(creature, spell, mark);
-  p^.name := p^.name + GameDefs.spellNames[spell and C_SPELL.ID_MASK];
+  p^.name := Magic.SpellLine(creature, spell, mark);
   p^.inUse := 0;
   spellIds[count] := spell and C_SPELL.ID_MASK;
 end;
 
-{ The indent-column marker for spell (bit 7 ignored) on a spell list, otherwise a blank: KNOWN_MARK for MARK_KNOWN when
-  creature's spell book has it; NOT_KNOWN_MARK for MARK_NOT_KNOWN when the spell book lacks a spell creature's classes
-  could learn. A class could learn a spell of its own (castClass 0 needs a cleric level, castClass 1 a magic-user level)
-  at spell level 1..Types.CASTER_LEVEL_LAST, the levels a character has slots for, whatever the character's current
-  level. An ID that is no spell (CharHlp.IsSpell) gets a blank. }
+function SpellLine(creature: Types.PCharRecord; spell, mark: Byte): Types.TStr40;
+begin
+  if spell > C_SPELL.ID_MASK then
+    SpellLine := '  *' + GameDefs.spellNames[spell and C_SPELL.ID_MASK]
+  else
+    SpellLine := '  ' + Magic.SpellMark(creature, spell, mark) + GameDefs.spellNames[spell];
+end;
+
+function LevelHeading(level: Byte): Types.TStr40;
+begin
+  if (level >= 1) and (level <= 9) then
+    LevelHeading := spellLevelNames[level]
+  else
+    LevelHeading := '';
+end;
+
 function SpellMark(creature: Types.PCharRecord; spell, mark: Byte): Char;
 var
   id: Byte;

@@ -1,9 +1,11 @@
 { Tests for Magic.RemoveSpellFromScroll, which clears the slot holding the spell exactly, its pending flag included,
-  before another copy: a scribed spell takes its own slot and a used one a copy not queued (POR-0228). }
+  before another copy: a scribed spell takes its own slot and a used one a copy not queued (POR-0228); and for the
+  spell lists' lines the magic shop's scroll shares (#1196): Magic.SpellLine's indent and marker, and
+  Magic.LevelHeading. }
 {$I COMPILER.INC}
 program TScribe;
 
-uses Types, C_SPELL, Magic, TestKit;
+uses Types, C_LEVEL, C_SPELL, GameDefs, CharHlp, Magic, TestKit;
 
 const
   SP_A = 9;
@@ -11,6 +13,8 @@ const
 
 var
   item: Types.TItemRec;
+  c: Types.TCharRecord;
+  name: Types.TStr40;
 
 { A scroll of three spells holding a, b and c. }
 procedure Scroll(a, b, c: Byte);
@@ -39,5 +43,26 @@ begin
   Scroll(SP_A, SP_B, SP_A);
   Magic.RemoveSpellFromScroll(nil, @item, SP_A);
   TestKit.Check((item.spells[1] = SP_A) and (item.spells[3] = 0), 'of two plain copies, the last goes, as before');
+
+  { a 3rd-level magic-user, who could learn Magic Missile }
+  FillChar(c, SizeOf(c), 0);
+  c.classLevels[C_LEVEL.MAGE] := 3;
+  name := GameDefs.spellNames[C_SPELL.MAGIC_MISSILE];
+  TestKit.CheckEqualsS('  +' + name, Magic.SpellLine(@c, C_SPELL.MAGIC_MISSILE, Magic.MARK_NOT_KNOWN),
+                       'a spell the buyer could learn and lacks is marked + (#1196)');
+  CharHlp.SetSpellKnown(@c, C_SPELL.MAGIC_MISSILE, True);
+  TestKit.CheckEqualsS('   ' + name, Magic.SpellLine(@c, C_SPELL.MAGIC_MISSILE, Magic.MARK_NOT_KNOWN),
+                       'a known one is not');
+  TestKit.CheckEqualsS('  -' + name, Magic.SpellLine(@c, C_SPELL.MAGIC_MISSILE, Magic.MARK_KNOWN),
+                       'the scribe list marks a known one -');
+  FillChar(c, SizeOf(c), 0);
+  c.classLevels[C_LEVEL.FIGHTER] := 3;
+  TestKit.CheckEqualsS('   ' + name, Magic.SpellLine(@c, C_SPELL.MAGIC_MISSILE, Magic.MARK_NOT_KNOWN),
+                       'a fighter, who can''t learn it, sees no mark');
+  TestKit.CheckEqualsS('  *' + name,
+                       Magic.SpellLine(@c, C_SPELL.MAGIC_MISSILE + C_SPELL.PENDING_FLAG, Magic.MARK_NOT_KNOWN),
+                       'a pending spell is marked *');
+  TestKit.CheckEqualsS('2nd Level', Magic.LevelHeading(2), 'the 2nd level''s heading');
+  TestKit.CheckEqualsS('', Magic.LevelHeading(0), 'no heading for level 0');
   TestKit.Done;
 end.
