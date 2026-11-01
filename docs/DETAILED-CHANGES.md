@@ -248,6 +248,8 @@ bf00fc8.
 
 **Fix's report lines start with "Fix:".** The five lines `Camp.CampFixMenu` notes for what Fix used ended "... during Fix.", which ran long in the message window; they now start with it: "FIX: MORRIGAN LAID HANDS ON SHADOW.", "FIX: MORRIGAN LAID ON HANDS.", "FIX: MORRIGAN CURED SHADOW'S DISEASE.", "FIX: SHADOW USED POTION OF HEALING ON MORRIGAN." The drain lines, "Fix used more than this list shows." and the nothing-done messages are unchanged. #1171.
 
+**The map window keeps its lower-right corner.** `Border.DrawBorder` puts a corner symbol at a window's corners and edge symbols along its sides, and the last border drawn wins where two meet. The wilderness drew the message window last, so its top edge wiped the map window's corner at (16,16); the 3D and camp screens drew it in the right order, but a message window opened alone (`CharDisp.OpenMessageWindow`, Cast at camp) wiped it the same way, as after Rest in camp. `Wilds.DrawWildWindows` now draws the message window first, as `CharDisp.DrawNoncombatWindows` does, and `Border` remembers a corner drawn at (16,16) until a `ClearBox` covers that cell (a full-screen window, the combat windows): an edge drawn across it while it is remembered puts the corner back (the new `Border.PutCorner`). The plan put the corner back in `OpenMessageWindow` and Cast by interface state, but the temple's own screen opens bordered messages under the shop state with no map window, where it would have drawn a stray corner. Checked on screen: the `wilderness` scenario in EGA and VGA, `camp` after Rest, and no change at (16,16) in combat, banetemple, shop, vault, loadsave and journal. #1172.
+
 **The out-of-memory save.** See section 1 (POR-0168).
 
 **A random javelin.** See section 2 (POR-0165).

@@ -122,9 +122,11 @@ end;
 
 procedure DrawWildWindows;
 begin
+  { the message window first, as the 3D screen's (CharDisp.DrawNoncombatWindows): the map window's corner at (16,16)
+    goes over its top edge (#1172) }
+  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
   Border.DrawWindow(1, 1, 15, 15, 0, Black, '');
   Border.DrawWindow(17, 1, 38, 15, 0, Black, '');
-  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
 end;
 
 end.
