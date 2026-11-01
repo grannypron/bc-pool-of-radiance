@@ -24,6 +24,10 @@ procedure SelectPrevNextChar(c: Char);
   (#1175). }
 function MemberAt(n: Byte): Types.PCharRecord;
 
+{ The party member an Alt key names, for the menus that open a member's items on it (#1175, #1195): n for Alt-n
+  (C_KEYS.ALT_1 to C_KEYS.ALT_8, extended scan codes), 0 for any other key. }
+function AltMember(c: Char): Byte;
+
 { Returns the last creature in the list, or nil when the list is empty. }
 function LastCreature: Types.PCharRecord;
 
@@ -88,6 +92,14 @@ begin
     end;
   end;
   MemberAt := p;
+end;
+
+function AltMember(c: Char): Byte;
+begin
+  if (c >= C_KEYS.ALT_1) and (c <= C_KEYS.ALT_8) then
+    AltMember := Ord(c) - Ord(C_KEYS.ALT_1) + 1
+  else
+    AltMember := 0;
 end;
 
 function LastCreature: Types.PCharRecord;

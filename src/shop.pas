@@ -58,6 +58,8 @@ begin
   end;
   Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, 'Shop');
   head := GameVars.treasureItems;
+  { Alt-n opens member n's items (ViewChar.AltItems), for ShopBuyMenu to run }
+  MenuCore.memberKeysToCaller := True;
   c := MenuCore.MenuVertical('Items: ', 'Buy', LightMagenta, LightGreen, White, 1, 4, 38, 22, head,
                              True, redraw, idx, cursor);
   itemToBuy := cursor;
@@ -139,8 +141,9 @@ begin
 end;
 
 { Buy loop: each chosen item, once the player still wants it (WantsItem), is paid for from the current character's
-  coins when they cover the price, otherwise from the pooled treasure money. Runs until the menu is left with a key
-  other than Buy or Enter. }
+  coins when they cover the price, otherwise from the pooled treasure money. Alt-n opens member n's items, who then
+  buys (ViewChar.AltItems, #1195), and the list comes back. Runs until the menu is left with a key other than Buy or
+  Enter. }
 procedure ShopBuyMenu;
 var
   itemToBuy: Types.PItemRec;
@@ -151,6 +154,8 @@ var
   failed: Boolean;
   cursor: Types.PItemRec;
   idx: Integer;
+  { AltItems's result: the list is drawn again either way }
+  opened: Boolean;
 begin
   itemToBuy := nil;
   cursor := GameVars.treasureItems;
@@ -159,7 +164,9 @@ begin
   repeat
     Shop.ShopBuyItemSelection(c, itemToBuy, cursor, idx);
     done := False;
-    if (c <> 'B') and (c <> C_KEYS.ENTER) then
+    if Party.AltMember(c) > 0 then
+      opened := ViewChar.AltItems(c)
+    else if (c <> 'B') and (c <> C_KEYS.ENTER) then
       done := True
     else if Shop.WantsItem(itemToBuy) then begin
       price := itemToBuy^.value;
@@ -176,7 +183,8 @@ begin
 end;
 
 { The counter menu: Buy or Heal (command), View, Take, Pool, Share, Appraise and Exit, with Take and Share offered only
-  while there is pooled money; an extended key steps through the party. Leaving with money still in the pool asks
+  while there is pooled money; an extended key steps through the party, and Alt-n opens member n's items
+  (ViewChar.AltItems, #1195). Leaving with money still in the pool asks
   whether to go back for it. }
 procedure CounterMenu(atTemple: Boolean; command: Types.TMenuAction);
 var
@@ -209,9 +217,12 @@ begin
     c := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
     { an extended key only steps the character: its scan code is no command letter (H is the up arrow, P the down
       arrow, Delete S, which shared the pool, F7 A, #731) }
-    if ext then
-      Party.SelectPrevNextChar(c)
-    else begin
+    if ext then begin
+      if ViewChar.AltItems(c) then
+        CharDisp.DisplayNoncombatInterface
+      else
+        Party.SelectPrevNextChar(c);
+    end else begin
       case c of
         'B': if not atTemple then command;
         'H': if atTemple then command;
