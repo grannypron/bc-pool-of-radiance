@@ -16,14 +16,29 @@ const
   LAST_MONSTER_ICON = 12;
   { Outside combat, slots 9..11 hold the three wilderness-icon frames. }
   FIRST_WILD_ICON = 9;
+  { combat's first tile slot for the random-feature set, RANDCOM.DAX (CombatSt.LoadCombatTileSet): terrains 26..31 }
+  FEATURE_SLOT = 34;
 
 var
   { 2D map tile set image buffer 2; bit 7 of a tile id selects it }
   mapTilePtr2: Types.PImgBuf;
+  { Cloudkill's cloud in combat (#1193): RANDCOM.DAX again, its stinking cloud frame recoloured; nil outside combat }
+  cloudkillArt: Types.PImgBuf;
 
 procedure Load24x24Set(name: string; mult: Byte);
 
 procedure Copy2DTile(col, row: ShortInt; tile: Byte);
+
+{ Draw combat terrain terr at (col, row) as Copy2DTile draws its tile (GameDefs.terrainInfo), but Cloudkill's cloud
+  (C_TERR.CLOUDKILL) from cloudkillArt, while it is loaded. }
+procedure DrawTerrain(col, row: ShortInt; terr: Byte);
+
+{ Load cloudkillArt for a fight: PoR's tiles have no Cloudkill cloud, so it is the stinking cloud's tile with its light
+  green turned yellow, the PHB's "ghastly yellowish green" vapours. }
+procedure LoadCloudkillArt;
+
+{ Free cloudkillArt after a fight. }
+procedure FreeCloudkillArt;
 
 { Lazily loads the second 24x24 tile sheet (SQRPACI block 2, IDs 128 and up).
   Only the wilderness and ending need it, and combat frees it. Returns nil if
@@ -44,7 +59,7 @@ procedure DrawIconAnimSprite(col, row: ShortInt; facing, frame, animIdx: Byte);
 
 implementation
 
-uses Crt, C_TILE, GameDefs, GameVars, Blit, GameIo, C_DIR;
+uses Crt, C_TILE, C_TERR, GameDefs, GameVars, Blit, GameIo, C_DIR;
 
 { Load the 24x24 tile set <name> (block 1) and, when the first tile-set buffer is allocated, copy its tiles into that
   buffer starting at tile slot mult, as many as fit. A mult above 127, the last slot, restores the video mode and ends
@@ -86,6 +101,31 @@ begin
       Blit.BlitTileCell(col, row, tile and C_TILE.ID_MASK, 0, mapTilePtr2, GameVars.viewBuffer);
   end else if GameVars.mapTilePtr <> nil then
     Blit.BlitTileCell(col, row, tile, 0, GameVars.mapTilePtr, GameVars.viewBuffer);
+end;
+
+procedure DrawTerrain(col, row: ShortInt; terr: Byte);
+begin
+  if (terr = C_TERR.CLOUDKILL) and (cloudkillArt <> nil) then
+    Blit.BlitTileCell(col, row, GameDefs.terrainInfo[C_TERR.STINKING_CLOUD].tileId - FEATURE_SLOT, 0, cloudkillArt,
+                      GameVars.viewBuffer)
+  else
+    MapTiles.Copy2DTile(col, row, GameDefs.terrainInfo[terr].tileId);
+end;
+
+procedure LoadCloudkillArt;
+var
+  toT: Types.TColorTab;
+begin
+  Blit.LoadPic('RandCom', 1, False, 0, cloudkillArt);
+  toT := GameDefs.colorIdentity;
+  toT[LightGreen] := Yellow;
+  Blit.RemapPic(GameDefs.colorIdentity, toT, GameDefs.terrainInfo[C_TERR.STINKING_CLOUD].tileId - FEATURE_SLOT, False,
+                cloudkillArt);
+end;
+
+procedure FreeCloudkillArt;
+begin
+  Blit.FreePic(cloudkillArt);
 end;
 
 function SecondSheet: Types.PImgBuf;
@@ -204,4 +244,5 @@ end;
 begin
   { Turbo Pascal clears no variable }
   mapTilePtr2 := nil;
+  cloudkillArt := nil;
 end.

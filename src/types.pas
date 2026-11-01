@@ -1024,21 +1024,29 @@ type
   TStr8 = String[8];
 
   { Magic types. }
-  PStinkRec = ^TStinkRec;
+  PCloudRec = ^TCloudRec;
   TCastUi = procedure(spell: Byte; b: Boolean; var sel: Boolean);
   TSpellProc = procedure;
-  TStinkRec = record
+  { A lingering cloud on the combat map, one node per casting on the GameVars.cloudHead list: a Stinking Cloud's 2x2
+    block or a Cloudkill's 3x3 (#1193). Cell i (1..side * side) is CbtMap.CloudCell's; under keeps the ground beneath it
+    and exists marks a cell the cloud could fill. }
+  { a cloud's cells, 1..side * side, as TCloudRec holds them }
+  TCloudCells = array[1..9] of Byte;
+  TCloudRec = record
     caster: PCharRecord;
-    next: PStinkRec;
-    under: array[1..4] of Byte;
-    exists: array[1..4] of Byte;
-    { target X }
+    next: PCloudRec;
+    under: TCloudCells;
+    exists: TCloudCells;
+    { the aim cell }
     ulX: ShortInt;
-    { target Y }
     ulY: ShortInt;
-    { the cloud's number, unique among its caster's clouds (FxEngine.FreeCloudNumber), matched against the Cast Stinking
-      Cloud effect's strength div 16 }
+    { the cloud's number, unique among its caster's clouds of either kind (FxEngine.FreeCloudNumber), matched against
+      its Cast Stinking Cloud or Cast Cloudkill effect's strength div 16 }
     idx: Byte;
+    { the terrain its cells show, C_TERR.STINKING_CLOUD or C_TERR.CLOUDKILL, and its side, C_SPELL.STINKING_CLOUD_SIDE
+      or CLOUDKILL_SIDE }
+    terrain: Byte;
+    side: Byte;
   end;
 
   { TextRend types. }

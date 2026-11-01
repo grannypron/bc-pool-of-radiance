@@ -300,6 +300,19 @@ procedure SpellIceStorm;
 { Minor Globe of Invulnerability (88): spells of level 3 and below no longer reach the caster (C_EFFECT.MINOR_GLOBE). }
 procedure SpellMinorGlobe;
 
+{ Cloudkill (91, #1193): a 3x3 cloud round the aim cell (CbtMap.CloudCell) for a round per caster level, laid as
+  Stinking Cloud's is on the GameVars.cloudHead list, tracked by the caster's C_EFFECT.CAST_CLOUDKILL and shown as
+  C_TERR.CLOUDKILL; each creature inside then meets it once (ConsiderCloudkill). }
+procedure SpellCloudkill;
+
+{ A Cloudkill's turn on creature (#1193), when any of its cells is in one (CbtMap.ProbeTerrain) and it is enabled and
+  not CloudkillProof: by FxEngine.CloudkillFate it is poisoned and killed, or saves vs. poison (with the save's
+  modifier and its Constitution's poison bonus) or is poisoned and killed, or takes 1d10 poison damage. A save leaves
+  it "Unaffected". It runs where a stinking cloud's does: on the creatures inside when the cloud is laid, at each
+  round's end and after each step. Magic resistance does not stop it, nor does it in Curse: the cloud is poison in the
+  air, not a spell on the creature. }
+procedure ConsiderCloudkill(creature: Types.PCharRecord);
+
 { Cone of Cold (92): caster level + caster level d4 cold damage to each creature in the cone (C_SPELL.COLD_CONE_RAYS
   rays, half the caster level long, rounded up), half on a save. }
 procedure SpellConeOfCold;
@@ -1499,90 +1512,63 @@ begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is weakened');
 end;
 
-{ Stinking Cloud: append a node to the stinkHead list and give the caster effect 40 for caster-level minutes at strength
-  FxEngine.CloudStrength (caster level, at most 15, + myClouds * 16; SSI let a level above 15 carry into the number),
-  where myClouds is the lowest number none of the caster's clouds has (FxEngine.FreeCloudNumber; SSI counted the
-  caster's nodes on the walk to the tail and never checked the tail, so a second cloud could share the first one's
-  number and its end clear the older cloud). The cloud covers the 2x2 block whose upper-left is the aim cell
-  (GameDefs.cloudDir: center, E, SE, S). Each cell records the terrain underneath (a cell already under another cloud
-  takes that cloud's saved terrain, a corpse cell the corpse's), and passable cells are stamped C_TERR.STINKING_CLOUD;
-  every creature found in the four cells then gets FxEngine.ConsiderStinkingCloud, once however many cells it fills. }
-procedure SpellStinkingCloud;
+{ Lay spell's cloud (Stinking Cloud's or Cloudkill's) at the aim cell: append a node to the cloudHead list and give the
+  caster effect effId for caster-level minutes at strength FxEngine.CloudStrength (caster level, at most 15, + myClouds
+  * 16; SSI let a level above 15 carry into the number), where myClouds is the lowest number none of the caster's
+  clouds has (FxEngine.FreeCloudNumber; SSI counted the caster's nodes on the walk to the tail and never checked the
+  tail, so a second cloud could share the first one's number and its end clear the older cloud). The cloud covers the
+  spell's block (CbtMap.CloudCell, side CharHlp.SpellArea's: Stinking Cloud's 2x2 from the aim cell, center, E, SE, S;
+  Cloudkill's 3x3 round it), spread over the arena by CbtMap.SpreadCloud in the cloud's terrain (CbtMap.CloudTerrain);
+  after msg, every creature found in its cells meets the cloud (FxEngine.ConsiderStinkingCloud,
+  Magic.ConsiderCloudkill), once however many cells it fills (POR-0213, #921). }
+procedure LayCloud(spell, effId: Byte; msg: Types.TStr40);
 var
-  p2: Types.PStinkRec;
-  node: Types.PStinkRec;
-  crIdx: array[1..4] of Byte;
+  node: Types.PCloudRec;
+  crIdx: Types.TCloudCells;
   j: Byte;
   myClouds: Byte;
-  terr: Byte;
   cl: Byte;
   k: Byte;
-  d: Byte;
+  side: Byte;
   { crIdx[k] is not in an earlier cell }
   first: Boolean;
 begin
   GameVars.gMultiTarget := 1;
+  if CharHlp.SpellArea(spell, side) <> C_SPELL.AREA_CLOUD then
+    side := C_SPELL.STINKING_CLOUD_SIDE;
   cl := CharHlp.GetCasterLevel(GameVars.spellId);
   myClouds := FxEngine.FreeCloudNumber(GameVars.curChar);
-  node := GameVars.stinkHead;
-  if GameVars.stinkHead = nil then begin
-    GetMem(GameVars.stinkHead, SizeOf(Types.TStinkRec));
-    node := GameVars.stinkHead;
-  end else begin
-    while node^.next <> nil do
-      node := node^.next;
-    GetMem(node^.next, SizeOf(Types.TStinkRec));
-    node := node^.next;
-  end;
-  FillChar(node^, SizeOf(Types.TStinkRec), 0);
-  FxEngine.AddEffect(GameVars.curChar, C_EFFECT.CAST_STINKING_CLOUD, cl, FxEngine.CloudStrength(cl, myClouds), True);
+  node := CbtMap.AppendCloud;
+  FxEngine.AddEffect(GameVars.curChar, effId, cl, FxEngine.CloudStrength(cl, myClouds), True);
   node^.caster := GameVars.curChar;
   node^.idx := myClouds;
   node^.ulX := gTargetX;
   node^.ulY := gTargetY;
-  for k := 1 to 4 do begin
-    d := GameDefs.cloudDir[k];
-    CbtMap.GetArenaContents(gTargetX + GameDefs.dirDX[d], gTargetY + GameDefs.dirDY[d], crIdx[k], terr);
-    if (terr > 0) and (GameDefs.terrainInfo[terr].cost < 255) then
-      node^.exists[k] := 1
-    else
-      node^.exists[k] := 0;
-    if terr = C_TERR.STINKING_CLOUD then begin
-      p2 := GameVars.stinkHead;
-      while p2 <> nil do begin
-        if p2 <> node then
-          for j := 1 to 4 do
-            if (p2^.exists[j] <> 0) and
-                (p2^.ulX + GameDefs.dirDX[GameDefs.cloudDir[j]] = gTargetX + GameDefs.dirDX[d]) and
-                (p2^.ulY + GameDefs.dirDY[GameDefs.cloudDir[j]] = gTargetY + GameDefs.dirDY[d]) then
-              if p2^.under[j] <> C_TERR.STINKING_CLOUD then
-                terr := p2^.under[j];
-        p2 := p2^.next;
-      end;
-    end else if terr = C_TERR.CORPSE then begin
-      for j := 1 to GameVars.downedCount do
-        if GameVars.downed[j].x = gTargetX + GameDefs.dirDX[d] then
-          if GameVars.downed[j].y = gTargetY + GameDefs.dirDY[d] then
-            terr := GameVars.downed[j].terrain;
-    end;
-    node^.under[k] := terr;
-    if node^.exists[k] <> 0 then
-      GameVars.arenaPtr^.cells[gTargetY + GameDefs.dirDY[d], gTargetX + GameDefs.dirDX[d]] := C_TERR.STINKING_CLOUD;
-  end;
-  CharDisp.PrintNameString(GameVars.curChar, 'Creates a noxious cloud', 10, False);
+  node^.side := side;
+  node^.terrain := CbtMap.CloudTerrain(spell);
+  CbtMap.SpreadCloud(node, crIdx);
+  CharDisp.PrintNameString(GameVars.curChar, msg, 10, False);
   CbtMap.ScrollView(gTargetX, gTargetY, 255, C_DIR.CENTER);
   TextRend.PauseOnly;
   CharDisp.ClearMessageWindow;
-  { one saving throw for each creature, however many of the four cells its body fills (POR-0213, #921) }
-  for k := 1 to 4 do
+  for k := 1 to side * side do
     if crIdx[k] > 0 then begin
       first := True;
       for j := 1 to k - 1 do
         if crIdx[j] = crIdx[k] then
           first := False;
       if first then
-        FxEngine.ConsiderStinkingCloud(GameVars.creatureArr[crIdx[k]]);
+        if node^.terrain = C_TERR.CLOUDKILL then
+          Magic.ConsiderCloudkill(GameVars.creatureArr[crIdx[k]])
+        else
+          FxEngine.ConsiderStinkingCloud(GameVars.creatureArr[crIdx[k]]);
     end;
+end;
+
+{ Stinking Cloud: its 2x2 cloud (LayCloud), tracked by effect 40, C_EFFECT.CAST_STINKING_CLOUD. }
+procedure SpellStinkingCloud;
+begin
+  Magic.LayCloud(C_SPELL.STINKING_CLOUD, C_EFFECT.CAST_STINKING_CLOUD, 'Creates a noxious cloud');
 end;
 
 { Strength: add 1d4 for a mage, 1d6 for a cleric or thief, 1d8 for a fighter, paladin or ranger; when several classes
@@ -2688,6 +2674,41 @@ begin
     rays := C_SPELL.COLD_CONE_RAYS;
   { the reach is CharHlp.SpellArea's, which the spell page shows }
   if CharHlp.SpellArea(spell, reach) = C_SPELL.AREA_CONE then ;
+end;
+
+procedure SpellCloudkill;
+begin
+  Magic.LayCloud(C_SPELL.CLOUDKILL, C_EFFECT.CAST_CLOUDKILL, 'Creates a poisonous cloud');
+end;
+
+procedure ConsiderCloudkill(creature: Types.PCharRecord);
+var
+  saveMod: ShortInt;
+  killed: Boolean;
+begin
+  if (creature^.enabled = 0) or FxEngine.CloudkillProof(creature) then Exit;
+  if not CbtMap.ProbeTerrain(creature, C_DIR.CENTER, C_TERR.CLOUDKILL) then Exit;
+  killed := False;
+  case FxEngine.CloudkillFate(creature^.levelHighest, saveMod) of
+    C_SPELL.CLOUDKILL_KILLS: killed := True;
+    C_SPELL.CLOUDKILL_SAVE:
+      if FxEngine.RollSavingThrow(creature, C_SAVE.PARALYZE, saveMod + AbilAdj.ConPoisonSave(creature^.conCur)) then
+        CharDisp.PrintNameString(creature, 'is Unaffected', 10, True)
+      else
+        killed := True;
+  else
+    begin
+      GameVars.elementMask := C_EFFECT.ELEM_POISON;
+      FxEngine.InflictNonWeaponDamage(creature, Dice.RollDice(1, C_SPELL.CLOUDKILL_DAMAGE_DIE), 0, False);
+      GameVars.elementMask := 0;
+    end;
+  end;
+  if killed then begin
+    CharDisp.PrintNameString(creature, 'is Poisoned', 10, False);
+    TextRend.PauseOnly;
+    FxEngine.AddEffect(creature, C_EFFECT.POISONED, 0, 255, False);
+    EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD_STATUS, 'is killed');
+  end;
 end;
 
 procedure SpellConeOfCold;

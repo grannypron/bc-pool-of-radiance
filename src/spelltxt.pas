@@ -1,8 +1,8 @@
 { Descriptions shown by the spell Info page (#839). They document this port's
   behavior, including places where its handlers differ from the rule book.
   Entries 57, 59..65, 127 and 128 describe item-cast spells (#861, #1121);
-  58, 66..90, 92..94 and 100 the spells of levels 4 and 5 and the druid's
-  first (#1121), worded from Curse's.
+  58, 66..94 and 100 the spells of levels 4 and 5 and the druid's first
+  (#1121), worded from Curse's, Cloudkill's (91, #1193) from the PHB's.
 
   Text is stored in chunks of up to six 36-column lines joined by #13. Keeping
   the literals in code puts them in the overlay instead of the data segment.
@@ -121,6 +121,7 @@ begin
     88: LineCount := 6;
     89: LineCount := 4;
     90: LineCount := 6;
+    91: LineCount := 8;
     92: LineCount := 5;
     93: LineCount := 5;
     94: LineCount := 6;
@@ -981,6 +982,22 @@ begin
           'UNDER COMPUTER CONTROL. IT LOSES ITS'#13 +
           'SPELLS AND COLLAPSES IF THIS'#13 +
           'ENCHANTMENT IS DISPELLED.';
+    { Cloudkill }
+    91:
+      case chunk of
+        0:
+          TextChunk :=
+            'A POISONOUS CLOUD FILLS NINE'#13 +
+            'SQUARES FOR 1 ROUND PER LEVEL. EACH'#13 +
+            'ROUND IT KILLS A CREATURE OF UP TO'#13 +
+            'LEVEL 4. ONE OF LEVEL 5 SAVES AT -4,'#13 +
+            'ONE OF LEVEL 6 SAVES, OR DIES. ONE'#13 +
+            'OF HIGHER LEVEL TAKES 1D10 DAMAGE.';
+        1:
+          TextChunk :=
+            'CREATURES IMMUNE TO POISON AND THE'#13 +
+            'ANIMATED DEAD ARE UNAFFECTED.';
+      end;
     { Cone of Cold }
     92:
       if chunk = 0 then

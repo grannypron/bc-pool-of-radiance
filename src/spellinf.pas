@@ -129,8 +129,9 @@ const
     0, 0, 0, 2, 0, 4, 0, 4, 0, 0,
     { 81..90: Charm Monsters .. Animate Dead; Confusion, Fear, Fumble (it still slows) }
     1, 1, 0, 1, 0, 4, 0, 0, 0, 0,
-    { 91..100: Cone of Cold, Feeblemind, Hold Monsters and Bestow Curse; 91 and 95..99 hold no spell }
-    0, 2, 1, 1, 0, 0, 0, 0, 0, 1,
+    { 91..100: Cloudkill (a save spares those of levels 5 and 6), Cone of Cold, Feeblemind, Hold Monsters and Bestow
+      Curse; 95..99 hold no spell }
+    1, 2, 1, 1, 0, 0, 0, 0, 0, 1,
     { 101..126 hold no spell (#1121) }
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     { 127 and 128: Keoghtom's Ointment and the Manual of Bodily Health }
@@ -261,8 +262,8 @@ begin
             l := 'RADIUS ' + StrUtil.Count(size, 'SQUARE', 'SQUARES');
           end;
         C_SPELL.AREA_CLOUD: begin
-            s := 'AREA 2x2';
-            l := '2x2 SQUARES';
+            s := 'AREA ' + StrUtil.NumStr(size) + 'x' + StrUtil.NumStr(size);
+            l := StrUtil.NumStr(size) + 'x' + StrUtil.NumStr(size) + ' SQUARES';
           end;
         C_SPELL.AREA_BOLT: begin
             s := 'AREA BOLT';
@@ -330,7 +331,8 @@ begin
         u := 10
       else
         u := 1;
-    if (m = 0) or (GameDefs.spellTable[spell].effect = 0) then begin
+    { Cloudkill's cloud lasts though the table names no effect for it (#1193) }
+    if (m = 0) or ((GameDefs.spellTable[spell].effect = 0) and (spell <> C_SPELL.CLOUDKILL)) then begin
       if (m = 0) and (GameDefs.spellTable[spell].effect > 0) then begin
         if long then s := 'PERMANENT' else s := 'PERM';
       end else if long then

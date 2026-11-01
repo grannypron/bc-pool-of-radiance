@@ -24,7 +24,7 @@ begin
   TestKit.CheckEqualsL(0, nonzero, 'every byte from video through inEncMenu is zero');
 {$ENDIF}
   TestKit.Check(GameVars.creatureList = nil, 'there is no creature list');
-  TestKit.Check(GameVars.stinkHead = nil, 'no Stinking Cloud list');
+  TestKit.Check(GameVars.cloudHead = nil, 'no Stinking Cloud list');
   TestKit.Check(GameVars.scriptReturnStack = nil, 'no script return stack');
   TestKit.Check(GameVars.treasureItems = nil, 'no treasure');
   TestKit.CheckEqualsL(0, GameVars.pageMain, 'the screen is page 0');

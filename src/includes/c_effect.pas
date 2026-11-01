@@ -208,8 +208,10 @@ const
   INVISIBLE_TO_ANIMALS = 155;
   { Entangle [136]: strength 0 holds the creature still, 1 (it saved) halves its movement. }
   ENTANGLE = 156;
+  { Cast Cloudkill [91] (#1193): the caster's hold on its cloud, as CAST_STINKING_CLOUD (EffHndlr.EffCastCloud). }
+  CAST_CLOUDKILL = 157;
   { the last effect id with a handler (GameVars.effectFns) }
-  LAST_ID = 156;
+  LAST_ID = 157;
   { the diseases: Diseased, its Strength and hit point drains, and rot; paladins catch none (FxEngine.DiseaseImmune),
     and Dispel Magic leaves them to Cure Disease (#787) }
   DISEASES = [DISEASED, DISEASE_STRENGTH, DISEASE_HIT_POINTS, ROT_NO_HEAL, MUMMY_ROT];

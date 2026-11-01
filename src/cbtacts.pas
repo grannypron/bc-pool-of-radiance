@@ -45,9 +45,9 @@ procedure AttacksOfOpportunity(creature: Types.PCharRecord; dir: Byte);
 
 { One combat step in dir with what comes with it: the free attacks of the enemies the step leaves
   (AttacksOfOpportunity), then, while the mover is still up and not helpless, the step (CombatMoveCreature, where
-  guarding enemies attack) and the Stinking Cloud check. A mover that goes down or is left helpless on the way ends its
-  actions, and True is returned: one paralysed, held or put to sleep by the free attacks does not take the step
-  (POR-0216, #933). Combat's move menu and CombatAi's step share it. }
+  guarding enemies attack) and the clouds' checks (Stinking Cloud's, Cloudkill's). A mover that goes down or is left
+  helpless on the way ends its actions, and True is returned: one paralysed, held or put to sleep by the free attacks
+  does not take the step (POR-0216, #933). Combat's move menu and CombatAi's step share it. }
 function StepCreature(creature: Types.PCharRecord; dir: Byte): Boolean;
 
 { Clear creature's flanking accumulators (flankCount, flankSpread): at the start of its turn and when it moves. }
@@ -114,14 +114,15 @@ function FindCureTarget(creature: Types.PCharRecord; var tgt: Pointer): Boolean;
   throws, resistances and the like are hidden, and never count. }
 function SpellCanAffect(spell: Byte; target, caster: Types.PCharRecord): Boolean;
 
-{ How many of GameVars.curChar's enemies a Stinking Cloud aimed at cell (x, y) would usefully catch (SpellCanAffect):
-  each creature once, in the cloud's 2x2 block (GameDefs.cloudDir: the aim cell, E, SE, S), on a cell the cloud can
-  fill (terrain cost below 255). 0 when the block holds anyone not of the enemy team. }
-function CloudCatch(x, y: ShortInt): Byte;
+{ How many of GameVars.curChar's enemies cloud spell spell (Stinking Cloud, Cloudkill) aimed at cell (x, y) would
+  usefully catch (SpellCanAffect): each creature once, in the cloud's block (CbtMap.CloudCell: Stinking Cloud's 2x2,
+  the aim cell, E, SE, S; Cloudkill's 3x3 round the aim cell), on a cell the cloud can fill (terrain cost below 255).
+  0 when the block holds anyone not of the enemy team. }
+function CloudCatch(spell: Byte; x, y: ShortInt): Byte;
 
 { The best aim of spell for the creature acting (GameVars.curChar), among the enemies in its range (CbtMap.CountTargets)
   it may target (enabled, CbtActs.CanTarget): for an area spell (aiRadius > 0), the one whose area catches the most
-  enemies spell can affect (SpellCanAffect) and no one else (AreaHitsNonEnemy; Stinking Cloud counts its own 2x2 block,
+  enemies spell can affect (SpellCanAffect) and no one else (AreaHitsNonEnemy; a cloud counts its own block,
   CloudCatch), ties at random; for any other, one at random of those spell can affect and not among
   GameVars.spellTargets already. count is how many it would affect: the area's catch, or those it can affect up to its
   count of targets (CharHlp.SpellArea). nil and 0 when none. }
@@ -573,6 +574,12 @@ begin
     if creature^.enabled = 0 then
       done := CharHlp.EndActions(creature);
     FxEngine.ConsiderStinkingCloud(creature);
+    { a Cloudkill that kills the mover ends its turn }
+    if creature^.enabled <> 0 then begin
+      Magic.ConsiderCloudkill(creature);
+      if creature^.enabled = 0 then
+        done := CharHlp.EndActions(creature);
+    end;
     { helpless after the step (a guarding enemy's blow, the cloud): the turn ends }
     if CharHlp.IsHelpless(creature) then
       done := CharHlp.EndActions(creature);
@@ -1221,32 +1228,41 @@ begin
     PartyKnows := Bestiary.Knows(Bestiary.Entry(i)^, fact);
 end;
 
-{ True when creature stands in a Stinking Cloud: ConsiderStinkingCloud's test, a cloud cell under any of its own cells
-  (CbtMap.ProbeDirection, C_DIR.CENTER). }
-function InCloud(creature: Types.PCharRecord): Boolean;
+{ True when creature stands in a cloud of terrain terr (C_TERR.STINKING_CLOUD, CLOUDKILL): the clouds' test, a cloud
+  cell under any of its own cells (ConsiderStinkingCloud's CbtMap.ProbeDirection, where a stinking cloud wins, or
+  CbtMap.ProbeTerrain). }
+function InCloud(creature: Types.PCharRecord; terr: Byte): Boolean;
 var
   crIdx: Byte;
   terrIdx: Byte;
 begin
-  CbtMap.ProbeDirection(creature, C_DIR.CENTER, crIdx, terrIdx);
-  InCloud := terrIdx = C_TERR.STINKING_CLOUD;
+  if terr = C_TERR.STINKING_CLOUD then begin
+    CbtMap.ProbeDirection(creature, C_DIR.CENTER, crIdx, terrIdx);
+    InCloud := terrIdx = C_TERR.STINKING_CLOUD;
+  end else
+    InCloud := CbtMap.ProbeTerrain(creature, C_DIR.CENTER, terr);
 end;
 
-function CloudCatch(x, y: ShortInt): Byte;
+function CloudCatch(spell: Byte; x, y: ShortInt): Byte;
 var
-  crIdx: array[1..4] of Byte;
+  crIdx: array[1..9] of Byte;
   terr: Byte;
   caught: Byte;
+  side: Byte;
   k: Byte;
   j: Byte;
+  cx: ShortInt;
+  cy: ShortInt;
   first: Boolean;
   p: Types.PCharRecord;
 begin
   CloudCatch := 0;
   caught := 0;
-  for k := 1 to 4 do begin
-    CbtMap.GetArenaContents(x + GameDefs.dirDX[GameDefs.cloudDir[k]], y + GameDefs.dirDY[GameDefs.cloudDir[k]],
-                            crIdx[k], terr);
+  if CharHlp.SpellArea(spell, side) <> C_SPELL.AREA_CLOUD then
+    Exit;
+  for k := 1 to side * side do begin
+    CbtMap.CloudCell(side, k, x, y, cx, cy);
+    CbtMap.GetArenaContents(cx, cy, crIdx[k], terr);
     if (terr = 0) or (GameDefs.terrainInfo[terr].cost >= 255) then
       crIdx[k] := 0;
     if crIdx[k] > 0 then begin
@@ -1256,7 +1272,7 @@ begin
       for j := 1 to k - 1 do
         if crIdx[j] = crIdx[k] then
           first := False;
-      if first and CbtActs.SpellCanAffect(C_SPELL.STINKING_CLOUD, p, GameVars.curChar) then
+      if first and CbtActs.SpellCanAffect(spell, p, GameVars.curChar) then
         Inc(caught);
     end;
   end;
@@ -1294,7 +1310,11 @@ begin
     end;
     C_SPELL.SNAKE_CHARM: ok := target^.name = C_SPELL.SNAKE_NAME;
     { a creature nauseated already, or standing in a cloud that tries it each round, gains nothing from a new one }
-    C_SPELL.STINKING_CLOUD: ok := not FxEngine.CloudSpares(target) and not CbtActs.InCloud(target);
+    C_SPELL.STINKING_CLOUD:
+      ok := not FxEngine.CloudSpares(target) and not CbtActs.InCloud(target, C_TERR.STINKING_CLOUD);
+    { Cloudkill (#1193) passes over one it cannot touch, or one in a Cloudkill already, which it meets each round }
+    C_SPELL.CLOUDKILL:
+      ok := not FxEngine.CloudkillProof(target) and not CbtActs.InCloud(target, C_TERR.CLOUDKILL);
     C_SPELL.CAUSE_DISEASE: ok := target^.charType <> CharHlp.UNDEAD_TYPE;
     C_SPELL.SILENCE: ok := CbtMap.CombatSlot(target) in CbtActs.seenCasting;
     { the spells of levels 4 and 5 (#1121): Hold Monsters and Charm Monsters take any kind of creature but the ones
@@ -1319,6 +1339,8 @@ var
   ties: Byte;
   size: Byte;
   radius: Byte;
+  { a cloud's side, which BestAim does not use }
+  side: Byte;
   p: Types.PCharRecord;
   best: Types.PCharRecord;
   taken: Boolean;
@@ -1339,9 +1361,9 @@ begin
       if radius > 0 then begin
         if not CbtActs.AreaHitsNonEnemy(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), radius) then begin
           caught := 0;
-          if spell = C_SPELL.STINKING_CLOUD then
-            { the cloud fills a 2x2 block, not the radius around the aim }
-            caught := CbtActs.CloudCatch(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p))
+          if CharHlp.SpellArea(spell, side) = C_SPELL.AREA_CLOUD then
+            { a cloud fills its own block, not the radius around the aim }
+            caught := CbtActs.CloudCatch(spell, CbtMap.CombatCellX(p), CbtMap.CombatCellY(p))
           else
             for j := 1 to GameVars.targetCount do
               if CbtActs.SpellCanAffect(spell, GameVars.creatureArr[GameVars.targetList[j].idx], GameVars.curChar) then
@@ -1609,7 +1631,7 @@ begin
           aimSpell := spell;
           case kind of
             C_SPELL.AREA_BOLT: CbtMap.StartSpellPreview(Types.AimBolt, spell, 0, C_SPRITE.LIGHTNING, True);
-            C_SPELL.AREA_CLOUD: CbtMap.StartSpellPreview(Types.AimCloud, spell, 0, C_SPRITE.SPARKLE, True);
+            C_SPELL.AREA_CLOUD: CbtMap.StartSpellPreview(Types.AimCloud, spell, size, C_SPRITE.SPARKLE, True);
           else
             if (spell = C_SPELL.FIREBALL) or (spell = C_SPELL.ITEM_FIREBALL) then
               CbtMap.StartSpellPreview(Types.AimBlast, spell, size, C_SPRITE.BURST, True)

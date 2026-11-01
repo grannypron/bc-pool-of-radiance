@@ -363,9 +363,18 @@ begin
   AvoidsCloud := not FxEngine.CloudProof(creature);
 end;
 
+{ True when creature keeps out of a Cloudkill (#1193): any creature the cloud can touch (not FxEngine.CloudkillProof),
+  as it kills or hurts at every level, unless it stands in one already, when its cells are no worse than where it is
+  and it may walk out through them. Curse's kept out only those below level 7, whom it could kill. }
+function AvoidsCloudkill(creature: Types.PCharRecord): Boolean;
+begin
+  AvoidsCloudkill := not FxEngine.CloudkillProof(creature) and
+                     not CbtMap.ProbeTerrain(creature, C_DIR.CENTER, C_TERR.CLOUDKILL);
+end;
+
 { Can creature step in direction dir? Off the map sets edge and fails, and an occupied cell fails. The step costs 2
   (orthogonal) or 3 (diagonal) times the terrain cost and must fit in the remaining movement. Stinking Cloud is avoided
-  (AvoidsCloud). }
+  (AvoidsCloud), and so is Cloudkill (AvoidsCloudkill). }
 function CanStepDir(creature: Types.PCharRecord; dir: Byte; var edge: Boolean): Boolean;
 var
   crIdx: Byte;
@@ -392,6 +401,8 @@ begin
   stepCost := stepCost * GameDefs.terrainInfo[terrIdx].cost;
   if (terrIdx = C_TERR.STINKING_CLOUD) and CombatAi.AvoidsCloud(creature) then
     stepCost := creature^.combatAddr^.movement + 1;
+  if CbtMap.ProbeTerrain(creature, dir, C_TERR.CLOUDKILL) and CombatAi.AvoidsCloudkill(creature) then
+    stepCost := creature^.combatAddr^.movement + 1;
   if creature^.combatAddr^.movement >= stepCost then
     CanStepDir := True;
 end;
@@ -406,15 +417,16 @@ end;
 
 { The first step, in dir, of creature's walk to an enemy (Pathing.RouteStep): round walls and bodies to its locked
   target (#668); else to the nearest enemy it may attack, which becomes its target, so that a target hemmed in by its
-  own side or walled off does not leave it stranded (#769); a creature that keeps out of a Stinking Cloud walks round
-  it. When bodies close every walk, a walk through its own side's bodies stands in: it closes up behind them, and when
-  its first step is onto one of them it waits there (wait). False when there is no step, or none it can pay for. }
+  own side or walled off does not leave it stranded (#769); a creature that keeps out of a Stinking Cloud or a Cloudkill
+  walks round it. When bodies close every walk, a walk through its own side's bodies stands in: it closes up behind
+  them, and when its first step is onto one of them it waits there (wait). False when there is no step, or none it can
+  pay for. }
 function RouteToEnemy(creature: Types.PCharRecord; var dir: Byte; var wait: Boolean): Boolean;
 var
   slot: Byte;
   targetSlot: Byte;
   goal: Byte;
-  avoid: Byte;
+  avoid: Pathing.TTerrSet;
   i: Byte;
   last: Byte;
   crIdx: Byte;
@@ -431,9 +443,11 @@ begin
   targetSlot := CbtMap.CombatSlot(creature^.combatAddr^.other);
   if (slot = 0) or (targetSlot = 0) then
     Exit;
-  avoid := 0;
+  avoid := [];
   if CombatAi.AvoidsCloud(creature) then
-    avoid := C_TERR.STINKING_CLOUD;
+    avoid := avoid + [C_TERR.STINKING_CLOUD];
+  if CombatAi.AvoidsCloudkill(creature) then
+    avoid := avoid + [C_TERR.CLOUDKILL];
   found := Pathing.RouteStep(slot, [targetSlot], [], avoid, CbtMap.OccupantAt, dir, goal);
   if not found then begin
     enemies := [];

@@ -72,8 +72,19 @@ function CloudSpares(creature: Types.PCharRecord): Boolean;
   resistance refused it still coughed or retched (POR-0218, #939). }
 procedure ConsiderStinkingCloud(creature: Types.PCharRecord);
 
-{ The lowest cloud number, at most 15, that none of the caster's clouds on the GameVars.stinkHead list has, so the
-  number in the caster's Cast Stinking Cloud effect (strength div 16) names one cloud alone. }
+{ True when a Cloudkill cannot touch creature (#1193): it is animated dead (C_EFFECT.ANIMATE_DEAD), whose zombies the
+  Monster Manual makes proof against poison, or is immune to poison (NO_PARA_POISON, NO_CHARM_POISON). }
+function CloudkillProof(creature: Types.PCharRecord): Boolean;
+
+{ What a Cloudkill does each round to a creature of level (or hit dice) level, by the 1st-edition PHB: up to
+  C_SPELL.CLOUDKILL_DIES_LAST it dies (C_SPELL.CLOUDKILL_KILLS); at CLOUDKILL_HARD_SAVE it saves vs. poison at
+  CLOUDKILL_HARD_MOD, and up to CLOUDKILL_SAVE_LAST at 0, or dies (CLOUDKILL_SAVE, saveMod the modifier); above, it
+  takes poison damage (CLOUDKILL_HURTS). Curse's left those above level 6 alone. }
+function CloudkillFate(level: ShortInt; var saveMod: ShortInt): Byte;
+
+{ The lowest cloud number, at most 15, that none of the caster's clouds on the GameVars.cloudHead list has, of either
+  kind, so the number in the caster's Cast Stinking Cloud or Cast Cloudkill effect (strength div 16) names one cloud
+  alone. }
 function FreeCloudNumber(caster: Types.PCharRecord): Byte;
 
 { The Cast Stinking Cloud effect's strength: the cloud number (FreeCloudNumber) in the high nibble and the caster level
@@ -229,7 +240,7 @@ function AuraRange(effId: Byte): Byte;
 implementation
 
 uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, Blit,
-  TextRend, CharHlp, Pathing, CbtMap, C_EFFECT, C_STATUS, C_IFC, C_DIR, C_LEVEL, Crt, C_ITEM, C_EQUIP;
+  TextRend, CharHlp, Pathing, CbtMap, C_EFFECT, C_STATUS, C_IFC, C_DIR, C_LEVEL, Crt, C_ITEM, C_EQUIP, C_SPELL;
 
 const
   { EffectSource's side for a node cast by either side }
@@ -568,16 +579,38 @@ begin
   end;
 end;
 
+function CloudkillProof(creature: Types.PCharRecord): Boolean;
+var
+  effect: Types.PEffectRec;
+begin
+  CloudkillProof := CharHlp.HasEffect(creature, C_EFFECT.ANIMATE_DEAD, effect) or
+                    CharHlp.HasEffect(creature, C_EFFECT.NO_PARA_POISON, effect) or
+                    CharHlp.HasEffect(creature, C_EFFECT.NO_CHARM_POISON, effect);
+end;
+
+function CloudkillFate(level: ShortInt; var saveMod: ShortInt): Byte;
+begin
+  saveMod := 0;
+  if level <= C_SPELL.CLOUDKILL_DIES_LAST then
+    CloudkillFate := C_SPELL.CLOUDKILL_KILLS
+  else if level <= C_SPELL.CLOUDKILL_SAVE_LAST then begin
+    if level = C_SPELL.CLOUDKILL_HARD_SAVE then
+      saveMod := C_SPELL.CLOUDKILL_HARD_MOD;
+    CloudkillFate := C_SPELL.CLOUDKILL_SAVE;
+  end else
+    CloudkillFate := C_SPELL.CLOUDKILL_HURTS;
+end;
+
 function FreeCloudNumber(caster: Types.PCharRecord): Byte;
 var
-  node: Types.PStinkRec;
+  node: Types.PCloudRec;
   n: Byte;
   used: Boolean;
 begin
   n := 0;
   repeat
     used := False;
-    node := GameVars.stinkHead;
+    node := GameVars.cloudHead;
     while node <> nil do begin
       if (node^.caster = caster) and (node^.idx = n) then
         used := True;

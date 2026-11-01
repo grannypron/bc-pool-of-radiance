@@ -304,8 +304,8 @@ var
   spellTargets: array[1..Types.ARENA_SLOTS] of Types.PCharRecord;
   { Remembered noncombat spell target, initially the caster. }
   castTarget: Types.PCharRecord;
-  { Pointer to linked list of Stinking Clouds }
-  stinkHead: Types.PStinkRec;
+  { the clouds on the combat map, Stinking Clouds' and Cloudkills' (Types.TCloudRec) }
+  cloudHead: Types.PCloudRec;
   usingItem: Boolean;
 
 var

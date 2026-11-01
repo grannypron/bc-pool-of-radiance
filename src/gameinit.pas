@@ -125,7 +125,7 @@ begin
   GameVars.spellFns[88] := Magic.SpellMinorGlobe;
   GameVars.spellFns[89] := Magic.SpellRemoveCurse;
   GameVars.spellFns[90] := Magic.SpellAnimateDead;
-  GameVars.spellFns[91] := Magic.UnusedSpellHandler;
+  GameVars.spellFns[C_SPELL.CLOUDKILL] := Magic.SpellCloudkill;
   GameVars.spellFns[92] := Magic.SpellConeOfCold;
   GameVars.spellFns[93] := Magic.SpellFeeblemind;
   GameVars.spellFns[94] := Magic.SpellHold;
@@ -178,7 +178,7 @@ begin
   GameVars.effectFns[C_EFFECT.BLINKING] := EffHndlr.EffBlinking;
   GameVars.effectFns[C_EFFECT.STRENGTH] := EffHndlr.EffExtraStr;
   GameVars.effectFns[C_EFFECT.HASTED] := EffHndlr.EffHasted;
-  GameVars.effectFns[C_EFFECT.CAST_STINKING_CLOUD] := EffHndlr.EffCastStink;
+  GameVars.effectFns[C_EFFECT.CAST_STINKING_CLOUD] := EffHndlr.EffCastCloud;
   GameVars.effectFns[C_EFFECT.PROT_MISSILES] := EffHndlr.EffProtNormalMissiles;
   GameVars.effectFns[C_EFFECT.SLOWED] := EffHndlr.EffSlowed;
   GameVars.effectFns[C_EFFECT.DISEASE_STRENGTH] := EffHndlr.EffDiseaseStrength;
@@ -296,6 +296,7 @@ begin
   GameVars.effectFns[C_EFFECT.FEEBLEMIND] := EffHndlr.EffFeeblemind;
   GameVars.effectFns[C_EFFECT.INVISIBLE_TO_ANIMALS] := EffHndlr.EffInvisibleToAnimals;
   GameVars.effectFns[C_EFFECT.ENTANGLE] := EffHndlr.EffEntangle;
+  GameVars.effectFns[C_EFFECT.CAST_CLOUDKILL] := EffHndlr.EffCastCloud;
 end;
 
 procedure ResetGameState;
