@@ -228,14 +228,26 @@ var
   end;
 
   { Draw the menu after the query with option cur in inverse video (black on hlCol), the other hotkeys in hlCol (but
-    not an unmarked option's) and the rest in mCol, then blank the rest of the line. }
+    not an unmarked option's) and the rest in mCol, then blank the rest of the line. The inverse covers the whole word
+    holding cur's hotkey, so a hotkey inside its word (coMbat, sYstem) still lights the word and nothing past it. }
   procedure DisplayOption(cur: Byte);
   var
     i: Byte;
+    hlFirst: Byte;
+    hlLast: Byte;
   begin
     if mLen > 0 then begin
+      hlFirst := opt[cur].first;
+      hlLast := opt[cur].last;
+      if hlFirst > 0 then begin
+        while (hlFirst > 1) and (menu[hlFirst - 1] <> ' ') do
+          Dec(hlFirst);
+        hlLast := opt[cur].first;
+        while (hlLast < mLen) and (menu[hlLast + 1] <> ' ') do
+          Inc(hlLast);
+      end;
       for i := 1 to mLen do
-        if (opt[cur].first <= i) and (opt[cur].last >= i)
+        if (hlFirst <= i) and (hlLast >= i)
            and (hlCol <> 0) then
           TextRend.RenderChar(qLen + i - 1, 24, Black, hlCol, 1, Ord(menu[i]), 1)
         else if (menu[i] in ['0'..'9', 'A'..'Z']) and not (OptionAt(i) in unmarked) then
