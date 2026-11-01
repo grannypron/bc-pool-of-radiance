@@ -107,22 +107,22 @@ begin
     LevelXp := GameDefs.classExperience[cls].xp[level];
 end;
 
-{ The Levels screen: each class's level, the experience and hit points; row sel highlighted. }
+{ The Levels screen: each class's level, the experience and hit points; row sel's class in inverse video, black on
+  light magenta. }
 procedure DrawLevels(sel: Byte);
 var
   held: THeld;
   count: Byte;
   i: Byte;
-  colour: Byte;
 begin
   HeldClasses(held, count);
   Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   CharDisp.DisplayCreatureName(Types.PCharRecord(GameVars.curChar), NAME_COL, 2, False);
   for i := 0 to count - 1 do begin
-    colour := LightGreen;
     if i = sel then
-      colour := LightMagenta;
-    TextRend.DisplayString(NAME_COL, LEVEL_ROW + i, colour, GameDefs.classNames[held[i]]);
+      TextRend.DisplayStringOn(NAME_COL, LEVEL_ROW + i, Black, LightMagenta, GameDefs.classNames[held[i]])
+    else
+      TextRend.DisplayString(NAME_COL, LEVEL_ROW + i, LightGreen, GameDefs.classNames[held[i]]);
     TextRend.DisplayString(VALUE_COL, LEVEL_ROW + i, White,
                            'level ' + StrUtil.NumStr(GameVars.curChar^.classLevels[held[i]]) + ' ');
   end;

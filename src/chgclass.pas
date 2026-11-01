@@ -40,12 +40,13 @@ function Refusal(creature: Types.PCharRecord; atHall: Boolean): Types.TStr40;
 { The Dual Class screen for curChar (mocks/change-class.txt): the level and class it follows now, then the classes a
   human can take, each with its prime requisites one to a line, what each needs and what the character has, white for
   one it qualifies for here and dark gray for one it does not; the explanation of the rule; and a status line for the
-  highlighted class. Up and Down move the yellow highlight through the classes. A class qualifies when
-  ClassCal.CanTakeClass allows it, this hall trains it (C_GBVM.TRAIN_CLASS_MASK, GameDefs.classBits) and the character
-  has the CHANGE_FEE; freeTraining (CharGen's STING switch) waives the hall and the fee. The status line says which of
-  these fails, or what choosing it costs. Choose, offered on a qualifying class, asks Yes or No, takes the fee and
-  changes the class (ClassCal.ChangeClass, SyncClassPowers). A character whose current class's prime requisites are too
-  low has no highlight and the menu is Exit alone. The party menu has turned away a character Refusal refuses. }
+  highlighted class. Up and Down move the highlight (the class in yellow, its name in inverse video) through the
+  classes. A class qualifies when ClassCal.CanTakeClass allows it, this hall trains it (C_GBVM.TRAIN_CLASS_MASK,
+  GameDefs.classBits) and the character has the CHANGE_FEE; freeTraining (CharGen's STING switch) waives the hall and
+  the fee. The status line says which of these fails, or what choosing it costs. Choose, offered on a qualifying class,
+  asks Yes or No, takes the fee and changes the class (ClassCal.ChangeClass, SyncClassPowers). A character whose current
+  class's prime requisites are too low has no highlight and the menu is Exit alone. The party menu has turned away a
+  character Refusal refuses. }
 procedure ChangeClassMenu(freeTraining: Boolean);
 
 implementation
@@ -183,13 +184,17 @@ begin
 end;
 
 { Class cls's lines from row: its name on the first, and on each a prime requisite with the score it needs and the
-  creature's own (Strength CharHlp.PermanentStrength), all in color. }
-procedure DrawClassLines(creature: Types.PCharRecord; cls: ShortInt; row, color: Byte);
+  creature's own (Strength CharHlp.PermanentStrength), all in color, but for the name in inverse video (black on
+  color) when highlighted. }
+procedure DrawClassLines(creature: Types.PCharRecord; cls: ShortInt; row, color: Byte; highlighted: Boolean);
 var
   ab: ShortInt;
   score: Byte;
 begin
-  TextRend.DisplayString(LABEL_COL, row, color, GameDefs.classNames[cls]);
+  if highlighted then
+    TextRend.DisplayStringOn(LABEL_COL, row, Black, color, GameDefs.classNames[cls])
+  else
+    TextRend.DisplayString(LABEL_COL, row, color, GameDefs.classNames[cls]);
   for ab := C_STAT.STRENGTH to C_STAT.CHARISMA do
     if ClassCal.primeRequisites[cls] and (1 shl ab) <> 0 then begin
       if ab = C_STAT.STRENGTH then
@@ -261,7 +266,8 @@ var
   ext: Boolean;
   done: Boolean;
 
-  { Draw listed class n yellow when highlighted, else white when it qualifies and dark gray when not. }
+  { Draw listed class n yellow, its name in inverse video, when highlighted, else white when it qualifies and dark
+    gray when not. }
   procedure DrawListed(n: Byte; highlighted: Boolean);
   var
     color: Byte;
@@ -272,7 +278,7 @@ var
       color := White
     else
       color := DarkGray;
-    ChgClass.DrawClassLines(creature, listed[n], firstRow[n], color);
+    ChgClass.DrawClassLines(creature, listed[n], firstRow[n], color, highlighted);
   end;
 
   procedure MoveTo(n: Byte);

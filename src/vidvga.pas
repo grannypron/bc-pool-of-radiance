@@ -75,8 +75,8 @@ begin
   end;
 end;
 
-{ each font bit a pixel of color, each clear bit black }
-procedure DrawGlyph(col, row, color, glyph: Byte);
+{ each font bit a pixel of fg, each clear bit a pixel of bg }
+procedure DrawGlyph(col, row, fg, bg, glyph: Byte);
 var
   dstOff: Word;
   r: Byte;
@@ -88,9 +88,9 @@ begin
     bits := GameVars.gameFont^[glyph][r];
     for k := 0 to 7 do begin
       if (bits and ($80 shr k)) <> 0 then
-        vgaMem[dstOff + k] := color
+        vgaMem[dstOff + k] := fg
       else
-        vgaMem[dstOff + k] := 0;
+        vgaMem[dstOff + k] := bg;
     end;
   end;
 end;

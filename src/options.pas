@@ -249,35 +249,42 @@ begin
   written := CfgFile.WriteOptions(GameVars.saveDirectory, cur);
 end;
 
-{ Draw setting opt on its row, its label and value in color, or in OFF_COLOR when the page cannot change it. A stepping
-  line's value is its two choices; while it is highlighted (color TITLE_COLOR) the choice not picked stays LINE_COLOR. }
+{ Draw setting opt on its row, its label and value in color, or in OFF_COLOR when the page cannot change it. While it
+  is highlighted (color TITLE_COLOR) its chosen value is in inverse video, black on TITLE_COLOR (#1160): a stepping
+  line's value is its two choices, the one picked (stepChoice) inverse and the other in LINE_COLOR. }
 procedure DrawSetting(opt: Byte; color: Byte);
 var
   row: Byte;
-  leftColor: Byte;
-  rightColor: Byte;
+  highlighted: Boolean;
   left: CfgFile.TName;
   right: CfgFile.TName;
+
+  { Draw s from column col: in inverse video when it is chosen on the highlighted line, else in c. }
+  procedure DrawValue(col: Byte; s: CfgFile.TName; chosen: Boolean; c: Byte);
+  begin
+    if highlighted and chosen then
+      TextRend.DisplayStringOn(col, row, Black, TITLE_COLOR, s)
+    else
+      TextRend.DisplayString(col, row, c, s);
+  end;
+
 begin
   if (opt < 1) or (opt > C_OPT.OPT_COUNT) then Exit;
   if opt in unchangeable then
     color := OFF_COLOR;
+  highlighted := color = TITLE_COLOR;
   row := Options.SettingRow(opt);
   TextRend.PrintSpaces(LABEL_COL, row, Black, RIGHT_COL - LABEL_COL + 1);
   Options.Collect(cur);
   TextRend.DisplayString(LABEL_COL, row, color, CfgFile.SettingLabel(cur, opt));
   if CfgFile.StepNames(opt, left, right) then begin
-    leftColor := color;
-    rightColor := color;
-    if color = TITLE_COLOR then
-      if stepChoice = CHOICE_RIGHT then
-        leftColor := LINE_COLOR
-      else
-        rightColor := LINE_COLOR;
-    TextRend.DisplayString(SETTING_COL, row, leftColor, left);
-    TextRend.DisplayString(SETTING_COL + Length(left) + 1, row, rightColor, right);
+    { on the highlighted line the choice not picked is LINE_COLOR }
+    if highlighted then
+      color := LINE_COLOR;
+    DrawValue(SETTING_COL, left, stepChoice <> CHOICE_RIGHT, color);
+    DrawValue(SETTING_COL + Length(left) + 1, right, stepChoice = CHOICE_RIGHT, color);
   end else
-    TextRend.DisplayString(SETTING_COL, row, color, Options.ShownValue(opt));
+    DrawValue(SETTING_COL, Options.ShownValue(opt), True, color);
 end;
 
 { Draw a display-only line on row: its label, and value cut to the space from VALUE_COL; a value too long keeps its

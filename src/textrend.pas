@@ -10,7 +10,15 @@ uses Types;
 
 procedure LoadGameFont;
 
-procedure RenderChar(col, row, color, count, ch, isAscii: Byte);
+{ Draws count copies of a game-font glyph from a cell, one column apart.
+  @param(col The first copy's column.)
+  @param(row The row.)
+  @param(fg The ink color, for the glyph's set pixels.)
+  @param(bg The paper color, for its clear pixels: Black, or the highlight color with fg Black for inverse video.)
+  @param(count The number of copies.)
+  @param(ch The character, or the glyph index when isAscii is 0.)
+  @param(isAscii Nonzero to map ch to a glyph (UpCase, mod 64).) }
+procedure RenderChar(col, row, fg, bg, count, ch, isAscii: Byte);
 
 procedure PrintSpaces(col, row, color, count: Byte);
 
@@ -18,6 +26,14 @@ procedure PrintSpaces(col, row, color, count: Byte);
 procedure ClearBottomLine;
 
 procedure DisplayString(col, row, color: Byte; source: string);
+
+{ Writes a string from a cell in ink on paper, one character per cell; characters off the screen are not drawn.
+  @param(col The first character's column.)
+  @param(row The row.)
+  @param(fg The ink color.)
+  @param(bg The paper color: Black, or the highlight color with fg Black for inverse video.)
+  @param(source The text.) }
+procedure DisplayStringOn(col, row, fg, bg: Byte; source: string);
 
 { Draw s centred between columns left and right (both included) on row, cut to that width first. }
 procedure DisplayCentered(left, right, row, color: Byte; s: string);
@@ -92,11 +108,11 @@ begin
   FreeMem(dataPtr, size);
 end;
 
-{ Draw count copies of a game-font glyph at character coordinates, advancing one column per copy. isAscii <> 0 maps ch
-  through UpCase mod 64; otherwise ch is the glyph index. Ignore an out-of-range starting position or an unloaded font;
-  later copies are not range-checked. A glyph index past the font draws nothing. The video driver draws each copy
-  (GameVars.video.DrawGlyph). }
-procedure RenderChar(col, row, color, count, ch, isAscii: Byte);
+{ Draw count copies of a game-font glyph at character coordinates, advancing one column per copy, its set pixels in fg
+  and its clear pixels in bg. isAscii <> 0 maps ch through UpCase mod 64; otherwise ch is the glyph index. Ignore an
+  out-of-range starting position or an unloaded font; later copies are not range-checked. A glyph index past the font
+  draws nothing. The video driver draws each copy (GameVars.video.DrawGlyph). }
+procedure RenderChar(col, row, fg, bg, count, ch, isAscii: Byte);
 var
   i: Byte;
   charIdx: Byte;
@@ -109,7 +125,7 @@ begin
     charIdx := ch;
   end;
   for i := 1 to count do begin
-    GameVars.video.DrawGlyph(col, row, color, charIdx);
+    GameVars.video.DrawGlyph(col, row, fg, bg, charIdx);
     Inc(col);
   end;
 end;
@@ -139,11 +155,16 @@ end;
 procedure PrintSpaces(col, row, color, count: Byte);
 begin
   if (col > 39) or (row > 24) then Exit;
-  TextRend.RenderChar(col, row, color, count, 32, 1);
+  TextRend.RenderChar(col, row, color, Black, count, 32, 1);
 end;
 
-{ Draw a string in the game font at the requested column, row and color; nothing is drawn off the screen. }
+{ Draw a string in the game font at the requested column, row and color, on black; nothing is drawn off the screen. }
 procedure DisplayString(col, row, color: Byte; source: string);
+begin
+  TextRend.DisplayStringOn(col, row, color, Black, source);
+end;
+
+procedure DisplayStringOn(col, row, fg, bg: Byte; source: string);
 var
   n: Byte;
   i: Byte;
@@ -151,7 +172,7 @@ begin
   if (col > 39) or (row > 24) then Exit;
   n := Length(source);
   for i := 1 to n do begin
-    TextRend.RenderChar(col, row, color, 1, Ord(source[i]), 1);
+    TextRend.RenderChar(col, row, fg, bg, 1, Ord(source[i]), 1);
     Inc(col);
   end;
 end;
@@ -174,7 +195,7 @@ var
   procedure PrintCharInWindow;
   begin
     while (idx <= lineEnd) and (GameVars.curCol <= lrCol) do begin
-      TextRend.RenderChar(GameVars.curCol, GameVars.curRow, color, 1, Ord(source[idx]), 1);
+      TextRend.RenderChar(GameVars.curCol, GameVars.curRow, color, Black, 1, Ord(source[idx]), 1);
       if GameVars.msgDelayFlag <> 0 then Delay(GameVars.gameDelay * 10);
       Inc(idx);
       Inc(GameVars.curCol);

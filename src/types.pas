@@ -817,7 +817,8 @@ type
   TVideoProc = procedure;
   TSetPaletteProc = procedure(registerIndex, color: Byte);
   TShowPicProc = procedure(screenX, screenY: Integer; pic: PImgBuf);
-  TDrawGlyphProc = procedure(col, row, color, glyph: Byte);
+  { a game-font glyph in a character cell: its set pixels in fg (ink), its clear pixels in bg (paper) }
+  TDrawGlyphProc = procedure(col, row, fg, bg, glyph: Byte);
   TClearRectProc = procedure(ulCol, ulRow, lrCol, lrRow: Byte);
   TWriteCharProc = procedure(col, row, attr, count, ch: Byte);
   { An 8-pixel cell row as DAX stores it: two pixels to a byte, the first in the high nibble. }
