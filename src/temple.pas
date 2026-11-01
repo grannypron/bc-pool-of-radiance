@@ -33,7 +33,7 @@ procedure Look(var c: TTempleChar);
 implementation
 
 uses Types, Crt, C_MSG, C_MONEY, C_LEVEL, GameVars, TextRend, Money, Magic, FxEngine, C_EFFECT, C_KEYS, C_STATUS,
-  C_RACE, Stats, Border, CharHlp, MenuCore, Shop, CharDisp, Dice, ClassCal, MoneyCal, StrUtil;
+  C_RACE, Stats, Border, CharHlp, MenuCore, Shop, CharDisp, Dice, ClassCal, MoneyCal, StrUtil, ViewChar;
 
 var
   { the temple's rules, at the prices TempleMainMenu was entered with }
@@ -304,6 +304,8 @@ var
   done: Boolean;
   s: String[40];
   c: Char;
+  { the windows around the list want drawing: at the start and after a member's items (Alt-n) took the screen }
+  frame: Boolean;
 begin
   done := False;
   count := 0;
@@ -326,18 +328,24 @@ begin
     Inc(i);
   end;
   list := sel;
-  TextRend.ClearRect(0, 24, 39, 24);
-  redraw := True;
-  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
-  { the top divider row }
-  Border.DrawWindow(1, 1, 38, 1, 0, White, '');
+  frame := True;
   { open on the first cure; MenuVertical also brings a verticalMenuTop left by an earlier menu back to it }
   idx := 0;
   repeat
+    if frame then begin
+      TextRend.ClearRect(0, 24, 39, 24);
+      redraw := True;
+      Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
+      { the top divider row }
+      Border.DrawWindow(1, 1, 38, 1, 0, White, '');
+      frame := False;
+    end;
     s := GameVars.curChar^.name + ', how can we help you?';
     TextRend.DisplayString(1, 1, White, s);
     Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
-    { from row 3, the row under the divider: the twelve services and Exit fill rows 3..15 without a second page }
+    { from row 3, the row under the divider: the twelve services and Exit fill rows 3..15 without a second page. Alt-n
+      opens member n's items (ViewChar.AltItems, #1195), and member n is the patient when the list comes back. }
+    MenuCore.memberKeysToCaller := True;
     c := MenuCore.MenuVertical('', 'Heal Repair Exit', LightMagenta, LightGreen, White, 2, 3, 38, 15, list, False,
                                redraw, idx, sel);
     case c of
@@ -348,6 +356,9 @@ begin
           done := True;
       'R': Temple.RepairParty;
       C_KEYS.NONE: done := True;
+    else
+      if ViewChar.AltItems(c) then
+        frame := True;
     end;
   until done;
   MenuCore.FreeStringList(list);

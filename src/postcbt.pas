@@ -299,13 +299,16 @@ begin
   Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, 'Loot');
   CharHlp.LabelItems(GameVars.treasureItems);
   head := GameVars.treasureItems;
+  { Alt-n opens member n's items (ViewChar.AltItems), for LootTakeItemMenu to run }
+  MenuCore.memberKeysToCaller := True;
   c := MenuCore.MenuVertical('Items: ', 'Take', LightMagenta, LightGreen, White, 1, 4, 38, 22,
                              head, True, redraw, idx, cursor);
   itemToTake := cursor;
 end;
 
-{ Take loop: give a copy to the current character, then unlink and free the treasure node. Ends on any key other than
-  'T' or Enter, with no item highlighted, or when no treasure items are left. }
+{ Take loop: give a copy to the current character, then unlink and free the treasure node. Alt-n opens member n's
+  items, who then takes (ViewChar.AltItems, #1195), and the list comes back. Ends on any key other than 'T' or Enter,
+  with no item highlighted, or when no treasure items are left. }
 procedure LootTakeItemMenu;
 var
   itemToTake: Types.PItemRec;
@@ -315,14 +318,19 @@ var
   cursor: Types.PItemRec;
   idx: Integer;
   failed: Boolean;
+  { AltItems's result: the list is drawn again either way }
+  opened: Boolean;
 begin
   itemToTake := nil;
   cursor := GameVars.treasureItems;
   idx := 0;
   repeat
     PostCbt.LootTakeItemSelection(c, itemToTake, cursor, idx);
+    done := False;
+    if Party.AltMember(c) > 0 then
+      opened := ViewChar.AltItems(c)
     { no item highlighted (an empty list) leaves too, before anything reads it }
-    if ((c <> 'T') and (c <> C_KEYS.ENTER)) or (itemToTake = nil) then
+    else if ((c <> 'T') and (c <> C_KEYS.ENTER)) or (itemToTake = nil) then
       done := True
     else begin
       done := False;
@@ -362,10 +370,13 @@ begin
         c := MenuCore.MenuHorizontal('Take: ', 'Money Items Exit', LightMagenta, LightGreen, White,
                                      True, True, ext);
         { an extended key only steps the character: its scan code is no command letter (keypad 6 and 9 came back as 'M'
-          and 'I', #730) }
-        if ext then
-          Party.SelectPrevNextChar(c)
-        else
+          and 'I', #730); Alt-n opens member n's items (#1195) }
+        if ext then begin
+          if ViewChar.AltItems(c) then
+            CharDisp.DisplayNoncombatInterface
+          else
+            Party.SelectPrevNextChar(c);
+        end else
           case c of
             'M': begin
                    Money.TakeMoneyMenu;
@@ -432,9 +443,12 @@ begin
     { the coin each party member gains or puts back here, Take, Share, Pool or Drop alike, is Coin looted (net) (#611) }
     Stats.MarkCoins;
     { an extended key only steps the character: its scan code is no command letter (Delete came back as 'S' and shared
-      the money, F10 as 'D' and cast Detect Magic, #730) }
+      the money, F10 as 'D' and cast Detect Magic, #730); Alt-n opens member n's items (#1195) }
     if ext then begin
-      Party.SelectPrevNextChar(c);
+      if ViewChar.AltItems(c) then
+        CharDisp.DisplayNoncombatInterface
+      else
+        Party.SelectPrevNextChar(c);
       CharDisp.DisplayParty(GameVars.curChar);
     end else
       case c of

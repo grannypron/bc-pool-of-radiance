@@ -155,6 +155,10 @@ begin
       if (ch in [C_KEYS.HOME, C_KEYS.END_KEY]) or (not inGame and (ch in [C_KEYS.UP, C_KEYS.DOWN])) then begin
         Party.SelectPrevNextChar(ch);
         CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
+      end else if ViewChar.AltItems(ch) then begin
+        { Alt-n opened member n's items (#1195): the screen is drawn again, as after View }
+        CharDisp.DisplayNoncombatInterface;
+        redraw := True;
       end;
     end else begin
       { a command that may change the party marks it unsaved; Exit, Save, Settings and free training do not }

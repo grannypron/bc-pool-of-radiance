@@ -47,10 +47,13 @@ begin
     menu := menu + ' Exit';
     c := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
     { an extended key only steps the character, as at the shop's counter (Shop.CounterMenu): the arrows and Home and
-      End; SelectPrevNextChar ignores the rest }
-    if ext then
-      Party.SelectPrevNextChar(c)
-    else
+      End; SelectPrevNextChar ignores the rest. Alt-n opens member n's items (ViewChar.AltItems, #1195). }
+    if ext then begin
+      if ViewChar.AltItems(c) then
+        CharDisp.DisplayNoncombatInterface
+      else
+        Party.SelectPrevNextChar(c);
+    end else
       case c of
         'V': ViewChar.ViewCharMenu(ext);
         'T': if hasMoney or hasItems then begin
