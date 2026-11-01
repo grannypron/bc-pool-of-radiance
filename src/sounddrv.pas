@@ -48,6 +48,9 @@ procedure StopMusic;
 { Returns True while the tune started by PlayMusic is still running. }
 function MusicPlaying: Boolean;
 
+{ Returns True while the timer handler is installed, the PIT then running at its rate rather than the BIOS's. }
+function SoundTimerHooked: Boolean;
+
 { Ends the music when the Music setting, or the playing tune's own, is now off. }
 procedure ApplyMusicSettings;
 

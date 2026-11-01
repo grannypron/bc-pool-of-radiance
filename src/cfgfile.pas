@@ -40,12 +40,14 @@ type
     items: array[1..C_OPT.CFG_LINES] of TCfgNote;
   end;
   { POOLOPT.CFG's values: the speed (0..C_OPT.SLOWEST), the log lines, each ON/OFF setting as 1 or 0 by its OPT_
-    number, and the later games' paths by key - KEY_PATHS }
+    number, the later games' paths by key - KEY_PATHS, and the version the startup advisory's support part was last
+    shown for (KEY_ADVISED, tidied; '' before it ever was, #1173) }
   TSettings = record
     speed: Byte;
     logLines: Byte;
     flags: array[C_OPT.OPT_FIRST_FLAG..C_OPT.OPT_LAST_FLAG] of Byte;
     paths: array[1..C_OPT.LATER_PATHS] of FileUtil.TPathName;
+    advised: TName;
   end;
   { settings to pass by }
   TOptSet = set of 1..C_OPT.OPT_COUNT;
@@ -55,7 +57,8 @@ type
   { a path checked (CheckPath): good, empty, holding a character no DOS path may, too long, or not an existing folder }
   TPathCheck = (PATH_OK, PATH_EMPTY, PATH_BAD_CHAR, PATH_TOO_LONG, PATH_MISSING);
 
-{ The POOLOPT.CFG key of setting or path key: SPEED, ALLPORTRAITS ... LOGLINES, CURSEDATA ... POOLSSAVE; '' for none. }
+{ The POOLOPT.CFG key of setting or path key: SPEED, ALLPORTRAITS ... LOGLINES, CURSEDATA ... POOLSSAVE, then ADVISED
+  (C_OPT.KEY_ADVISED); '' for none. }
 function KeyName(key: Byte): TName;
 
 { The label of setting opt on the Settings screen, a sub-setting's indented two spaces under its setting. }
@@ -105,7 +108,7 @@ function KeyOf(line: string): Byte;
 { Every setting's default: speed 1, every portrait, Auto Join, music and sound setting on, the Journal FOUND, Auto End
   Quick Mode on, Use Magic off, Allow Gear Changes on, Aim Cycles at ENEMIES, Retrieve Thrown on, the Companion Tools
   off with their Clue Book notes on, Auto Memorize on, the four Fix settings off, the combat log on with 50 lines, and
-  the later games' paths C:\CURSE\, C:\CURSE\SAVE\ and so on. }
+  the later games' paths C:\CURSE\, C:\CURSE\SAVE\ and so on, and no version advised. }
 procedure Defaults(var s: TSettings);
 
 { Setting opt (an ON/OFF one) as 1 for on and 0 for off; 0 for any other. }
@@ -119,8 +122,8 @@ procedure SetFlag(var s: TSettings; opt, value: Byte);
   setting turns over. }
 procedure ChangeSetting(var s: TSettings; opt: Byte; right: Boolean);
 
-{ The value of setting or path key as POOLOPT.CFG keeps it: the speed's digit, the log lines' number, a path, ON or
-  OFF (FlagValue: ENEMIES or ALL for Aim Cycles, FOUND or ALL for the Journal). }
+{ The value of setting or path key as POOLOPT.CFG keeps it: the speed's digit, the log lines' number, a path, the
+  version advised, ON or OFF (FlagValue: ENEMIES or ALL for Aim Cycles, FOUND or ALL for the Journal). }
 function StoredValue(var s: TSettings; key: Byte): FileUtil.TPathName;
 
 { True when POOL.CFG's sound letter sound gives the DOS game no sound device: START installs a driver only for the
@@ -138,8 +141,9 @@ procedure Silenced(silent: Boolean; var skip: TOptSet);
 function ShownValue(var s: TSettings; opt: Byte; silent: Boolean): FileUtil.TPathName;
 
 { Set setting or path key from value (tidied): a digit 0..9 for the speed, a number from C_OPT.LOG_MIN to LOG_MAX for
-  the log lines, a path as it is, ON or OFF (or 1 or 0) for the others, and the names FlagValue gives them too. False
-  when the value was refused, which leaves the setting as it is; a blank path is passed over, not refused. }
+  the log lines, a path or the version advised as it is, ON or OFF (or 1 or 0) for the others, and the names FlagValue
+  gives them too. False when the value was refused, which leaves the setting as it is; a blank path is passed over,
+  not refused. }
 function ReadValue(var s: TSettings; key: Byte; value: string): Boolean;
 
 { Read POOLOPT.CFG in folder dir (with its trailing backslash) over what s holds (the caller sets the defaults first).
@@ -238,6 +242,7 @@ begin
     C_OPT.KEY_PATHS + 4: KeyName := 'SECRETSAVE';
     C_OPT.KEY_PATHS + 5: KeyName := 'POOLSDATA';
     C_OPT.KEY_PATHS + 6: KeyName := 'POOLSSAVE';
+    C_OPT.KEY_ADVISED: KeyName := 'ADVISED';
   else
     KeyName := '';
   end;
@@ -428,6 +433,7 @@ begin
   s.paths[4] := 'C:\SECRET\SAVE\';
   s.paths[5] := 'C:\POOLS\';
   s.paths[6] := 'C:\POOLS\SAVE\';
+  s.advised := '';
 end;
 
 function Flag(var s: TSettings; opt: Byte): Byte;
@@ -475,7 +481,9 @@ begin
   else if key = C_OPT.OPT_LOG_LINES then begin
     Str(s.logLines, n);
     StoredValue := n;
-  end else if key > C_OPT.KEY_PATHS then
+  end else if key = C_OPT.KEY_ADVISED then
+    StoredValue := s.advised
+  else if key > C_OPT.KEY_PATHS then
     StoredValue := s.paths[key - C_OPT.KEY_PATHS]
   else
     StoredValue := CfgFile.FlagValue(key, CfgFile.Flag(s, key));
@@ -498,7 +506,9 @@ begin
       s.logLines := n
     else
       ReadValue := False;
-  end else if key > C_OPT.KEY_PATHS then begin
+  end else if key = C_OPT.KEY_ADVISED then
+    s.advised := value
+  else if key > C_OPT.KEY_PATHS then begin
     if value <> '' then
       s.paths[key - C_OPT.KEY_PATHS] := value;
   end else if (value = 'ON') or (value = '1') or (value = CfgFile.FlagValue(key, 1)) then

@@ -80,3 +80,12 @@ macOS may run an app from a hidden, read-only copy when you open it in
 the folder where it was downloaded. If that happens, the app won't be
 able to see the files beside it. Move the unpacked folder somewhere
 else in Finder to fix the problem.
+
+
+Questions and bug reports
+-------------------------
+
+This is a modified version of the game. GOG, Steam and SNEG can't
+help with it. Please send questions and bug reports to
+talonius@brazencrows.com. The game says so too, on its first start
+after each new version and on the System page of the Settings screen.

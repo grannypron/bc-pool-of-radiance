@@ -84,3 +84,12 @@ game. Keep both files beside poolrad.exe. Without them, the game falls
 back to SSI's title screen and the PC speaker sound effects.
 
 SHA256.TXT contains the SHA-256 checksum of each file.
+
+
+Questions and bug reports
+-------------------------
+
+This is a modified version of the game. GOG, Steam and SNEG can't
+help with it. Please send questions and bug reports to
+talonius@brazencrows.com. The game says so too, on its first start
+after each new version and on the System page of the Settings screen.

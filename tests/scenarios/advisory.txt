@@ -1,0 +1,30 @@
+# The startup advisory (#1173). STING skips it, so every scenario boots to the main menu as before; ADVISE after STING
+# brings it back. The harness boots under STING and waits for the main menu, so the advisory is seen on a start typed at
+# the DOS prompt after Exit (the switches in capitals, as the game matches them). The harness's saves have no
+# POOLOPT.CFG, as a fresh install has none, so that start shows the support part; at the harness's 30000 cycles the
+# speed check is fast enough, so not the speed part. A key goes on to the main menu, and POOLOPT.CFG keeps the version
+# shown: the next start goes straight to the main menu.
+boot NORAND
+# The version line names the build.
+ignore THIS VERSION
+ignore POOL OF RADIANCE V
+wait RADIANCE
+press e y
+sleep 3
+press s t a r t spc shift-s shift-t shift-i shift-n shift-g spc shift-n shift-o shift-r shift-a shift-n shift-d spc
+press shift-a shift-d shift-v shift-i shift-s shift-e ret
+wait-text BUG REPORTS 60
+checkpoint advisory
+press spc
+wait RADIANCE
+checkpoint main-menu
+press e y
+sleep 3
+press s t a r t spc shift-s shift-t shift-i shift-n shift-g spc shift-n shift-o shift-r shift-a shift-n shift-d spc
+press shift-a shift-d shift-v shift-i shift-s shift-e ret
+wait RADIANCE 60
+checkpoint main-menu-again
+# The System page carries the same lines, the address with its at sign.
+ignore COMMIT  |VERSION  |FREE MEMORY|LARGEST BLOCK|SPEED CHECK|SWITCHES
+press g y
+checkpoint system
