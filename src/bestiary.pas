@@ -73,7 +73,9 @@ procedure Clear;
 function Append(var b: TBeast): Boolean;
 
 { The party meets creature, a creature outside it: its kind's seen count goes up, once an encounter however many of the
-  kind there are (EclVm's LOAD MONSTER, a fight's start; a meeting that does not fight counts too). }
+  kind there are (EclVm's LOAD MONSTER, a fight's start; a meeting that does not fight counts too). The demo's party is
+  not the player's: in the demo (#1109) neither this nor Learn, its kin or Killed teach the Bestiary anything, which
+  lives outside the saved games. }
 procedure Met(creature: Types.PCharRecord);
 
 { Starts a new encounter so previously seen kinds can increment their counts again. }
@@ -270,7 +272,7 @@ var
   i: Word;
   k: Byte;
 begin
-  if (creature = nil) or Party.IsPartyMember(creature) then Exit;
+  if (creature = nil) or Party.IsPartyMember(creature) or GameVars.demoMode then Exit;
   i := Bestiary.Add(creature^.name);
   if i = 0 then Exit;
   for k := 1 to metCount do
@@ -289,11 +291,13 @@ begin
   metCount := 0;
 end;
 
-{ The entry of beast when, in combat, beast is outside the party and witness is in it (or nil); else 0. }
+{ The entry of beast when, in combat, beast is outside the party and witness is in it (or nil); else 0, and always 0
+  in the demo. }
 function Watched(beast, witness: Types.PCharRecord): Word;
 begin
   Watched := 0;
-  if (beast = nil) or (GameVars.ifcState <> C_IFC.IN_COMBAT) or Party.IsPartyMember(beast) then Exit;
+  if (beast = nil) or (GameVars.ifcState <> C_IFC.IN_COMBAT) or Party.IsPartyMember(beast) or GameVars.demoMode then
+    Exit;
   if (witness <> nil) and not Party.IsPartyMember(witness) then Exit;
   Watched := Bestiary.Add(beast^.name);
 end;
@@ -354,7 +358,7 @@ procedure Killed(victim: Types.PCharRecord);
 var
   i: Word;
 begin
-  if (victim = nil) or Party.IsPartyMember(victim) then Exit;
+  if (victim = nil) or Party.IsPartyMember(victim) or GameVars.demoMode then Exit;
   i := Bestiary.Add(victim^.name);
   if i = 0 then Exit;
   if table^[i].killed < $FFFF then

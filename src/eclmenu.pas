@@ -26,7 +26,8 @@ var
 procedure EclInit;
 
 { Load ECL script block scriptId from ECL<disk>.dax; a block missing from that disk is taken from the first disk that
-  has it, which becomes current, and a block on no disk stops the game with a message }
+  has it, which becomes current, and a block on no disk stops the game with a message. In the demo (#1109) the block
+  comes from DEMO.DAX (C_DEMO.ARCHIVE), and a block not there ends the demo before it starts (GameVars.demoAbort). }
 procedure LoadEclScript(scriptId: Byte);
 
 { Allocate + load creature id, returning the record and its inventory/effects list heads }
@@ -82,10 +83,12 @@ procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 { Load creature id from MON<disk>CHA/SPC/ITM.dax (a missing or short CHA record exits the game); nil the list pointers,
   derive iconSize from race, roll random icon colours (slot 4, hair, is fixed at $C4), convert effects/items to lists,
   ignoring a trailing part record, then call the effect handler of each readied special item (special > $7F) but an
-  aligned weapon or a boulder. }
+  aligned weapon or a boulder. In the demo (#1109) its characters, C_DEMO.FIRST_NPC..LAST_NPC, come from DEMO.DAX:
+  the record from the id's block, the items from the block C_DEMO.ITEMS_OFFSET above, and no effects. }
 procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
 
-{ GetMem + LoadCreatureData + JoinParty. No-op when the party already has 8 members (C_GBVM.PARTY_SIZE > 7). }
+{ GetMem + LoadCreatureData + CharHlp.RecalcStats + JoinParty. No-op when the party already has 8 members
+  (C_GBVM.PARTY_SIZE > 7). }
 procedure AddCreatureToParty(id: Byte);
 
 { Join creature, a monster's record outside the list, to the party as a script-joined NPC joins: a new duplicate key
@@ -97,7 +100,7 @@ implementation
 
 uses Crt, C_AREA, C_ECL, C_NPC, C_MSG, GameVars, MapView, SaveLoad, C_EFFECT, C_KEYS, C_STATUS, C_GBVM, C_DIR,
   C_MONEY, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
-  C_RACE, C_LEVEL, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
+  C_RACE, C_LEVEL, StrUtil, Dice, DiskRec, C_DEMO{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { Picture id last shown, copied from C_GBVM.PIC_LOADING }
@@ -157,6 +160,22 @@ var
   found: Boolean;
 begin
   FillChar(GameVars.zone3^, SizeOf(Types.TZone3), 0);
+  if GameVars.demoMode then begin
+    { the archive is no game disk's: no insert-disk prompt }
+    GameVars.suppressDiskPrompt := True;
+    DaxIo.LoadDax(C_DEMO.ARCHIVE, '.dax', scriptId, sizeRead, data);
+    GameVars.suppressDiskPrompt := False;
+    if sizeRead > 2 then begin
+      n := sizeRead - 2;
+      if n > SizeOf(Types.TZone3) then
+        n := SizeOf(Types.TZone3);
+      Move(data^[2], GameVars.zone3^, n);
+    end else
+      GameVars.demoAbort := True;
+    if data <> nil then
+      FreeMem(data, sizeRead);
+    Exit;
+  end;
   GameVars.suppressDiskPrompt := False;
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, White, 'Loading...Please Wait');
@@ -520,9 +539,24 @@ var
   numStr: String[1];
   i: Byte;
   roll: Byte;
+  { the demo's own characters, in DEMO.DAX }
+  demoNpc: Boolean;
+  chaName: String[8];
+  itmName: String[8];
+  itmId: Byte;
 begin
   Str(GameVars.diskIndex, numStr);
-  DaxIo.LoadDax('MON' + numStr + 'CHA', '.dax', id, size, data);
+  demoNpc := GameVars.demoMode and (id >= C_DEMO.FIRST_NPC) and (id <= C_DEMO.LAST_NPC);
+  if demoNpc then begin
+    chaName := C_DEMO.ARCHIVE;
+    itmName := C_DEMO.ARCHIVE;
+    itmId := id + C_DEMO.ITEMS_OFFSET;
+  end else begin
+    chaName := 'MON' + numStr + 'CHA';
+    itmName := 'MON' + numStr + 'ITM';
+    itmId := id;
+  end;
+  DaxIo.LoadDax(chaName, '.dax', id, size, data);
   if size < DiskRec.CHAR_DISK_BYTES then begin
     TextRend.DisplayAndPause(White, 'Unable to load monster');
     GameIo.ExitGame;
@@ -547,7 +581,9 @@ begin
   end;
   FreeMem(data, size);
   GameVars.suppressDiskPrompt := True;
-  DaxIo.LoadDax('MON' + numStr + 'SPC', '.dax', id, size, data);
+  size := 0;
+  if not demoNpc then
+    DaxIo.LoadDax('MON' + numStr + 'SPC', '.dax', id, size, data);
   if size <> 0 then begin
     if size >= DiskRec.EFFECT_DISK_BYTES then begin
       offset := 0;
@@ -571,7 +607,7 @@ begin
   if (GameVars.diskIndex = DISPLACER_DISK) and (id = DISPLACER_BEAST)
      and not CharHlp.HasEffect(creature, C_EFFECT.DISPLACED, effect) then
     FxEngine.AddEffect(creature, C_EFFECT.DISPLACED, 0, 0, False);
-  DaxIo.LoadDax('MON' + numStr + 'ITM', '.dax', id, size, data);
+  DaxIo.LoadDax(itmName, '.dax', itmId, size, data);
   if size <> 0 then begin
     if size >= DiskRec.ITEM_DISK_BYTES then begin
       offset := 0;
@@ -665,6 +701,10 @@ begin
   if GameVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY then Exit;
   GetMem(creature, SizeOf(Types.TCharRecord));
   EclMenu.LoadCreatureData(id, creature);
+  { a record's combat figures (current THAC0, damage, AC) are whatever SSI left on the disk, and some are stale: the
+    4th-level fighter's (MON1CHA 41, and the demo's RESTAL and TARRAN) says THAC0 -91 and +102 damage. They are worked
+    out from its abilities and gear before it joins and is shown (#1109). }
+  CharHlp.RecalcStats(creature);
   EclMenu.JoinParty(creature);
 end;
 

@@ -18,7 +18,9 @@ type
   end;
 
 { Settles the outcome, awards experience, runs the loot menus, and frees the
-  combat state. }
+  combat state. In the demo (#1109) it only takes the monsters away and keeps the result for the script
+  (C_GBVM.COMBAT_RESULT 0 when the party won, else 1): no experience, treasure or summary, and the Bestiary learns
+  nothing. }
 procedure PostCombat;
 
 { Monsters and hostile creatures are removed, counting the ones not enabled in C_GBVM.MONSTERS_DEFEATED; the others get
@@ -660,6 +662,17 @@ procedure PostCombat;
 var
   risen: TRisen;
 begin
+  if GameVars.demoMode then begin
+    { the demo's party is NPCs alone, which DetermineCombatResults would take for a destroyed party }
+    CharHlp.CountTeams;
+    if (GameVars.teamCount[0] > 0) and (GameVars.teamCount[1] = 0) then
+      GameVars.zone1^[C_GBVM.COMBAT_RESULT] := 0
+    else
+      GameVars.zone1^[C_GBVM.COMBAT_RESULT] := 1;
+    PostCbt.PostCombatCreatureCleanup(False, risen);
+    Bestiary.NewEncounter;
+    Exit;
+  end;
   GameVars.zone1^[C_GBVM.COMBAT_RESULT] := 0;
   nonEscapedHostileFound := False;
   GameVars.ifcState := C_IFC.LOOT;
