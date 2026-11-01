@@ -83,6 +83,7 @@ Most of these changes are small on their own, but together they make the game ea
 
 The fixes below cover both visible bugs and rare failures that could damage a save, hang combat, or behave differently across platforms.
 
+- The spell lists of a magic-user who knows Bestow Curse no longer show it under a second "4th Level" heading after the 5th-level spells; every spell list now shows each level once, in order.
 - A Potion of Extra Healing found in random treasure is now named "Potion Extra Healing", as every other one is, instead of "Potion of Extra".
 - A stack of Darts +1 now reads "5 Darts +1" instead of "5 Dart +1s".
 - A stack of potions now reads "2 Potions of Healing" instead of "2 Potion of Healings", and rings and other "X of Y" items the same way. Fix's report names the item it used once, without the stack's count or extra spaces.

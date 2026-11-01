@@ -36,9 +36,15 @@ function SpellSelection(selType: Byte; var idx: Integer; var scroll: Types.PItem
 { Builds spellList and spellIds for creature. menuType selects memorized spells
   (0), the spell book (1), the current scroll (2), all readable items (3),
   spells offered after gaining a level (4), pending memorization (5), pending
-  scribing (6), or everything currently castable (7). Returns True only when
-  the finished list contains a spell; heading-only lists are freed. }
+  scribing (6), or everything currently castable (7). Every list runs level by
+  level, each level's heading once with its spells under it (#1199). Returns
+  True only when the finished list contains a spell; heading-only lists are
+  freed. }
 function GenerateSpellList(creature: Types.PCharRecord; menuType: Byte): Boolean;
+
+{ Line n (0 the first, headings counted) of the list GenerateSpellList last built, '' past its end; the unit tests
+  read the list with it. }
+function SpellListLine(n: Byte): Types.TStr40;
 
 { Selects targets outside combat. Target mode 1 selects the caster, mode 2 asks
   for a party member, and mode 4 selects the entire creature list. Any other
@@ -726,37 +732,39 @@ begin
     end;
 end;
 
-{ Add currentScrollPtr's spells to the list (forScribe: only those queued for scribing, id > $80), each with mark,
-  and record the scroll in scrollPtrs for each while scrollPtrs has room. Read Magic (effect 16), or any cleric level
-  with a scroll whose base item slot is 12, identifies the scroll first; an unidentified scroll adds nothing. A slot
-  whose spell is past the spell table (CharHlp.ScrollSpellAt gives none) is skipped, so corrupt item data cannot index
-  the tables past their ends (#922). }
-procedure AddScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark: Byte);
+{ Add currentScrollPtr's spells of spell level lvl to the list (forScribe: only those queued for scribing, id > $80),
+  each with mark, and record the scroll in scrollPtrs for each while scrollPtrs has room. Read Magic (effect 16), or
+  any cleric level with a scroll whose base item slot is 12, identifies the scroll first; an unidentified scroll adds
+  nothing. A slot whose spell is past the spell table (CharHlp.ScrollSpellAt gives none) is skipped, so corrupt item
+  data cannot index the tables past their ends (#922). }
+procedure AddScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark: Byte; lvl: ShortInt);
 var
   i: Byte;
+  id: Byte;
 begin
   if CharHlp.ScrollLegible(creature, currentScrollPtr) then
     for i := 1 to SizeOf(currentScrollPtr^.spells) do begin
-      if (CharHlp.ScrollSpellAt(currentScrollPtr, i) <> C_SPELL.NONE) and
-          (not forScribe or (currentScrollPtr^.spells[i] > C_SPELL.PENDING_FLAG)) then begin
-        Magic.AddSpellToList(creature, currentScrollPtr^.spells[i], mark);
-        { 48 = High(scrollPtrs) }
-        if scrollCount <= 48 then begin
-          scrollPtrs[scrollCount] := currentScrollPtr;
-          Inc(scrollCount);
+      id := CharHlp.ScrollSpellAt(currentScrollPtr, i);
+      if (id <> C_SPELL.NONE) and (not forScribe or (currentScrollPtr^.spells[i] > C_SPELL.PENDING_FLAG)) then
+        if GameDefs.spellTable[id].levelSp = lvl then begin
+          Magic.AddSpellToList(creature, currentScrollPtr^.spells[i], mark);
+          { 48 = High(scrollPtrs) }
+          if scrollCount <= 48 then begin
+            scrollPtrs[scrollCount] := currentScrollPtr;
+            Inc(scrollCount);
+          end;
         end;
-      end;
     end;
 end;
 
-{ Walk creature's inventory: each readable item becomes currentScrollPtr and feeds AddScrollSpells with forScribe and
-  mark. currentScrollPtr itself is the loop variable, so it ends as nil. }
-procedure AddAllScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark: Byte);
+{ Walk creature's inventory: each readable item becomes currentScrollPtr and feeds AddScrollSpells with forScribe, mark
+  and lvl. currentScrollPtr itself is the loop variable, so it ends as nil. }
+procedure AddAllScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark: Byte; lvl: ShortInt);
 begin
   currentScrollPtr := creature^.itemsAddr;
   while currentScrollPtr <> nil do begin
     if CharHlp.ItemReadable(currentScrollPtr) then
-      Magic.AddScrollSpells(creature, forScribe, mark);
+      Magic.AddScrollSpells(creature, forScribe, mark, lvl);
     currentScrollPtr := currentScrollPtr^.next;
   end;
 end;
@@ -925,11 +933,24 @@ begin
   end;
 end;
 
+{ The spell level of memorized slot i's spell, its pending flag ignored; 0 for an empty slot. }
+function SlotLevel(creature: Types.PCharRecord; i: Byte): ShortInt;
+var
+  id: Byte;
+begin
+  id := CharHlp.MemorizedAt(creature, i) and C_SPELL.ID_MASK;
+  if id = 0 then
+    SlotLevel := 0
+  else
+    SlotLevel := GameDefs.spellTable[id].levelSp;
+end;
+
 function GenerateSpellList(creature: Types.PCharRecord; menuType: Byte): Boolean;
 var
   i: Byte;
   p: Types.PItemRec;
   lines: Byte;
+  lvl: ShortInt;
 begin
   GenerateSpellList := False;
   spellList := nil;
@@ -943,31 +964,37 @@ begin
     scrollPtrs[i] := nil;
   scrollCount := 0;
   scrollList := menuType = 2;
-  case menuType of
-    7: Magic.AddAvailableSpells(creature);
-    0: for i := 0 to Types.MEMORIZED_LAST do
-         if (CharHlp.MemorizedAt(creature, i) > 0) and
-             (CharHlp.MemorizedAt(creature, i) < C_SPELL.PENDING_FLAG) then
-           Magic.AddMemorizedSpell(creature, i, lines);
-    5: for i := 0 to Types.MEMORIZED_LAST do
-         if CharHlp.MemorizedAt(creature, i) > C_SPELL.ID_MASK then
-           Magic.AddMemorizedSpell(creature, i, lines);
-    { every known spell, Restoration (56) too: SSI stopped at 55 }
-    1: for i := 1 to C_SPELL.LAST do
-         if CharHlp.KnowsSpell(creature, i) then
-           Magic.AddSpellToList(creature, i, MARK_NONE);
-    { one scroll's list marks the spells the character could learn but does not know }
-    2: Magic.AddScrollSpells(creature, False, MARK_NOT_KNOWN);
-    { the scribe list marks the spells the character already knows }
-    3: Magic.AddAllScrollSpells(creature, False, MARK_KNOWN);
-    6: Magic.AddAllScrollSpells(creature, True, MARK_NONE);
-    { a spell of a kind and level the character has slots for (CharHlp.SpellSlots; Restoration's level 7 has none) }
-    4: for i := 1 to C_SPELL.LAST do
-         if CharHlp.IsSpell(i) then
-           with GameDefs.spellTable[i] do
-             if (CharHlp.SpellSlots(creature, castClassSp, levelSp) > 0) and not CharHlp.KnowsSpell(creature, i) then
+  if menuType = 7 then
+    Magic.AddAvailableSpells(creature)
+  else
+    { level by level, so a level's heading comes once, its spells under it, though their ids run out of level order:
+      the 4th- and 5th-level spells' ids (#1121) put the magic-user's Bestow Curse, 100, after the 5th level's (#1199) }
+    for lvl := 1 to SPELL_LEVEL_LAST do
+      case menuType of
+        0: for i := 0 to Types.MEMORIZED_LAST do
+             if (CharHlp.MemorizedAt(creature, i) > 0) and
+                 (CharHlp.MemorizedAt(creature, i) < C_SPELL.PENDING_FLAG) and (Magic.SlotLevel(creature, i) = lvl) then
+               Magic.AddMemorizedSpell(creature, i, lines);
+        5: for i := 0 to Types.MEMORIZED_LAST do
+             if (CharHlp.MemorizedAt(creature, i) > C_SPELL.ID_MASK) and (Magic.SlotLevel(creature, i) = lvl) then
+               Magic.AddMemorizedSpell(creature, i, lines);
+        { every known spell, Restoration (56) too: SSI stopped at 55 }
+        1: for i := 1 to C_SPELL.LAST do
+             if CharHlp.KnowsSpell(creature, i) and (GameDefs.spellTable[i].levelSp = lvl) then
                Magic.AddSpellToList(creature, i, MARK_NONE);
-  end;
+        { one scroll's list marks the spells the character could learn but does not know }
+        2: Magic.AddScrollSpells(creature, False, MARK_NOT_KNOWN, lvl);
+        { the scribe list marks the spells the character already knows }
+        3: Magic.AddAllScrollSpells(creature, False, MARK_KNOWN, lvl);
+        6: Magic.AddAllScrollSpells(creature, True, MARK_NONE, lvl);
+        { a spell of a kind and level the character has slots for (CharHlp.SpellSlots; Restoration's level 7 has none) }
+        4: for i := 1 to C_SPELL.LAST do
+             if CharHlp.IsSpell(i) then
+               with GameDefs.spellTable[i] do
+                 if (levelSp = lvl) and (CharHlp.SpellSlots(creature, castClassSp, levelSp) > 0) and
+                     not CharHlp.KnowsSpell(creature, i) then
+                   Magic.AddSpellToList(creature, i, MARK_NONE);
+      end;
   { a list of headings alone has nothing to pick: it counts as empty }
   p := spellList;
   while (p <> nil) and (p^.inUse <> 0) do
@@ -978,6 +1005,21 @@ begin
     MenuCore.FreeStringList(spellList);
     spellList := nil;
   end;
+end;
+
+function SpellListLine(n: Byte): Types.TStr40;
+var
+  p: Types.PItemRec;
+begin
+  p := spellList;
+  while (p <> nil) and (n > 0) do begin
+    p := p^.next;
+    Dec(n);
+  end;
+  if p = nil then
+    SpellListLine := ''
+  else
+    SpellListLine := p^.name;
 end;
 
 { Spell duration in minutes: CharHlp.SpellDuration's dice rolled, or its fixed figure }
