@@ -1,0 +1,18 @@
+# Tests a dead Skullcrusher outside City Hall (#1168). The fixture places save A on the square east of City Hall in
+# New Phlan, (5,4), event 26, with the sixth member made Skullcrusher, an NPC, dead. Look runs the square's event:
+# Cadorna's guard carts him away and he leaves the party; SSI's search passed over him, so he stayed for good.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/skulldead
+# Load the slot directly by pressing its letter (#652).
+press l a
+wait AREA 120
+checkpoint before
+press l
+# SSI left him in the party, without a word
+candidate: wait RETURN
+checkpoint carted
+candidate: press ret
+wait AREA
+checkpoint party
