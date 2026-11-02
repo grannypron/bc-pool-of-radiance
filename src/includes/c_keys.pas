@@ -41,6 +41,8 @@ const
   F1 = #59;
   { the Bestiary (#842), on the map and camp menus }
   F2 = #60;
+  { the combat minimap (#1210), on the combat menu }
+  F3 = #61;
   { quick save and quick load, on the map menu }
   F5 = #63;
   { the Companion Tools (phase 8), when the setting is on }

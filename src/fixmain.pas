@@ -15,10 +15,11 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
   Journal1, Journal2, Journal3, Journal4, JrnlList, JrnlQst, JrnlView, Options, CbtLog, LogWrap, LogView,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclVars, EclMenu, Shop, PostCbt, TownCore, Temple,
   EclVm, BldShow, DataPat, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault, VaultMnu, EclTrace, KeyHelp, Advisory,
-  Demo;
+  Demo, CbtMini;
 
 {$O Demo}
 {$O Advisory}
+{$O CbtMini}
 {$O AdvPlan}
 {$O EclTrace}
 {$O Vault}

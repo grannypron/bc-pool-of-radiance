@@ -49,5 +49,12 @@ begin
   TestKit.Check(LineOf('ALT-1 ') = LineOf('1, 2') + 1, 'after the function keys and 1, 2');
   TestKit.Check(LineOf('1, 2') = LineOf('F8 ') + 1, '1, 2, the weapon sets, after F8 (#1209)');
   TestKit.Check(Shows('1, 2', True) and Shows('1, 2', False), 'on either menu, as the combat menu may not show them');
+  TestKit.Check(KeyHelp.KeyGroup(LineOf('1, 2')) = KeyHelp.KeyGroup(LineOf('F8 ')), 'in the function keys'' group');
+  TestKit.Check(Shows('F3 ', True) and Shows('F3 ', False), 'F3, the combat minimap, shows on either menu (#1210)');
+  TestKit.Check(LineOf('F3 ') = LineOf('F2 ') + 1, 'in key order');
+  TestKit.Check(not KeyHelp.GroupGaps(True), 'with every line shown the groups lose their blank rows, to fit');
+  GameVars.stingArg := False;
+  GameVars.companionOn := 0;
+  TestKit.Check(KeyHelp.GroupGaps(True) and KeyHelp.GroupGaps(False), 'with fewer they keep them');
   TestKit.Done;
 end.
