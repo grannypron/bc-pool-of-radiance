@@ -5,15 +5,49 @@ unit Wilds;
 
 interface
 
-{ Draws a 5x5 wilderness view from the 44x36 map. Clamp the requested corner,
-  apply quest-dependent location icons, then draw each 24x24 tile. }
-procedure BuildWildernessMap(ulX, ulY: Integer);
+{ Draws a wilderness view five tiles tall and viewLast + 1 wide from the 44x36 map: C_AREA.WILD_VIEW_LAST for the 5x5
+  view, C_AREA.WILD_WIDE_LAST for Move mode's wide one (#1186). Clamp the requested corner, apply quest-dependent
+  location icons, then draw each 24x24 tile, clipped to the view buffer. }
+procedure BuildWildernessMap(ulX, ulY, viewLast: Integer);
 
-{ Clamps one coordinate of the 5x5 view so it remains inside the map. }
-function ViewCorner(ul, last: Integer): Integer;
+{ Clamps one coordinate of a view whose last column or row is viewLast so it remains inside a map side whose last cell
+  is last. }
+function ViewCorner(ul, last, viewLast: Integer): Integer;
 
-{ Draw the empty bordered windows of the wilderness screen: two side by side at the top and the message area. }
+{ The corner of a view whose last column or row is viewLast, centred on map cell cell along a map side whose last cell
+  is last, moved inside the map as BuildWildernessMap moves it: the party's cell is cell - CenteredCorner. }
+function CenteredCorner(cell, last, viewLast: Integer): Integer;
+
+{ The last column of the view on screen: C_AREA.WILD_WIDE_LAST while the wide view is shown, else
+  C_AREA.WILD_VIEW_LAST. }
+function ViewLast: Integer;
+
+{ Draw the empty bordered windows of the wilderness screen: the message area, then the map and party windows side by
+  side at the top, or one window across the top while the wide view is shown (DrawTopWindows). }
 procedure DrawWildWindows;
+
+{ Draw the top of the wilderness screen's windows as DrawWildWindows does, leaving the message area and its text. }
+procedure DrawTopWindows;
+
+{ Show the wide view (#1186), or the 5x5 one: the view buffer is freed and allocated again at the size that view takes,
+  C_AREA.WILD_WIDE_ROWS by WILD_WIDE_CELLS or VIEW_ROWS by VIEW_CELLS, so the wide view costs its extra bytes only while
+  it is shown. When the heap cannot spare the wide buffer, the 5x5 one comes back, as its own freed block holds it, and
+  wideWanted is cleared: Move mode goes on in the 5x5 view. The buffer starts blank and no span is dirty; the caller
+  draws. Nothing happens when that view is already shown. }
+procedure ShowWide(wide: Boolean);
+
+{ True for a script command that draws nothing outside the message window, or no more than the map view again
+  (MapView.DisplayMapView), so the wide view can stay while it runs: flow, tests and arithmetic, the party checks, the
+  clock, PRINT, PICTURE (which narrows the view itself before it shows a picture), SPRITE OFF and CALL (which narrows
+  it itself for a duel). Any other command narrows the view first (EclVm.CallEclScript), so a menu, a monster, combat or
+  a new area gets the screen with the party list. }
+function KeepsWide(opcode: Byte): Boolean;
+
+var
+  { Move mode wants the wide view (Explore.MapMainMenu); CharDisp.DisplayWildernessInterface shows it while set }
+  wideWanted: Boolean;
+  { the wide view is on screen, and the view buffer is its size (ShowWide) }
+  wideShown: Boolean;
 
 const
   { What a wilderness step meets (TileStep, StepTo): open ground; impassable terrain; the river, while its stench
@@ -38,7 +72,8 @@ function StepTo(x, y: ShortInt; dir, colOfs: Byte; riverShut: Boolean; var nx, n
 
 implementation
 
-uses Types, Crt, C_AREA, C_MSG, GameDefs, GameVars, Border, MapTiles, TextRend;
+uses Types, Crt, C_AREA, C_ECL, C_MSG, GameDefs, GameVars, Blit, Border, MapTiles,
+  TextRend{$IFDEF FPC}, TpCompat{$ENDIF};
 
 const
   { 10,9 = western 10,9, in Dragon Den Pass }
@@ -62,15 +97,67 @@ const
   { the last special location }
   WILD_LAST_SITE = WILD_PHLAN;
 
-function ViewCorner(ul, last: Integer): Integer;
+function ViewCorner(ul, last, viewLast: Integer): Integer;
 begin
-  if ul > last - C_AREA.WILD_VIEW_LAST then ul := last - C_AREA.WILD_VIEW_LAST;
+  if ul > last - viewLast then ul := last - viewLast;
   if ul < 0 then ul := 0;
   ViewCorner := ul;
 end;
 
+function CenteredCorner(cell, last, viewLast: Integer): Integer;
+begin
+  { the middle column: 2 in the 5x5 view, 6 in the wide one, where the 13th tile is cut off }
+  CenteredCorner := Wilds.ViewCorner(cell - viewLast div 2, last, viewLast);
+end;
+
+function ViewLast: Integer;
+begin
+  if wideShown then
+    ViewLast := C_AREA.WILD_WIDE_LAST
+  else
+    ViewLast := C_AREA.WILD_VIEW_LAST;
+end;
+
+procedure ShowWide(wide: Boolean);
+begin
+  if wide = wideShown then Exit;
+  { the second tile set first, which the wider view is likelier to need: loaded later, its blocks of up to 64K would
+    have to fit beside the wide buffer, which takes the heap's largest block apart (from 70,904 bytes to 34,392 on VGA
+    in the central wilderness) }
+  if wide then
+    MapTiles.LoadSecondSheet;
+  Blit.FreePic(GameVars.viewBuffer);
+  wideShown := wide and (MaxAvail >= LongInt(Blit.FrameBytes(C_AREA.WILD_WIDE_ROWS, C_AREA.WILD_WIDE_CELLS)) +
+                                      SizeOf(Types.TImgBuf) - SizeOf(GameVars.viewBuffer^.data));
+  if wideShown then
+    Blit.AllocPic(C_AREA.WILD_WIDE_ROWS, C_AREA.WILD_WIDE_CELLS, 1, 0, GameVars.viewBuffer)
+  else begin
+    Blit.AllocPic(C_AREA.VIEW_ROWS, C_AREA.VIEW_CELLS, 1, 0, GameVars.viewBuffer);
+    if wide then
+      wideWanted := False;
+  end;
+  { what was dirty was the freed buffer's }
+  Blit.ClearSpans;
+end;
+
+function KeepsWide(opcode: Byte): Boolean;
+begin
+  case opcode of
+    C_ECL.OP_EXIT, C_ECL.OP_GOTO, C_ECL.GOSUB, C_ECL.RETURN, C_ECL.ON_GOTO, C_ECL.ON_GOSUB,
+    C_ECL.COMPARE, C_ECL.COMPARE_AND, C_ECL.IF_EQ..C_ECL.IF_GE,
+    C_ECL.ADD, C_ECL.SUBTRACT, C_ECL.DIVIDE, C_ECL.MULTIPLY, C_ECL.OP_RANDOM, C_ECL.SAVE, C_ECL.OP_AND, C_ECL.OP_OR,
+    C_ECL.GET_TABLE, C_ECL.SAVE_TABLE,
+    C_ECL.CHECK_PARTY, C_ECL.PARTY_STRENGTH, C_ECL.SURPRISE, C_ECL.PARTY_SURPRISE, C_ECL.FIND_ITEM, C_ECL.SPELL,
+    C_ECL.CLEAR_MONSTERS, C_ECL.CLOCK,
+    C_ECL.PRINT, C_ECL.PRINT_CLEAR, C_ECL.PRINT_RETURN, C_ECL.PICTURE, C_ECL.SPRITE_OFF, C_ECL.CALL:
+      KeepsWide := True;
+  else
+    KeepsWide := False;
+  end;
+end;
+
 { GameDefs.wildMap and the override table both hold 1-based tile ids, hence each - 1. }
-procedure BuildWildernessMap(ulX, ulY: Integer);
+procedure BuildWildernessMap(ulX, ulY, viewLast: Integer);
 const
   { Quest-dependent wilderness icons, indexed by the WILD_* constants. x/y are
     map cells and icon is a one-based tile ID. Entries 1 and 2 intentionally
@@ -96,12 +183,12 @@ var
   col: Byte;
   row: Byte;
 begin
-  ulX := Wilds.ViewCorner(ulX, C_AREA.WILD_LAST_COL);
-  ulY := Wilds.ViewCorner(ulY, C_AREA.WILD_LAST_ROW);
+  ulX := Wilds.ViewCorner(ulX, C_AREA.WILD_LAST_COL, viewLast);
+  ulY := Wilds.ViewCorner(ulY, C_AREA.WILD_LAST_ROW, C_AREA.WILD_VIEW_LAST);
   viewY := 0;
   for row := 0 to C_AREA.WILD_VIEW_LAST do begin
     viewX := 0;
-    for col := 0 to C_AREA.WILD_VIEW_LAST do begin
+    for col := 0 to viewLast do begin
       mapX := col + ulX;
       mapY := row + ulY;
       icon := GameDefs.wildMap[mapY, mapX] - 1;
@@ -134,7 +221,7 @@ begin
           end;
         end;
       end;
-      MapTiles.Copy2DTile(viewX, viewY, icon);
+      MapTiles.Copy2DTileClipped(viewX, viewY, icon);
       Inc(viewX, 3);
     end;
     Inc(viewY, 3);
@@ -178,8 +265,24 @@ begin
   { the message window first, as the 3D screen's (CharDisp.DrawNoncombatWindows): the map window's corner at (16,16)
     goes over its top edge (#1172) }
   Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
-  Border.DrawWindow(1, 1, 15, 15, 0, Black, '');
-  Border.DrawWindow(17, 1, 38, 15, 0, Black, '');
+  Wilds.DrawTopWindows;
 end;
 
+procedure DrawTopWindows;
+begin
+  if wideShown then begin
+    { the top cleared to its bottom edge first, which also tells Border that no map window's corner is left at
+      (16,16) for an edge across it to put back (#1172) }
+    Border.ClearBox(0, 0, 39, 16);
+    Border.DrawWindow(1, 1, C_AREA.WILD_WIDE_CELLS, 15, 0, Black, '');
+  end else begin
+    Border.DrawWindow(1, 1, 15, 15, 0, Black, '');
+    Border.DrawWindow(17, 1, 38, 15, 0, Black, '');
+  end;
+end;
+
+begin
+  { Turbo Pascal clears no variable }
+  wideWanted := False;
+  wideShown := False;
 end.

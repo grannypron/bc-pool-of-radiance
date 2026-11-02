@@ -367,7 +367,7 @@ begin
   GetMem(GameVars.map3d, SizeOf(Types.TGeoMap));
   Blit.AllocPic(8, 1, 1, 0, GameVars.sym8x8Buf);
   { the 168x168 view area }
-  Blit.AllocPic(168, 21, 1, 0, GameVars.viewBuffer);
+  Blit.AllocPic(C_AREA.VIEW_ROWS, C_AREA.VIEW_CELLS, 1, 0, GameVars.viewBuffer);
   { 24x24 save-under block }
   Blit.AllocPic(24, 3, 1, 0, GameVars.saveUnder);
   Blit.ClearSpans;

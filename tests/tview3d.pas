@@ -1,10 +1,11 @@
 { Tests for View3D's map reads, which wrap a square off the map onto it from the other edge however far off it lies
-  (POR-0227), for Wilds.ViewCorner, which keeps the 5x5 wilderness view inside the map, and for Wilds.StepTo, a
+  (POR-0227), for Wilds.ViewCorner and CenteredCorner, which keep the 5x5 wilderness view and Move mode's wide one
+  (#1186) inside the map, for Wilds.KeepsWide, the script commands the wide view stays for, and for Wilds.StepTo, a
   wilderness step in any of eight directions (#1159). }
 {$I COMPILER.INC}
 program TView3D;
 
-uses Types, C_AREA, C_DIR, GameDefs, GameVars, View3D, Wilds, TestKit;
+uses Types, C_AREA, C_DIR, C_ECL, GameDefs, GameVars, View3D, Wilds, TestKit;
 
 { The square (x, y) wraps onto, as two letters: A for 0. }
 function Wrapped(x, y: ShortInt): String;
@@ -42,10 +43,19 @@ begin
   GameDefs.wildMap[y, x + CENTRAL] := tile;
 end;
 
+{ The party's column in the wide view when it stands on map column col. }
+function WideColumn(col: Integer): Integer;
+begin
+  WideColumn := col - Wilds.CenteredCorner(col, C_AREA.WILD_LAST_COL, C_AREA.WILD_WIDE_LAST);
+end;
+
 var
   north: Byte;
   east: Byte;
   northEast: Byte;
+  op: Integer;
+  wrong: Integer;
+  firstWrong: Integer;
 
 begin
   TestKit.Start('TVIEW3D');
@@ -69,10 +79,48 @@ begin
   TestKit.CheckEqualsL(0, View3D.GetBarrierType(-1, 2, C_DIR.NORTH), 'and their barriers as closed');
   TestKit.CheckEqualsL(3, View3D.GetWallType(1, 2, C_DIR.NORTH), 'but the map itself as it is');
   FreeMem(GameVars.map3d, SizeOf(Types.TGeoMap));
-  TestKit.CheckEqualsL(0, Wilds.ViewCorner(-2, C_AREA.WILD_LAST_COL), 'the view stops at the west edge');
-  TestKit.CheckEqualsL(20, Wilds.ViewCorner(20, C_AREA.WILD_LAST_COL), 'goes where it is put inside the map');
-  TestKit.CheckEqualsL(39, Wilds.ViewCorner(41, C_AREA.WILD_LAST_COL), 'and stops at the east edge');
-  TestKit.CheckEqualsL(31, Wilds.ViewCorner(33, C_AREA.WILD_LAST_ROW), 'and the south');
+  TestKit.CheckEqualsL(0, Wilds.ViewCorner(-2, C_AREA.WILD_LAST_COL, C_AREA.WILD_VIEW_LAST),
+                       'the view stops at the west edge');
+  TestKit.CheckEqualsL(20, Wilds.ViewCorner(20, C_AREA.WILD_LAST_COL, C_AREA.WILD_VIEW_LAST),
+                       'goes where it is put inside the map');
+  TestKit.CheckEqualsL(39, Wilds.ViewCorner(41, C_AREA.WILD_LAST_COL, C_AREA.WILD_VIEW_LAST),
+                       'and stops at the east edge');
+  TestKit.CheckEqualsL(31, Wilds.ViewCorner(33, C_AREA.WILD_LAST_ROW, C_AREA.WILD_VIEW_LAST), 'and the south');
+
+  { Move mode's wide view (#1186): 13 tiles across the 44-column map }
+  TestKit.CheckEqualsL(0, Wilds.ViewCorner(-6, C_AREA.WILD_LAST_COL, C_AREA.WILD_WIDE_LAST),
+                       'the wide view stops at the west edge');
+  TestKit.CheckEqualsL(31, Wilds.ViewCorner(37, C_AREA.WILD_LAST_COL, C_AREA.WILD_WIDE_LAST),
+                       'and at the east edge, its 13th tile the map''s last column');
+  TestKit.CheckEqualsL(19, Wilds.CenteredCorner(25, C_AREA.WILD_LAST_COL, C_AREA.WILD_WIDE_LAST),
+                       'centred on column 25, it starts at 19');
+  TestKit.CheckEqualsL(0, WideColumn(0), 'the party at the west edge is in the first column');
+  TestKit.CheckEqualsL(6, WideColumn(6), 'six columns in, it is in the middle one');
+  TestKit.CheckEqualsL(6, WideColumn(25), 'and stays there inside the map');
+  TestKit.CheckEqualsL(12, WideColumn(43), 'at the east edge it is in the last, cut-off column');
+  TestKit.CheckEqualsL(2, 25 - Wilds.CenteredCorner(25, C_AREA.WILD_LAST_COL, C_AREA.WILD_VIEW_LAST),
+                       'the 5x5 view still centres on its third column');
+
+  { the script commands the wide view stays for, and no other }
+  wrong := 0;
+  firstWrong := -1;
+  for op := 0 to 255 do
+    if Wilds.KeepsWide(op) <> (op in [C_ECL.OP_EXIT, C_ECL.OP_GOTO, C_ECL.GOSUB, C_ECL.RETURN, C_ECL.ON_GOTO,
+                                      C_ECL.ON_GOSUB, C_ECL.COMPARE, C_ECL.COMPARE_AND, C_ECL.IF_EQ, C_ECL.IF_NE,
+                                      C_ECL.IF_LT, C_ECL.IF_GT, C_ECL.IF_LE, C_ECL.IF_GE, C_ECL.ADD, C_ECL.SUBTRACT,
+                                      C_ECL.DIVIDE, C_ECL.MULTIPLY, C_ECL.OP_RANDOM, C_ECL.SAVE, C_ECL.OP_AND,
+                                      C_ECL.OP_OR, C_ECL.GET_TABLE, C_ECL.SAVE_TABLE, C_ECL.CHECK_PARTY,
+                                      C_ECL.PARTY_STRENGTH, C_ECL.SURPRISE, C_ECL.PARTY_SURPRISE, C_ECL.FIND_ITEM,
+                                      C_ECL.SPELL, C_ECL.CLEAR_MONSTERS, C_ECL.CLOCK, C_ECL.PRINT, C_ECL.PRINT_CLEAR,
+                                      C_ECL.PRINT_RETURN, C_ECL.PICTURE, C_ECL.SPRITE_OFF, C_ECL.CALL]) then begin
+      Inc(wrong);
+      if firstWrong < 0 then firstWrong := op;
+    end;
+  TestKit.CheckEqualsL(-1, firstWrong, 'the wide view stays for flow, tests, arithmetic, PRINT, PICTURE and CALL');
+  TestKit.CheckEqualsL(0, wrong, 'and goes for every other command');
+  TestKit.Check(not Wilds.KeepsWide(C_ECL.WHO) and not Wilds.KeepsWide(C_ECL.OP_COMBAT) and
+                not Wilds.KeepsWide(C_ECL.NEW_ECL) and not Wilds.KeepsWide(C_ECL.ENCOUNTER_MENU),
+                'WHO, COMBAT, NEWECL and the encounter menu need the party list');
 
   { wilderness steps (#1159), around the central wilderness's (1, 1), open on every side in the shipped map }
   TestKit.CheckEqualsL(Wilds.STEP_BLOCKED, Wilds.TileStep(ROCK, False), 'an impassable glyph blocks');

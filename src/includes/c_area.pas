@@ -19,6 +19,16 @@ const
   WILD_REGION_LAST_COL = 15;
   { the last column and row of the 5x5 wilderness view }
   WILD_VIEW_LAST = 4;
+  { Move mode's wide view (#1186), across the whole top of the screen in place of the map and party boxes: its last
+    column, 13 tiles of 24 pixels, the last of them clipped to two of its three cells; the cells across, 1 to 38 on the
+    screen; and the scanlines down, five tiles. Centred on its seventh tile (WILD_WIDE_LAST div 2), it puts the party's
+    three cells at view cells 18 to 20, half a cell from the middle. }
+  WILD_WIDE_LAST = 12;
+  WILD_WIDE_CELLS = 38;
+  WILD_WIDE_ROWS = 120;
+  { the view buffer everything else draws into (GameInit), 168 scanlines by 21 cells }
+  VIEW_ROWS = 168;
+  VIEW_CELLS = 21;
 
 implementation
 

@@ -82,9 +82,19 @@ procedure DrawNoncombatWindows(inset: Boolean);
 
 procedure DisplayNoncombatInterface;
 
+{ The status line PrintMiscInfo shows: the party's position (where the Area view is allowed), facing, the time and the
+  camping or search tag. }
+function MiscInfoText: Types.TStr40;
+
 procedure PrintMiscInfo;
 
 procedure DisplayWildernessInterface;
+
+{ Show the wilderness's wide view (#1186), or the 5x5 one with its two windows, the status line and the party, leaving
+  the message window's text as it is (Wilds.ShowWide; whatever view that leaves is drawn). Narrowing clears the bottom
+  line, which held Move mode's status: a script narrows the view for something that needs the usual screen. Nothing
+  when that view is shown already. }
+procedure SetWildView(wide: Boolean);
 
 procedure DisplayCombatInterface;
 
@@ -110,7 +120,8 @@ var
   each row first, and one extra row after the last. On a training hall's two-column party menu (C_IFC.MAIN_MENU with
   hallMenu set, #885) the roster is the mock-up's (mocks/training-hall.txt, #879): the names from column 2 and AC and
   HP a column further left. On SSI's start-up menu the names are from column 1; elsewhere the roster is right of the
-  view. Everywhere the headers are on row 2, a blank row above and below them (#1071), and the creatures from row 4. }
+  view. Everywhere the headers are on row 2, a blank row above and below them (#1071), and the creatures from row 4.
+  Nothing over the wilderness's wide view, which takes the list's place (#1186). }
 procedure DisplayParty(hl: Types.PCharRecord);
 var
   p: Types.PCharRecord;
@@ -120,6 +131,7 @@ var
   { 1 on the two-column party menu, which moves AC and HP a column left }
   left: Byte;
 begin
+  if Wilds.wideShown and (GameVars.ifcState = C_IFC.OVERLAND) then Exit;
   col := 17;
   row := 2;
   left := 0;
@@ -691,7 +703,10 @@ begin
       CharDisp.DisplayParty(GameVars.curChar);
       CharDisp.PrintMiscInfo;
     end;
-    C_IFC.OVERLAND: begin
+    { the wide view's screen, as Move mode draws it, while it is shown (#1186) }
+    C_IFC.OVERLAND: if Wilds.wideShown then
+      CharDisp.DisplayWildernessInterface
+    else begin
       CharDisp.DrawNoncombatWindows(False);
       MapView.DisplayMapView;
       CharDisp.DisplayParty(GameVars.curChar);
@@ -705,10 +720,10 @@ begin
   end;
 end;
 
-{ Print the party-window status line on row 15 of the upper-right window: coordinates (omitted where the Area view is
-  not allowed, JrnlSeen.AreaMapAllowed; above location type 1 they come from the zone-0 party position, +13 for type 3
-  and +26 for type 4), compass facing, the zero-padded HH:MM clock, and the camping or search tag. }
-procedure PrintMiscInfo;
+{ The status line: coordinates (omitted where the Area view is not allowed, JrnlSeen.AreaMapAllowed; above location type
+  1 they come from the zone-0 party position, +13 for type 3 and +26 for type 4), compass facing, the zero-padded HH:MM
+  clock, and the camping or search tag. }
+function MiscInfoText: Types.TStr40;
 const
   { clockwise facing codes 0..7, starting at north }
   dirNames: array[C_DIR.NORTH..C_DIR.NORTHWEST] of string[2] = (
@@ -746,19 +761,41 @@ begin
     info := info + ' camping'
   else if GameVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1 > 0 then
     info := info + ' search';
-  Border.ClearBox(17, 15, 38, 15);
-  TextRend.DisplayString(17, 15, LightGreen, info);
+  MiscInfoText := info;
 end;
 
-{ Switch to the outdoor interface and draw it: the wilderness windows and map views, status line and party. }
+{ Print the status line (MiscInfoText) on row 15 of the upper-right window; nothing over the wilderness's wide view,
+  where Move mode's bottom line shows it (#1186). }
+procedure PrintMiscInfo;
+begin
+  if Wilds.wideShown and (GameVars.ifcState = C_IFC.OVERLAND) then Exit;
+  Border.ClearBox(17, 15, 38, 15);
+  TextRend.DisplayString(17, 15, LightGreen, CharDisp.MiscInfoText);
+end;
+
+{ Switch to the outdoor interface and draw it: the wilderness windows and map views, status line and party. Move mode's
+  wide view is shown while Move mode wants it (Wilds.wideWanted), and the 5x5 view otherwise (#1186). }
 procedure DisplayWildernessInterface;
 begin
   GameVars.ifcState := C_IFC.OVERLAND;
+  Wilds.ShowWide(Wilds.wideWanted);
   Wilds.DrawWildWindows;
   MapView.DisplayMapView;
   MapView.DisplayWildMapView;
   CharDisp.PrintMiscInfo;
   CharDisp.DisplayParty(GameVars.curChar);
+end;
+
+procedure SetWildView(wide: Boolean);
+begin
+  if wide = Wilds.wideShown then Exit;
+  Wilds.ShowWide(wide);
+  Wilds.DrawTopWindows;
+  MapView.DisplayMapView;
+  CharDisp.PrintMiscInfo;
+  CharDisp.DisplayParty(GameVars.curChar);
+  if not wide then
+    TextRend.ClearBottomLine;
 end;
 
 { Draw the combat screen: combat palette, the two combat windows, the cleared bottom rows, and a forced rebuild of the
