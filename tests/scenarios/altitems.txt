@@ -1,7 +1,7 @@
 # Alt-1 to Alt-8 open a party member's items (#1175), from save G in the central wilderness (saves/wild): Alt-2 opens
-# the second member's items and Escape puts the wilderness back, Alt-7 with six members does nothing, F1 lists the
-# keys, and Alt-1 in camp opens the first member's items. A golden build without #1175 does nothing on Alt, so its
-# items checkpoints differ by design.
+# the second member's items, Alt-3 there switches to the third's in place (#1195) and Escape puts the wilderness back,
+# Alt-7 with six members does nothing, F1 lists the keys, and Alt-1 in camp opens the first member's items. A golden
+# build without #1175 does nothing on Alt, so its items checkpoints differ by design.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
@@ -9,8 +9,12 @@ put saves/wild
 press l g
 wait ^(MOVE )?CAST VIEW ENCAMP 60
 press alt-2
-wait TRADE 20
+wait TRADE|ENCAMP 20
 checkpoint items
+# Alt-3 in the second member's items switches to the third's in place (#1195), and Escape leaves both
+press alt-3
+wait TRADE|ENCAMP 20
+checkpoint items-switched
 press esc
 wait ^(MOVE )?CAST VIEW ENCAMP 20
 checkpoint items-closed
@@ -25,7 +29,7 @@ wait ^(MOVE )?CAST VIEW ENCAMP 20
 press e
 wait CAMP 60
 press alt-1
-wait TRADE 20
+wait TRADE|CAMP 20
 checkpoint camp-items
 press esc
 wait CAMP 20

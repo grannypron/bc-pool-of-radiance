@@ -99,12 +99,14 @@ const
   OPT_AIM = 30;
   { a single thrown weapon goes back to its thrower after the fight (#1118) }
   OPT_RETRIEVE = 31;
+  { the whole arena as a small map in the combat panel, which F3 turns over in combat (#1210) }
+  OPT_MINIMAP = 32;
   { the combat log (#841), and how many messages it keeps }
-  OPT_COMBAT_LOG = 32;
-  OPT_LOG_LINES = 33;
+  OPT_COMBAT_LOG = 33;
+  OPT_LOG_LINES = 34;
   OPT_FIRST_COMBAT = OPT_QUICK;
   OPT_LAST_COMBAT = OPT_LOG_LINES;
-  OPT_COUNT = 33;
+  OPT_COUNT = 34;
   { the pages the settings are shown on (CfgFile.SettingPage), in the order the game's Settings screen and POOLCFG
     offer them }
   OPT_PAGE_GAME = 1;

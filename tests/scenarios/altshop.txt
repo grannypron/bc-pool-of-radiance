@@ -1,0 +1,65 @@
+# Alt-1 to Alt-8 at a shop (#1195), from save A at the New Phlan arms shop (walked to as shop does). At the counter
+# Alt-2 opens Anna's items, with Sell and Id on the line; Alt-3 there switches to Gins's in place; Gins sells her first
+# clerical scroll; Escape gives the counter back with Gins current, and View shows the 500 gold pieces in her purse
+# (purse-before has it without them). In the Buy list Alt-1 opens Talonia's items and Escape gives the list back; in
+# View Alt-4 opens Spawn's items and Escape shows Spawn's sheet. A golden build without #1195 does nothing on these Alt
+# keys (and sells nothing), so most checkpoints differ by design.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+press l a
+wait AREA
+# Walk east twice and south nine times to (7,11), then enter the shop at (8,11).
+press down up up right up up up up up up up up left up
+wait YES NO
+press y
+wait BUY
+# Gins's purse before the sale, then Talonia current again.
+press end end v
+wait EXIT 20
+checkpoint purse-before
+press esc
+wait BUY 20
+press home home
+checkpoint counter
+press alt-2
+wait SELL|BUY|EXIT 20
+checkpoint items-2
+press alt-3
+wait SELL|BUY|EXIT 20
+checkpoint items-3
+# The fifth line, the first scroll: Sell, and take the offer.
+candidate: press down down down down s
+candidate: wait DEAL 20
+checkpoint offer
+candidate: press y
+wait SELL|BUY|EXIT 20
+checkpoint sold
+press esc
+wait BUY 20
+checkpoint counter-3
+press v
+wait EXIT 20
+checkpoint purse-3
+press esc
+wait BUY 20
+press b
+wait BUY 20
+checkpoint stock
+press alt-1
+wait SELL|BUY|EXIT 20
+checkpoint buy-items-1
+press esc
+wait BUY 20
+checkpoint stock-back
+press esc
+wait BUY 20
+press v
+wait EXIT 20
+checkpoint view
+press alt-4
+wait SELL|BUY|EXIT 20
+checkpoint view-items-4
+press esc
+wait EXIT 20
+checkpoint view-4

@@ -16,7 +16,7 @@ const
   SHOW_SOUND = 4;
   SHOW_LOG = 5;
   { Number of entries in KEYS. }
-  KEY_LINES = 16;
+  KEY_LINES = 17;
 
 type
   { One row in the help window. }
@@ -31,6 +31,7 @@ const
   KEYS: array[1..KEY_LINES] of TKeyLine = (
     (key: 'F1  '; what: 'This Screen'; show: SHOW_ALWAYS),
     (key: 'F2  '; what: 'Bestiary'; show: SHOW_ALWAYS),
+    (key: 'F3  '; what: 'Minimap (Combat Only)'; show: SHOW_ALWAYS),
     (key: 'F5  '; what: 'Quick Save'; show: SHOW_QUICK),
     (key: 'F6  '; what: 'Companion Tools'; show: SHOW_COMPANION),
     (key: 'F7  '; what: 'Action Log (Combat Only)'; show: SHOW_LOG),
@@ -48,6 +49,11 @@ const
 
 { Returns whether help line n applies to the current settings and menu. }
 function LineShown(n: Byte; quickKeys: Boolean): Boolean;
+
+{ Whether the window has room for a blank row between its groups of lines (the function keys, the Alt keys and the Ctrl
+  keys) with the lines shown for quickKeys; when it has not, as with every line shown under STING, the groups follow
+  each other without one. }
+function GroupGaps(quickKeys: Boolean): Boolean;
 
 { Shows the full-screen Command Keys window until Exit or Escape. quickKeys is
   True when the calling menu supports F5/F8 quick save and load. The caller is
@@ -67,6 +73,8 @@ const
   LIST_TOP = 3;
   BOTTOM_ROW = 22;
   FIRST_ROW = LIST_TOP + 1;
+  { the rows the lines have, from FIRST_ROW to the row above the box's bottom edge }
+  LIST_ROWS = BOTTOM_ROW - FIRST_ROW;
   KEY_COL = 2;
   TITLE_COLOR = White;
   KEY_COLOR = White;
@@ -85,6 +93,24 @@ begin
   end;
 end;
 
+function GroupGaps(quickKeys: Boolean): Boolean;
+var
+  n: Byte;
+  rows: Byte;
+  group: Char;
+begin
+  rows := 0;
+  group := ' ';
+  for n := 1 to KEY_LINES do
+    if KeyHelp.LineShown(n, quickKeys) then begin
+      if (group <> ' ') and (KEYS[n].key[1] <> group) then
+        Inc(rows);
+      group := KEYS[n].key[1];
+      Inc(rows);
+    end;
+  GroupGaps := rows <= LIST_ROWS;
+end;
+
 procedure ShowKeys(quickKeys: Boolean);
 var
   n: Byte;
@@ -94,8 +120,10 @@ var
   ch: Char;
   ext: Boolean;
   savedChoice: Byte;
+  gaps: Boolean;
 begin
   savedChoice := GameVars.horizChoice;
+  gaps := KeyHelp.GroupGaps(quickKeys);
   { the whole screen, as a window over the map's would run into its frames; the lines' box first, then the title's, so
     the corners stay where the borders meet }
   Border.ClearBox(0, 0, 39, 23);
@@ -106,8 +134,8 @@ begin
   group := ' ';
   for n := 1 to KEY_LINES do
     if KeyHelp.LineShown(n, quickKeys) then begin
-      { a blank row between groups: the function keys, the Alt keys (#1175) and the Ctrl keys }
-      if (group <> ' ') and (KEYS[n].key[1] <> group) then
+      { a blank row between groups, when they fit with it: the function keys, the Alt keys (#1175) and the Ctrl keys }
+      if gaps and (group <> ' ') and (KEYS[n].key[1] <> group) then
         Inc(row);
       group := KEYS[n].key[1];
       TextRend.DisplayString(KEY_COL, row, KEY_COLOR, KEYS[n].key);

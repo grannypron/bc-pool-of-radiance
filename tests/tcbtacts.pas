@@ -2,11 +2,13 @@
   blow's damage with a backstab and a ranger's bonus (CbtActs.WeaponDamage), the missiles a volley leaves
   (CbtActs.AmmoLeft), the wilderness arena's feature classes (CombatSt.TerrainClass), who the aim menu's Next and Prev
   reach (CbtActs.CanTarget's allowAlly, CbtActs.AimCycles, #1137) and a thrown weapon handed back to its thrower after
-  the fight (CbtActs.NoteThrown, ReturnThrown, #1118). }
+  the fight (CbtActs.NoteThrown, ReturnThrown, #1118), and paladin leadership over NPCs (CbtActs.LeadershipBase,
+  LeadershipChance, CanLead, CanBeLed, TryLead, #1124). }
 {$I COMPILER.INC}
 program TCbtActs;
 
-uses Types, C_DIR, C_KEYS, C_EFFECT, C_EQUIP, C_ITEM, GameVars, FxEngine, CharHlp, CbtActs, CombatSt, TestKit;
+uses Types, C_DIR, C_KEYS, C_EFFECT, C_EQUIP, C_ITEM, C_LEVEL, C_NPC, C_STATUS, GameVars, FxEngine, CharHlp, CbtActs,
+  CombatSt, TestKit;
 
 var
   att: Types.PCharRecord;
@@ -18,6 +20,9 @@ var
   back: Types.PItemRec;
   name: string;
   i: Byte;
+  paladin: Types.PCharRecord;
+  npc1: Types.PCharRecord;
+  npc2: Types.PCharRecord;
 
 {$F+}
 { An invisible creature's veto: it cannot be aimed at. }
@@ -178,6 +183,77 @@ begin
   Throw(att);
   TestKit.Check(not CbtActs.ReturnThrown(4, thrower, back, name), 'a thrower who cannot carry it gets nothing');
   TestKit.CheckEqualsL(3, LootCount, 'and the axe stays in the loot');
+
+  { paladin leadership (#1124): the base by paladin level, 20 / 40 / 80 }
+  TestKit.CheckEqualsL(0, CbtActs.LeadershipBase(0), 'no paladin level: no chance');
+  TestKit.CheckEqualsL(20, CbtActs.LeadershipBase(1), 'level 1: 20');
+  TestKit.CheckEqualsL(20, CbtActs.LeadershipBase(3), 'level 3: 20');
+  TestKit.CheckEqualsL(40, CbtActs.LeadershipBase(4), 'level 4: 40');
+  TestKit.CheckEqualsL(40, CbtActs.LeadershipBase(7), 'level 7: 40');
+  TestKit.CheckEqualsL(80, CbtActs.LeadershipBase(8), 'level 8: 80');
+  TestKit.CheckEqualsL(80, CbtActs.LeadershipBase(12), 'level 12: 80');
+  { the chance: the base plus 5 a point of Charisma above 13 }
+  GameVars.creatureList := nil;
+  paladin := NewCreature(0);
+  paladin^.name := 'GALAHAD';
+  paladin^.enabled := 1;
+  paladin^.classLevels[C_LEVEL.PALADIN] := 5;
+  paladin^.charClass := C_LEVEL.PALADIN;
+  paladin^.chaCur := 13;
+  TestKit.CheckEqualsL(40, CbtActs.LeadershipChance(paladin), 'level 5, Charisma 13: 40');
+  paladin^.chaCur := 17;
+  TestKit.CheckEqualsL(60, CbtActs.LeadershipChance(paladin), 'Charisma 17: 60');
+  paladin^.chaCur := 18;
+  TestKit.CheckEqualsL(65, CbtActs.LeadershipChance(paladin), 'Charisma 18: 65');
+  paladin^.classLevels[C_LEVEL.PALADIN] := 8;
+  paladin^.chaCur := 17;
+  TestKit.CheckEqualsL(100, CbtActs.LeadershipChance(paladin), 'level 8, Charisma 17: 100, a roll of 100 fails');
+  { a dual-classed human's old paladin levels count once the new class passes them, and not before }
+  paladin^.classLevels[C_LEVEL.PALADIN] := 5;
+  paladin^.portExt.formerClasses := 1 shl C_LEVEL.PALADIN;
+  paladin^.charClass := C_LEVEL.FIGHTER;
+  paladin^.classLevels[C_LEVEL.FIGHTER] := 6;
+  TestKit.CheckEqualsL(60, CbtActs.LeadershipChance(paladin), 'an ex-paladin past its old level leads at level 5');
+  TestKit.Check(CbtActs.CanLead(paladin), 'and can lead');
+  paladin^.classLevels[C_LEVEL.FIGHTER] := 3;
+  TestKit.Check(not CbtActs.CanLead(paladin), 'one whose new class has not passed the old cannot');
+  paladin^.portExt.formerClasses := 0;
+  paladin^.charClass := C_LEVEL.PALADIN;
+  paladin^.classLevels[C_LEVEL.FIGHTER] := 0;
+  { who leads, and who is led }
+  npc1 := NewCreature(0);
+  npc1^.name := 'SKULLCRUSHER';
+  npc1^.enabled := 1;
+  npc1^.npc := C_NPC.FLAG;
+  npc1^.quickfight := 1;
+  npc1^.intCur := 9;
+  npc2 := NewCreature(0);
+  npc2^.enabled := 1;
+  npc2^.npc := C_NPC.FLAG;
+  npc2^.quickfight := 1;
+  npc2^.intCur := 3;
+  TestKit.Check(CbtActs.CanLead(paladin), 'the paladin can lead');
+  TestKit.Check(not CbtActs.CanLead(npc1), 'an NPC cannot lead');
+  TestKit.Check(CbtActs.CanBeLed(npc1), 'an NPC under the computer can be led');
+  TestKit.Check(not CbtActs.CanBeLed(npc2), 'one of Intelligence 3 cannot');
+  TestKit.Check(not CbtActs.CanBeLed(paladin), 'nor can the player''s own character');
+  npc1^.hostile := 1;
+  TestKit.Check(not CbtActs.CanBeLed(npc1), 'nor an NPC on the other side');
+  npc1^.hostile := 0;
+  npc1^.quickfight := 0;
+  TestKit.Check(not CbtActs.CanBeLed(npc1), 'nor one already under the player''s control');
+  npc1^.quickfight := 1;
+  paladin^.status := C_STATUS.DEAD_STATUS;
+  TestKit.Check(not CbtActs.CanLead(paladin), 'a dead paladin cannot lead');
+  paladin^.status := C_STATUS.OKAY;
+  { a forced roll: level 5, Charisma 17, 60 in 100 }
+  TestKit.Check(not CbtActs.TryLead(paladin, npc1, 60), 'a roll of 60 fails');
+  TestKit.CheckEqualsL(1, npc1^.quickfight, 'and the NPC stays the computer''s');
+  TestKit.CheckEqualsL(0, npc1^.combatAddr^.led, 'unmarked');
+  TestKit.Check(CbtActs.TryLead(paladin, npc1, 59), 'a roll of 59 leads');
+  TestKit.CheckEqualsL(0, npc1^.quickfight, 'the NPC comes under the player''s control');
+  TestKit.CheckEqualsL(1, npc1^.combatAddr^.led, 'marked led for the fight');
+  TestKit.Check(not CbtActs.CanBeLed(npc1), 'and a second paladin does not roll for it');
 
   TestKit.Done;
 end.

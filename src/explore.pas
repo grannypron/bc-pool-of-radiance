@@ -13,7 +13,7 @@ function MapMainMenu: Char;
 
 { F1, F2, F6 and Alt-1 to Alt-8 on the map and camp menus: the Command Keys window (KeyHelp.ShowKeys, #855; quickKeys
   says whether it lists F5 and F8), the Bestiary (#842), the Companion Tools while that setting is on (phase 8) and
-  party member n's items (ViewChar.MemberItems, #1175; nothing without a member n), each followed by the screen drawn
+  party member n's items (ViewChar.AltItems, #1175; nothing without a member n), each followed by the screen drawn
   again (CharDisp.DisplayWildernessInterface when wild, else DisplayNoncombatInterface). False for any other key, which
   the caller handles. }
 function SideScreen(c: Char; quickKeys, wild: Boolean): Boolean;
@@ -353,7 +353,8 @@ begin
     C_KEYS.F1, C_KEYS.F2: shown := True;
     { a party member's items (#1175); with no member n, nothing }
     C_KEYS.ALT_1..C_KEYS.ALT_8: begin
-                                  member := Party.MemberAt(Ord(c) - Ord(C_KEYS.ALT_1) + 1);
+                                  if Party.AltMember(c) > 0 then
+                                    member := Party.MemberAt(Party.AltMember(c));
                                   shown := member <> nil;
                                 end;
     C_KEYS.F6: shown := GameVars.companionOn <> 0;

@@ -151,6 +151,7 @@ begin
   GameVars.stingArg := ParamStr(1) = 'STING';
   GameVars.norandArg := ParamStr(2) = 'NORAND';
   GameVars.adviseArg := GameVars.stingArg and GameBoot.SwitchGiven('ADVISE');
+  GameVars.demoArg := (ParamStr(1) = 'DEMO') or GameBoot.SwitchGiven('DEMO');
 {$IFDEF FPC}
   DataPick.FindGame;
   GameVars.ovrInEms := False;

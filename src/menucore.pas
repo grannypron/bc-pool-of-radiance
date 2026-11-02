@@ -40,6 +40,11 @@ var
     map and camp menus do: F1 then ends the menu with ext set, with or without reinterpret. Every return clears it.
     Without it F1 ends no menu: outside combat it says where the window is, and in combat it is ignored (#855). }
   helpToCaller: Boolean;
+  { Set just before a MenuHorizontal or MenuVertical call whose caller opens a party member's items on Alt-1 to Alt-8
+    (ViewChar.AltItems, #1195). MenuHorizontal then ends on them with ext set, with or without reinterpret; MenuVertical
+    returns the key's scan code (C_KEYS.ALT_1 to ALT_8, which no other key returns: menu keys come back upper-cased)
+    with sel set to the highlighted entry. Every return clears it. }
+  memberKeysToCaller: Boolean;
   { Set just before a MenuVertical call whose caller shows something for the highlighted entry: a key that moves the
     highlight then returns that key at once, with sel set to the entry now highlighted, so the caller can redraw and
     call again. The call clears it. }
@@ -53,6 +58,11 @@ var
   fullPaging: Boolean;
   { Called on every pass of MenuHorizontal's key wait while set; combat sets it to animate the spell-aim preview. }
   idleHook: Types.TIdleProc;
+  { Set just before a MenuHorizontal call that is to give up waiting: after menuTimeout hundredths of a second with no
+    key pressed, it returns menuDefaultKey, as Curse's title menu does to start its demo. 0 waits for ever. Every
+    return clears both. }
+  menuTimeout: Word;
+  menuDefaultKey: Char;
 
 { Returns zero-based member n, or nil when the list is shorter. }
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
@@ -77,8 +87,10 @@ procedure DrawMore(leftCol, rightCol, row: Byte);
   Enter, when mCol or hlCol is nonzero, returns the current option's hotkey (#13 for a menu without options, or while
   enterToCaller is set); Escape returns #0. With reinterpret, any other extended key returns its scan code and digits
   1-9 and backslash map to keypad scan codes, all with ext set; F1 returns its scan code, with ext set, only under
-  helpToCaller. The picture animates when animate is set or the GBVM menuAnimation flag is nonzero (that flag also
-  advances a frame every pass and is cleared on exit). }
+  helpToCaller, and Alt-1 to Alt-8 return theirs with or without reinterpret under memberKeysToCaller. The picture
+  animates when animate is set or the GBVM menuAnimation flag is nonzero (that flag also advances a frame every pass
+  and is cleared on exit). In the demo (GameVars.demoMode) it waits for nothing: it returns #0 at once, as for Escape,
+  and ends the demo (GameIo.ReadGameKey). }
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
                         var ext: Boolean): Char;
 
@@ -89,13 +101,14 @@ function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; rein
   set; they are drawn in qCol and skipped by the cursor. An empty list, Exit or Escape returns #0 with sel=nil (an empty
   list also sets idx=0). Any other menu key returns that key with sel set to the highlighted entry. With listOnly set, a
   list that fits on one page is drawn and #0 returned with sel=nil at once. With movesToCaller set, a key that moves the
-  highlight returns too. A key in extraKeys returns as any other menu key does, on every key the list waits for. Under
-  fullPaging a list longer than the box offers Next and Prev on every page and marks a page with more below it. }
+  highlight returns too. A key in extraKeys returns as any other menu key does, on every key the list waits for; so do
+  Alt-1 to Alt-8 under memberKeysToCaller, as their scan codes. Under fullPaging a list longer than the box offers
+  Next and Prev on every page and marks a page with more below it. }
 function MenuVertical(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; ulCol, ulRow, lrCol, lrRow: ShortInt;
                       list: Types.PItemRec; addExit: Boolean; var redraw: Boolean; var idx: Integer;
                       var sel: Types.PItemRec): Char;
 
-{ Prompts for Yes or No and returns 'Y' or 'N'. }
+{ Prompts for Yes or No and returns 'Y' or 'N'; in the demo (GameVars.demoMode), 'N' without waiting. }
 function YesNoMenu(query: Types.TStr40; qCol, mCol, hlCol: Byte): Char;
 
 { Appends a display line and updates head/tail. inUse marks title rows. }
@@ -191,6 +204,8 @@ var
   opt: array[1..20] of Types.TOptRange;
   optCnt: Byte;
   enterOk: Boolean;
+  { when the wait for a key began, for menuTimeout }
+  waitStart: LongInt;
 
   { Split the menu into options: each starts at a digit or capital letter and ends two characters before the next one,
     the last at the end of the menu. There are at most 20 options (opt's size); the 20th runs to the end of the menu. }
@@ -303,6 +318,7 @@ begin
   ext := False;
   done := False;
   frameTick := TextRend.GetTicks;
+  waitStart := frameTick;
   if Length(query) <> 0 then
     TextRend.DisplayString(0, 24, qCol, query);
   qLen := Length(query);
@@ -313,6 +329,12 @@ begin
     { the tick count restarts at midnight: restart the frame timer with it }
     if TextRend.GetTicks < frameTick then
       frameTick := TextRend.GetTicks;
+    if TextRend.GetTicks < waitStart then
+      waitStart := TextRend.GetTicks;
+    if (menuTimeout > 0) and (TextRend.GetTicks - waitStart >= menuTimeout) and not KeyPressed then begin
+      ch := menuDefaultKey;
+      done := True;
+    end;
     if ((GameVars.zone0^.savedWalls.menuAnimation <> 0) or animate) and (GameVars.animData.current > 0) then begin
       Portrait.DisplayImageBuf(3, 3, animate, GameVars.animData.frames[GameVars.animData.current].pic);
       if (TextRend.GetTicks - frameTick >= GameVars.animData.frames[GameVars.animData.current].time * 10)
@@ -323,8 +345,11 @@ begin
         frameTick := TextRend.GetTicks;
       end;
     end;
-    if KeyPressed then begin
+    { in the demo, ReadGameKey returns Escape at once }
+    if not done and (KeyPressed or GameVars.demoMode) then begin
       ch := GameIo.ReadGameKey;
+      { any key, one the menu ignores too, starts menuTimeout's wait again }
+      waitStart := TextRend.GetTicks;
       { a STING pop-up (Ctrl-Y) wrote over the menu line }
       if GameVars.bottomLineTaken then begin
         GameVars.bottomLineTaken := False;
@@ -332,8 +357,8 @@ begin
       end;
       if ch = #0 then
       { #0 prefixes an extended key: the second ReadGameKey reads its scan code. Left and Right move the current option
-        unless the caller takes them; any other extended key ends the menu (with ext set) only with reinterpret, and is
-        otherwise ignored. }
+        unless the caller takes them; any other extended key ends the menu (with ext set) only with reinterpret, or for
+        Alt-1 to Alt-8 under memberKeysToCaller, and is otherwise ignored. }
       begin
         ch := GameIo.ReadGameKey;
         if ((ch = C_KEYS.LEFT) or (ch = C_KEYS.RIGHT)) and not arrowsToCaller then
@@ -346,7 +371,7 @@ begin
             done := True;
           end else
             Unavailable('Help is on the map and camp menus.');
-        end else if reinterpret then begin
+        end else if reinterpret or (memberKeysToCaller and (ch >= C_KEYS.ALT_1) and (ch <= C_KEYS.ALT_8)) then begin
           ext := True;
           done := True;
         end;
@@ -401,6 +426,9 @@ begin
   unmarked := [];
   quickKeysToCaller := False;
   helpToCaller := False;
+  menuTimeout := 0;
+  menuDefaultKey := C_KEYS.NONE;
+  memberKeysToCaller := False;
   GameVars.zone0^.savedWalls.menuAnimation := 0;
   HorizontalMenu := ch;
 end;
@@ -426,6 +454,8 @@ var
   p: Types.PItemRec;
   headerCnt: Integer;
   toCaller: Boolean;
+  { memberKeysToCaller, taken at entry as extraKeys is }
+  memberKeys: Boolean;
   oldIdx: Integer;
   oldTop: Integer;
   { the caller's extraKeys, given to every HorizontalMenu call }
@@ -583,6 +613,8 @@ begin
   extraKeys := '';
   toCaller := movesToCaller;
   movesToCaller := False;
+  memberKeys := memberKeysToCaller;
+  memberKeysToCaller := False;
   moved := False;
   paged := fullPaging;
   fullPaging := False;
@@ -662,6 +694,13 @@ begin
           C_KEYS.PAGE_UP: if hasPrev then MovePage(False);
           { Page Down = next page, when Next is offered }
           C_KEYS.PAGE_DOWN: if hasNext then MovePage(True);
+          { a party member's items, for the caller to open }
+          C_KEYS.ALT_1..C_KEYS.ALT_8:
+            if memberKeys then begin
+              sel := MenuCore.FindListMember(idx, list);
+              MenuVertical := ch;
+              Exit;
+            end;
         end else
         case ch of
           { as for Page Up and Page Down, only when the bottom line offers Prev or Next }
@@ -698,6 +737,9 @@ begin
   GameVars.horizChoice := 2;
   repeat
     ch := MenuCore.MenuHorizontal(query, 'Yes No', qCol, mCol, hlCol, False, False, ext);
+    { in the demo the menu waits for nothing, and the answer is No }
+    if GameVars.demoMode then
+      ch := 'N';
   until ch in ['Y', 'N'];
   YesNoMenu := ch;
 end;
@@ -761,5 +803,8 @@ begin
   unmarked := [];
   quickKeysToCaller := False;
   helpToCaller := False;
+  menuTimeout := 0;
+  menuDefaultKey := #0;
+  memberKeysToCaller := False;
   @idleHook := nil;
 end.

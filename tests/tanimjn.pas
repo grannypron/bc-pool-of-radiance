@@ -2,7 +2,8 @@
   monster Animate Dead raised on the party's side, out of the list, its combat record freed, its effect's stored side
   the party's and its mark set, while the party has room, and removes it with the other monsters after a fight not won
   or with a full party; the Dispel Magic that ends the spell then leaves it on the party's side
-  (EffHndlr.EffAnimateDead). And who slips away at a rest once raised (CharExt.SlipsAway). }
+  (EffHndlr.EffAnimateDead). And who slips away at a rest once raised (CharExt.SlipsAway), and an NPC a paladin led
+  given back to the computer (#1124). }
 {$I COMPILER.INC}
 program TAnimJn;
 
@@ -121,5 +122,15 @@ begin
   zombie^.hostile := 1;
   PostCbt.PostCombatCreatureCleanup(True, risen);
   TestKit.CheckEqualsL(0, risen.keptCount, 'a corpse the enemy animated is no member');
+
+  { an NPC a paladin led goes back under the computer's control after the fight; one a script gave the player stays
+    under the player's (#1124) }
+  Fight(2);
+  pc1^.npc := C_NPC.FLAG;
+  pc2^.npc := C_NPC.FLAG;
+  pc1^.combatAddr^.led := 1;
+  PostCbt.PostCombatCreatureCleanup(True, risen);
+  TestKit.CheckEqualsL(1, pc1^.quickfight, 'the led NPC is the computer''s again');
+  TestKit.CheckEqualsL(0, pc2^.quickfight, 'the NPC the player had before the fight is still the player''s');
   TestKit.Done;
 end.

@@ -1,0 +1,43 @@
+# The combat minimap (#1210): Minimap (F3) turned on on the Settings screen's Combat page, then save I's party rests in
+# Podal Plaza until orcs come, as in combat. The first turn's combat menu shows the arena under the creature's details
+# (walls blue, the party light cyan, the orcs yellow, whoever acts white); F3 takes it away and F3 brings it back; Aim
+# marks the target on it; then a Quick fight ends the battle. The golden build has no minimap, so it fails until the
+# goldens are recorded from a build with one; its screens differ from the menus on.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+press g
+wait SETTINGS|GAME
+press m
+# down past Auto End Quick Mode, Use Magic, Allow Gear Changes, Aim Cycles and Retrieve Thrown to Minimap (F3)
+press down down down down down ret
+checkpoint combat-settings
+press esc
+wait RADIANCE
+press l i
+wait AREA
+press e
+wait CAMP
+press r d i i i i i r
+wait CAMP
+press r d i i i i i r
+wait CAMP
+press r d i i i i i r
+wait QUICK 60
+checkpoint map-on
+press f3
+wait QUICK 30
+checkpoint map-off
+press f3
+wait QUICK 30
+checkpoint map-back
+press a
+wait AIM 30
+checkpoint aim
+press esc
+wait QUICK 30
+press alt-q
+wait CONTINUE 180
+checkpoint won
+press n
+wait ENTER 60

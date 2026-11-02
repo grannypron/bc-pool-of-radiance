@@ -77,6 +77,9 @@ var
   { the Retrieve Thrown setting: nonzero gives each single thrown weapon back to its thrower after the fight
     (PostCbt, CbtActs.ReturnThrown, #1118) }
   retrieveThrownOn: Byte;
+  { the Minimap setting, which F3 on the combat menu turns over: nonzero draws the whole arena in the combat panel
+    (CbtMini, #1210) }
+  minimapOn: Byte;
   { the Companion Tools setting: nonzero lets F6 open the Tools screen outside combat (phase 8) }
   companionOn: Byte;
   { the Clue Book Notes setting, under the Companion Tools: nonzero shows the Clue Book's map keys on their map (#856) }
@@ -102,6 +105,13 @@ var
   { Started with ADVISE after STING: the startup advisory runs as it does without STING, which skips it (#1173), so a
     scenario can see it. GameBoot sets it with stingArg. }
   adviseArg: Boolean;
+  { Started with DEMO: the first time, the start-up menu starts the demo (#1109) after a moment rather than its usual
+    wait. GameBoot sets it, and Demo.Run clears it. }
+  demoArg: Boolean;
+  { The demo (#1109) is running: its script plays the game with a party of its own, and no menu waits for a key.
+    demoAbort is set once it is to end, by a key (GameIo.DemoEnding); the key is left pending for Demo.Run to drain. }
+  demoMode: Boolean;
+  demoAbort: Boolean;
   { STING Ctrl-L (#612): the script trace log is open; each opcode's mnemonic goes to debugFile (debug.txt), and Ctrl-Z
     writes the creatures' effects there }
   debugTraceEnabled: Boolean;

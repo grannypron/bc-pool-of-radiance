@@ -63,7 +63,12 @@ procedure ClearScreen;
 
 procedure PrintAndPause(msg: Types.TStr40; color: Byte);
 
+{ Crt.Delay for the text delay: GameVars.gameDelay * 225 ms. In the demo (#1109) a key cuts it short (PauseTicks). }
 procedure PauseOnly;
+
+{ Wait hundredths hundredths of a second. In the demo (#1109) a key ends the wait at once, and ends the demo
+  (GameIo.DemoEnding); the key is left unread. }
+procedure PauseTicks(hundredths: LongInt);
 
 { Wait for seconds or a keypress, whichever comes first. The key is left unread. }
 procedure DelayOrKey(seconds: Word);
@@ -372,10 +377,24 @@ begin
   TextRend.ClearBottomLine;
 end;
 
-{ Crt.Delay scaled by the shared text delay: gameDelay * 225 ms. }
 procedure PauseOnly;
 begin
-  Delay(GameVars.gameDelay * 225);
+  if GameVars.demoMode then
+    TextRend.PauseTicks(LongInt(GameVars.gameDelay) * 45 div 2)
+  else
+    Delay(GameVars.gameDelay * 225);
+end;
+
+procedure PauseTicks(hundredths: LongInt);
+var
+  start: LongInt;
+  now: LongInt;
+begin
+  start := TextRend.GetTicks;
+  repeat
+    now := TextRend.GetTicks;
+    { a reading below the start means the tick count restarted at midnight }
+  until (now - start >= hundredths) or (now < start) or GameIo.DemoEnding;
 end;
 
 procedure DelayOrKey(seconds: Word);

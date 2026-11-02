@@ -19,7 +19,7 @@ procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
 implementation
 
 uses Crt, C_MSG, C_SPELL, GameDefs, GameVars, EclMenu, ViewChar, Money, C_KEYS, C_IFC, Border, CharHlp, MenuCore,
-  TextRend, CharDisp, MoneyCal, Party;
+  TextRend, CharDisp, MoneyCal, Party, Magic;
 
 { Temporarily formats each item name as a 30-column menu row with a right-aligned
   price, runs the Buy menu, then restores the normal labels. cursor and idx
@@ -58,6 +58,8 @@ begin
   end;
   Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, 'Shop');
   head := GameVars.treasureItems;
+  { Alt-n opens member n's items (ViewChar.AltItems), for ShopBuyMenu to run }
+  MenuCore.memberKeysToCaller := True;
   c := MenuCore.MenuVertical('Items: ', 'Buy', LightMagenta, LightGreen, White, 1, 4, 38, 22, head,
                              True, redraw, idx, cursor);
   itemToBuy := cursor;
@@ -80,36 +82,68 @@ begin
 end;
 
 { True when the player buys item after seeing it. A scroll whose spells can be read (identified, as the magic shop's
-  are, #1091) lists its spells in the message window, one a line, and asks; anything else is bought without asking. }
+  are, #1091) lists its spells under "The scroll holds:" in the message window and asks; anything else is bought
+  without asking. The spells are listed as the scribe list shows them (#1196): each a line indented under a light
+  magenta heading for its level (Magic.LevelHeading), the heading given again only when the level changes, and with
+  '+' before a spell the current character could learn but doesn't know (Magic.SpellLine, MARK_NOT_KNOWN). When the
+  headings would not fit in the window below the title, the spells are listed without them. Each line is drawn at its
+  row, so the message window's word wrap can't take away the indent. }
 function WantsItem(item: Types.PItemRec): Boolean;
 var
   i: Byte;
   id: Byte;
-  first: Boolean;
+  { how many spells the scroll holds, and how many lines they take with their level headings }
+  spells: Byte;
+  lines: Byte;
+  lastLevel: ShortInt;
+  headings: Boolean;
+  row: Byte;
 begin
   WantsItem := True;
   if CharHlp.ItemReadable(item) and (item^.unidMask = 0) then begin
-    first := True;
+    spells := 0;
+    lines := 0;
+    lastLevel := 0;
     for i := 1 to SizeOf(item^.spells) do begin
       id := CharHlp.ScrollSpellAt(item, i);
       if id <> C_SPELL.NONE then begin
-        if first then
-          CharDisp.MessageText('The scroll holds:', LightGreen, True);
-        first := False;
-        { each spell from the start of the next line, as CharDisp.PrintTwoLines starts its second }
-        GameVars.curCol := C_MSG.TEXT_LEFT;
-        Inc(GameVars.curRow);
-        CharDisp.MessageText(GameDefs.spellNames[id], White, False);
+        Inc(spells);
+        Inc(lines);
+        if GameDefs.spellTable[id].levelSp <> lastLevel then begin
+          lastLevel := GameDefs.spellTable[id].levelSp;
+          Inc(lines);
+        end;
       end;
     end;
-    if not first then
+    if spells > 0 then begin
+      CharDisp.MessageText('The scroll holds:', LightGreen, True);
+      { MessageText leaves the cursor on the title's row: the window holds the rows below it to TEXT_BOTTOM }
+      row := GameVars.curRow;
+      headings := row + lines <= C_MSG.TEXT_BOTTOM;
+      lastLevel := 0;
+      for i := 1 to SizeOf(item^.spells) do begin
+        id := CharHlp.ScrollSpellAt(item, i);
+        if id <> C_SPELL.NONE then begin
+          if headings and (GameDefs.spellTable[id].levelSp <> lastLevel) then begin
+            lastLevel := GameDefs.spellTable[id].levelSp;
+            Inc(row);
+            TextRend.DisplayString(C_MSG.TEXT_LEFT, row, LightMagenta, Magic.LevelHeading(lastLevel));
+          end;
+          Inc(row);
+          if row <= C_MSG.TEXT_BOTTOM then
+            TextRend.DisplayString(C_MSG.TEXT_LEFT, row, White,
+                                   Magic.SpellLine(GameVars.curChar, id, Magic.MARK_NOT_KNOWN));
+        end;
+      end;
       WantsItem := MenuCore.YesNoMenu('Buy it? ', LightMagenta, LightGreen, White) = 'Y';
+    end;
   end;
 end;
 
 { Buy loop: each chosen item, once the player still wants it (WantsItem), is paid for from the current character's
-  coins when they cover the price, otherwise from the pooled treasure money. Runs until the menu is left with a key
-  other than Buy or Enter. }
+  coins when they cover the price, otherwise from the pooled treasure money. Alt-n opens member n's items, who then
+  buys (ViewChar.AltItems, #1195), and the list comes back. Runs until the menu is left with a key other than Buy or
+  Enter. }
 procedure ShopBuyMenu;
 var
   itemToBuy: Types.PItemRec;
@@ -120,6 +154,8 @@ var
   failed: Boolean;
   cursor: Types.PItemRec;
   idx: Integer;
+  { AltItems's result: the list is drawn again either way }
+  opened: Boolean;
 begin
   itemToBuy := nil;
   cursor := GameVars.treasureItems;
@@ -128,7 +164,9 @@ begin
   repeat
     Shop.ShopBuyItemSelection(c, itemToBuy, cursor, idx);
     done := False;
-    if (c <> 'B') and (c <> C_KEYS.ENTER) then
+    if Party.AltMember(c) > 0 then
+      opened := ViewChar.AltItems(c)
+    else if (c <> 'B') and (c <> C_KEYS.ENTER) then
       done := True
     else if Shop.WantsItem(itemToBuy) then begin
       price := itemToBuy^.value;
@@ -145,7 +183,8 @@ begin
 end;
 
 { The counter menu: Buy or Heal (command), View, Take, Pool, Share, Appraise and Exit, with Take and Share offered only
-  while there is pooled money; an extended key steps through the party. Leaving with money still in the pool asks
+  while there is pooled money; an extended key steps through the party, and Alt-n opens member n's items
+  (ViewChar.AltItems, #1195). Leaving with money still in the pool asks
   whether to go back for it. }
 procedure CounterMenu(atTemple: Boolean; command: Types.TMenuAction);
 var
@@ -178,9 +217,12 @@ begin
     c := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
     { an extended key only steps the character: its scan code is no command letter (H is the up arrow, P the down
       arrow, Delete S, which shared the pool, F7 A, #731) }
-    if ext then
-      Party.SelectPrevNextChar(c)
-    else begin
+    if ext then begin
+      if ViewChar.AltItems(c) then
+        CharDisp.DisplayNoncombatInterface
+      else
+        Party.SelectPrevNextChar(c);
+    end else begin
       case c of
         'B': if not atTemple then command;
         'H': if atTemple then command;

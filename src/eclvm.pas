@@ -15,13 +15,18 @@ procedure GameLoop;
   (GameInit.ResetGameState). }
 procedure ResetGame;
 
+{ Demo.Run's script (#1109): as GameLoop starts an area, load the demo's script (EclMenu.LoadEclScript, in demo mode)
+  and run its on-load entry, which plays the whole demo; return when it ends or a key ends it (Reloading), without the
+  map menu, and with the GOSUB return stack freed. }
+procedure RunDemo;
+
 implementation
 
 uses Types, C_AREA, C_NPC, C_MSG, GameDefs, GameVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_ECL, C_LEVEL, C_IFC, C_GBVM, C_SOUND, C_MONEY, C_STATUS, C_TIME, VaultMnu, EclTrace, Border,
   Camp, EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
-  StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal, Bestiary, Sage, MagicShp,
-  JrnlSeen, Wilds{$IFDEF FPC}, TpRand{$ENDIF};
+  StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal, Bestiary, Sage, MagicShp, EffHndlr,
+  JrnlSeen, C_DEMO, Wilds{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { stop the VM and return control to the player }
@@ -75,6 +80,8 @@ const
   { the magic shop in New Phlan (#1091, #1158), whose stock a DataPat fix to New Phlan's script fills with it before
     entering the shop: no SSI script uses 11 }
   PROG_MAGIC_SHOP = 11;
+  { the Commodore 64's end of the demo (#1109), which no PC script uses: in the demo it ends the script as EXIT does }
+  PROG_DEMO_END = 3;
   { The ids of the three wilderness scripts; each selects a gLocType (C_AREA's LOC_WILD_WEST, LOC_WILD_CENTRAL or
     LOC_WILD_EAST). Their values equal C_ECL.IF_GT, C_ECL.IF_LE and C_ECL.IF_GE, but they are script ids, not opcodes. }
   { location type 2, Western Wilderness }
@@ -94,10 +101,11 @@ var
 procedure CallEclScript(address: Word); forward;
 
 { True when GameLoop is to return so the program starts it again on another game: a quick load was asked for, or a
-  game was loaded from a script's party menu (GameVars.loadedSave, which GameLoop's EclInit clears). }
+  game was loaded from a script's party menu (GameVars.loadedSave, which GameLoop's EclInit clears); and in the demo,
+  when a key ends it (GameIo.DemoEnding), which stops its script at the next command (#1109). }
 function Reloading: Boolean;
 begin
-  Reloading := Explore.quickLoadAsked or (GameVars.loadedSave <> 0);
+  Reloading := Explore.quickLoadAsked or (GameVars.loadedSave <> 0) or GameIo.DemoEnding;
 end;
 
 { No monster loaded or set up: SETUP MONSTER sets the ids and CLEAR MONSTERS the count, but a script may APPROACH, LOAD
@@ -1411,6 +1419,13 @@ begin
         EclMenu.EclInflictDamage(dmg, p);
     end;
   end else begin
+    { a scripted volley is an encounter of its own: its first attack on a Cloak of Displacement's wearer misses,
+      however the last combat left the cloak (#1183) }
+    q := GameVars.creatureList;
+    while q <> nil do begin
+      EffHndlr.ResetDisplacement(q);
+      q := q^.nextCharAddr;
+    end;
     for i := 1 to attack do begin
       p := GameVars.creatureList;
       count := Dice.RollDice(1, Byte(GameVars.zone1^[C_GBVM.PARTY_SIZE]));
@@ -1514,7 +1529,7 @@ end;
 
 { ADD NPC: add creature var 1 to the party as an NPC whose npc byte is half the morale var 2 with bit 7 set. Monster id
   24 joins as hostile, every other id as friendly. A full party (8 members) takes nobody, and the current character is
-  left as it was. }
+  left as it was. In the demo (#1109) the NPC fights under Quick, as the whole party does there. }
 procedure EclAddNpc;
 var
   id: Byte;
@@ -1534,6 +1549,8 @@ begin
     GameVars.curChar^.hostile := 0
   else
     GameVars.curChar^.hostile := 1;
+  if GameVars.demoMode then
+    GameVars.curChar^.quickfight := 1;
   CharHlp.RecalcStats(GameVars.curChar);
   CharDisp.DisplayParty(GameVars.curChar);
 end;
@@ -1580,10 +1597,16 @@ begin
 end;
 
 { CALL: dispatch ECL service calls by address (C_GBVM.CALL_*): refresh the view, start a duel or solo fight, play a
-  sound, step forward or update the wall state. v1.3 cased on the address less $7FFF. }
+  sound, step forward, update the wall state, or, for the demo's C64 script (#1109), draw the picture's frame or show
+  the picture's next frame. v1.3 cased on the address less $7FFF. }
 procedure EclCall;
+const
+  { CALL_ANIMATE's shortest hold of a frame, in hundredths of a second }
+  FRAME_LEAST = 25;
 var
   address: Word;
+  { how long CALL_ANIMATE holds its frame, in hundredths of a second }
+  hold: LongInt;
 begin
   EclVars.LoadEclVars(1);
   address := EclVars.CombineBytesToWord(GameVars.varLo[1], GameVars.varHi[1]);
@@ -1622,6 +1645,26 @@ begin
     C_GBVM.CALL_WALL_AHEAD:
       if GameVars.gLocType = C_AREA.LOC_3D_MAP then
         GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
+    { the demo's script draws the picture's frame over the view CLEAR BOX emptied, as the C64 did; SSI's PC scripts
+      call it too, where it does nothing, as in v1.3 }
+    C_GBVM.CALL_VIEW_FRAME:
+      if GameVars.demoMode then
+        Border.DrawWindow(3, 3, 13, 13, 0, White, '');
+    { the next frame of the picture in the view, held for the frame's time, as a menu animates it
+      (MenuCore.HorizontalMenu), but at least FRAME_LEAST: the ogre's later frames have a time of 0, which a menu shows
+      for one pass of its loop; a picture of one frame stays as it is }
+    C_GBVM.CALL_ANIMATE:
+      with GameVars.animData do
+        if count > 1 then begin
+          Inc(current);
+          if (current < 1) or (current > count) then
+            current := 1;
+          Portrait.DisplayImageBuf(3, 3, True, frames[current].pic);
+          hold := LongInt(frames[current].time) * 10;
+          if hold < FRAME_LEAST then
+            hold := FRAME_LEAST;
+          TextRend.PauseTicks(hold);
+        end;
   end;
 end;
 
@@ -1644,8 +1687,8 @@ end;
 
 { PROGRAM: restore the backed-up current character, then run program var 1: PROG_TRAINING (the training hall menu),
   PROG_WIN_GAME, PROG_CAMP (camp with the IP preserved, then EXIT), PROG_SAGE (the sage's counsel, Sage.SageMenu,
-  then the script goes on) or PROG_MAGIC_SHOP (the magic shop's stock, MagicShp.StockShop, which the script then
-  enters). Other values do nothing. }
+  then the script goes on), PROG_MAGIC_SHOP (the magic shop's stock, MagicShp.StockShop, which the script then
+  enters) or, in the demo, PROG_DEMO_END (EXIT). Other values do nothing. }
 procedure EclProgram;
 var
   v: Byte;
@@ -1676,6 +1719,9 @@ begin
       Sage.SageMenu;
     PROG_MAGIC_SHOP:
       MagicShp.StockShop;
+    PROG_DEMO_END:
+      if GameVars.demoMode then
+        EclVm.EclExit;
   end;
 end;
 
@@ -1925,6 +1971,22 @@ begin
     end;
   end;
   GameVars.partyDefeated := False;
+end;
+
+procedure RunDemo;
+begin
+  piecesLoaded := 0;
+  mapLoaded := 0;
+  restoreChar := 0;
+  filesLoaded := 0;
+  enteringLoop := 1;
+  newEclFlag := 0;
+  ForgetMonsters;
+  EclMenu.LoadEclScript(C_DEMO.SCRIPT_BLOCK);
+  EclMenu.EclInit;
+  EclVm.CallEclScript(GameVars.scriptEntryAddrs[C_ECL.ENTRY_LOAD]);
+  { a key stops the script inside a GOSUB, whose return it never takes }
+  FreeEclStack;
 end;
 
 procedure ResetGame;

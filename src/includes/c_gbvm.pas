@@ -248,6 +248,9 @@ const
   { zone 4: special cells }
   { registers: the read ones always read 0; the written ones keep the value, which nothing reads }
   READ_REG3 = $B1;
+  { read: the Commodore 64's keyboard-buffer count, which the demo's script (#1109) tests after each pause to end on a
+    key; 1 while a key ends the demo, else 0 }
+  KEY_COUNT = $C6;
   WRITE_REG1 = $B8;
   WRITE_REG2 = $B9;
   READ_REG1 = $FB;
@@ -280,6 +283,10 @@ const
   CALL_SOUND = $BA03;
   CALL_WALL_AHEAD = $C018;
   CALL_MOVE_FORWARD = $C01E;
+  { the Commodore 64's: show the picture's next frame (the demo's close-up of the ogre, #1109), and draw the frame of
+    the view's picture (which PC scripts call too, and which does nothing outside the demo) }
+  CALL_ANIMATE = $8403;
+  CALL_VIEW_FRAME = $0806;
 
 implementation
 

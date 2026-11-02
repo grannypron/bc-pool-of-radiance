@@ -18,18 +18,21 @@ type
   end;
 
 { Settles the outcome, awards experience, runs the loot menus, and frees the
-  combat state. }
+  combat state. In the demo (#1109) it only takes the monsters away and keeps the result for the script
+  (C_GBVM.COMBAT_RESULT 0 when the party won, else 1): no experience, treasure or summary, and the Bestiary learns
+  nothing. }
 procedure PostCombat;
 
 { Monsters and hostile creatures are removed, counting the ones not enabled in C_GBVM.MONSTERS_DEFEATED; the others get
   their combat records freed, and while the Quick Ends With Fight setting is on (GameVars.quickEnds) party members leave
   Quick (quickfight 0) so that the treasure screen and the next combat find them under manual control. NPCs and animated
-  creatures keep quickfight, as Space in combat leaves them. When the party won (won), a monster Animate Dead raised on
-  its side and still animated is kept instead, while the party has room for it (#1089): taken out of the list with its
-  combat record freed and its Animate Dead effect's stored side made the party's, so that Dispel Magic ending the spell
-  (EffHndlr.EffAnimateDead, which gives the creature back that side) leaves a party member on the party's side, and
-  marked CharExt.EXT_ANIMATE_JOINED; it goes into risen.kept for JoinRisen. One with no room is removed as before, its
-  name in risen.lost. curChar is left at the list head. }
+  creatures keep quickfight, as Space in combat leaves them, but an NPC a paladin led this fight (the combat record's
+  led, #1124) goes back under the computer's control (quickfight 1). When the party won (won), a monster Animate Dead
+  raised on its side and still animated is kept instead, while the party has room for it (#1089): taken out of the list
+  with its combat record freed and its Animate Dead effect's stored side made the party's, so that Dispel Magic ending
+  the spell (EffHndlr.EffAnimateDead, which gives the creature back that side) leaves a party member on the party's
+  side, and marked CharExt.EXT_ANIMATE_JOINED; it goes into risen.kept for JoinRisen. One with no room is removed as
+  before, its name in risen.lost. curChar is left at the list head. }
 procedure PostCombatCreatureCleanup(won: Boolean; var risen: TRisen);
 
 { Runs the post-combat loot menu. When only money or items remain, opens that
@@ -299,13 +302,16 @@ begin
   Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, 'Loot');
   CharHlp.LabelItems(GameVars.treasureItems);
   head := GameVars.treasureItems;
+  { Alt-n opens member n's items (ViewChar.AltItems), for LootTakeItemMenu to run }
+  MenuCore.memberKeysToCaller := True;
   c := MenuCore.MenuVertical('Items: ', 'Take', LightMagenta, LightGreen, White, 1, 4, 38, 22,
                              head, True, redraw, idx, cursor);
   itemToTake := cursor;
 end;
 
-{ Take loop: give a copy to the current character, then unlink and free the treasure node. Ends on any key other than
-  'T' or Enter, with no item highlighted, or when no treasure items are left. }
+{ Take loop: give a copy to the current character, then unlink and free the treasure node. Alt-n opens member n's
+  items, who then takes (ViewChar.AltItems, #1195), and the list comes back. Ends on any key other than 'T' or Enter,
+  with no item highlighted, or when no treasure items are left. }
 procedure LootTakeItemMenu;
 var
   itemToTake: Types.PItemRec;
@@ -315,14 +321,19 @@ var
   cursor: Types.PItemRec;
   idx: Integer;
   failed: Boolean;
+  { AltItems's result: the list is drawn again either way }
+  opened: Boolean;
 begin
   itemToTake := nil;
   cursor := GameVars.treasureItems;
   idx := 0;
   repeat
     PostCbt.LootTakeItemSelection(c, itemToTake, cursor, idx);
+    done := False;
+    if Party.AltMember(c) > 0 then
+      opened := ViewChar.AltItems(c)
     { no item highlighted (an empty list) leaves too, before anything reads it }
-    if ((c <> 'T') and (c <> C_KEYS.ENTER)) or (itemToTake = nil) then
+    else if ((c <> 'T') and (c <> C_KEYS.ENTER)) or (itemToTake = nil) then
       done := True
     else begin
       done := False;
@@ -362,10 +373,13 @@ begin
         c := MenuCore.MenuHorizontal('Take: ', 'Money Items Exit', LightMagenta, LightGreen, White,
                                      True, True, ext);
         { an extended key only steps the character: its scan code is no command letter (keypad 6 and 9 came back as 'M'
-          and 'I', #730) }
-        if ext then
-          Party.SelectPrevNextChar(c)
-        else
+          and 'I', #730); Alt-n opens member n's items (#1195) }
+        if ext then begin
+          if ViewChar.AltItems(c) then
+            CharDisp.DisplayNoncombatInterface
+          else
+            Party.SelectPrevNextChar(c);
+        end else
           case c of
             'M': begin
                    Money.TakeMoneyMenu;
@@ -432,9 +446,12 @@ begin
     { the coin each party member gains or puts back here, Take, Share, Pool or Drop alike, is Coin looted (net) (#611) }
     Stats.MarkCoins;
     { an extended key only steps the character: its scan code is no command letter (Delete came back as 'S' and shared
-      the money, F10 as 'D' and cast Detect Magic, #730) }
+      the money, F10 as 'D' and cast Detect Magic, #730); Alt-n opens member n's items (#1195) }
     if ext then begin
-      Party.SelectPrevNextChar(c);
+      if ViewChar.AltItems(c) then
+        CharDisp.DisplayNoncombatInterface
+      else
+        Party.SelectPrevNextChar(c);
       CharDisp.DisplayParty(GameVars.curChar);
     end else
       case c of
@@ -521,6 +538,9 @@ begin
       p := next;
     end else begin
       if p^.combatAddr <> nil then begin
+        { an NPC a paladin led goes back under the computer's control (#1124) }
+        if p^.combatAddr^.led <> 0 then
+          p^.quickfight := 1;
         FreeMem(p^.combatAddr, SizeOf(Types.TCombatRec));
         p^.combatAddr := nil;
       end;
@@ -660,6 +680,17 @@ procedure PostCombat;
 var
   risen: TRisen;
 begin
+  if GameVars.demoMode then begin
+    { the demo's party is NPCs alone, which DetermineCombatResults would take for a destroyed party }
+    CharHlp.CountTeams;
+    if (GameVars.teamCount[0] > 0) and (GameVars.teamCount[1] = 0) then
+      GameVars.zone1^[C_GBVM.COMBAT_RESULT] := 0
+    else
+      GameVars.zone1^[C_GBVM.COMBAT_RESULT] := 1;
+    PostCbt.PostCombatCreatureCleanup(False, risen);
+    Bestiary.NewEncounter;
+    Exit;
+  end;
   GameVars.zone1^[C_GBVM.COMBAT_RESULT] := 0;
   nonEscapedHostileFound := False;
   GameVars.ifcState := C_IFC.LOOT;

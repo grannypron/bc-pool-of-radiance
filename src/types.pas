@@ -348,6 +348,8 @@ type
     fleeing: Byte;
     { AI approach-pattern index 1..6 }
     aiStance: Byte;
+    { 1 when a paladin's leadership put this NPC under the player's control for the fight (CbtActs.TryLead, #1124) }
+    led: Byte;
   end;
   TDownedRec = record
     { the downed creature }

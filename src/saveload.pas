@@ -734,7 +734,7 @@ end;
   file of the save is written to a temporary copy first, and only when every one is whole are they put in place of the
   old ones, all or none (FileUtil.CommitSet); else the old save is left as it was and the bottom line says the game was
   not saved. True when it was. What the Bestiary has learned is written then too, to its own file, which is no part of
-  the save (#842). }
+  the save (#842). The demo's game is never saved (#1109): no menu there offers a save, and this writes nothing in it. }
 function SaveToSlot(letter: Char; desc: SaveMenu.TSlotDesc; area: SaveMenu.TSlotArea): Boolean;
 var
   names: TSaveNames;
@@ -751,6 +751,8 @@ var
   { the date, which is not used: asking for it is what counts }
   year, month, day, weekDay: Word;
 begin
+  SaveToSlot := False;
+  if GameVars.demoMode then Exit;
   { DOS stamps the save's files with its own date, which DOSBox-X moves past midnight only when a program asks for the
     date or time. The game reads the BIOS ticks instead (#469), so without this a game left running overnight saved
     with the day it started on (#1126). Natively the host's clock stamps them, and the call is harmless. }

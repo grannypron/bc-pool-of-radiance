@@ -40,7 +40,7 @@ implementation
 uses Types, Crt, C_AREA, GameDefs, GameVars, SaveLoad, ViewChar, Border, C_CLASS, C_LEVEL, C_RACE, C_SPELL,
   C_KEYS, C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_STAT, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
-  VidOps, ChgClass, PartyMnu, CharExt{$IFDEF FPC}, TpRand{$ENDIF};
+  VidOps, ChgClass, PartyMnu, CharExt, C_DEMO, Demo{$IFDEF FPC}, TpRand{$ENDIF};
 
 const
   { Racial ability adjustments, by race and ability, added to each 3d6 roll before the racial limits apply. }
@@ -103,7 +103,8 @@ procedure AddCharacterMenu; forward;
   state (setting loadedSave) or Begin Adventuring sets ifcState to 4 (C_IFC.INDOORS). Exit to DOS asks through
   SaveLoad.QuitToDos: with a party not saved since it changed, it asks to save first: Yes opens the save menu, and
   leaving it without saving stays in the menu; No quits unsaved (#660). Settings opens the Settings screen
-  (Options.OptionsMenu). J sets stingMode when the first command-line parameter is STING. }
+  (Options.OptionsMenu). J sets stingMode when the first command-line parameter is STING. The start-up menu left alone
+  with no party returns with GameVars.demoMode set, for FixMain to play the demo (#1109). }
 procedure MainMenu(inGame: Boolean);
 var
   ch: Char;
@@ -148,14 +149,22 @@ begin
     if inGame then
       ch := PartyMnu.ChooseCmd(offered, top, cur, ext)
     else
-      ch := PartyMnu.ChooseListed(offered, ext);
+      ch := PartyMnu.ChooseListed(offered, (GameVars.creatureList = nil) and Demo.Available, ext);
     TextRend.ClearBottomLine;
     if ext then begin
       { Home and End step through the party (Party.SelectPrevNextChar), and on SSI's menu Up and Down too }
       if (ch in [C_KEYS.HOME, C_KEYS.END_KEY]) or (not inGame and (ch in [C_KEYS.UP, C_KEYS.DOWN])) then begin
         Party.SelectPrevNextChar(ch);
         CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
+      end else if ViewChar.AltItems(ch) then begin
+        { Alt-n opened member n's items (#1195): the screen is drawn again, as after View }
+        CharDisp.DisplayNoncombatInterface;
+        redraw := True;
       end;
+    end else if ch = C_DEMO.START_KEY then begin
+      { the start-up menu left alone with no party (PartyMnu.ChooseListed): FixMain plays the demo (#1109) }
+      GameVars.demoMode := True;
+      Exit;
     end else begin
       { a command that may change the party marks it unsaved; Exit, Save, Settings and free training do not }
       if not (ch in ['E', 'S', 'G', 'J']) then
