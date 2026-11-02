@@ -43,6 +43,8 @@ const
   F2 = #60;
   { the combat minimap (#1210), on the combat menu }
   F3 = #61;
+  { Train Anywhere (#1212), on the map and camp menus, when the setting is on }
+  F4 = #62;
   { quick save and quick load, on the map menu }
   F5 = #63;
   { the Companion Tools (phase 8), when the setting is on }

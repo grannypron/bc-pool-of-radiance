@@ -123,7 +123,7 @@ begin
   { the main menu's Exit is the way out; a destroyed party ends GameLoop and the game returns to the main menu, and so
     does the demo (#1109), which the main menu starts when it is left alone with no party }
   while True do begin
-    CharGen.MainMenu(False);
+    CharGen.MainMenu(False, False);
     if GameVars.demoMode then
       Demo.Run
     else begin

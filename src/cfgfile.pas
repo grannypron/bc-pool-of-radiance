@@ -59,7 +59,9 @@ type
 { The POOLOPT.CFG key of setting key: SPEED, ALLPORTRAITS ... LOGLINES, then ADVISED (C_OPT.KEY_ADVISED); '' for none. }
 function KeyName(key: Byte): TName;
 
-{ The label of setting opt on the Settings screen, a sub-setting's indented two spaces under its setting. }
+{ The label of setting opt on the Settings screen, a sub-setting's indented two spaces under its setting. A setting a
+  key acts on outside the Settings screen names the key after it (#1215): Train Anywhere's F4, Sound's Ctrl-S, the
+  Minimap's F3, the Companion Tools' F6 and the Combat Log's F7. }
 function SettingName(opt: Byte): TName;
 
 { The page setting opt is on: C_OPT.OPT_PAGE_SOUND for the music and the sound (OPT_FIRST_SOUND to OPT_LAST_SOUND,
@@ -105,9 +107,10 @@ function Tidy(s: string): string;
 function KeyOf(line: string): Byte;
 
 { Every setting's default: speed 1, every portrait, Auto Join, music and sound setting on, Consolidate Coin off, the
-  Journal FOUND, Non-Human Level Cap on, Auto End Quick Mode on, Use Magic off, Allow Gear Changes on, Aim Cycles at
-  ENEMIES, Retrieve Thrown on, the Minimap off, the Companion Tools off with their Clue Book notes on, Auto Memorize
-  on, the four Fix settings off, the combat log on with 50 lines, and no version advised. }
+  Journal FOUND, Non-Human Level Cap and Game Level Cap on, Train Anywhere off, Auto End Quick Mode on, Use Magic off,
+  Allow Gear Changes on, Aim Cycles at ENEMIES, Retrieve Thrown on, the Minimap off, the Companion Tools off with their
+  Clue Book notes on, Auto Memorize on, the four Fix settings off, the combat log on with 50 lines, and no version
+  advised. }
 procedure Defaults(var s: TSettings);
 
 { Setting opt (an ON/OFF one) as 1 for on and 0 for off; 0 for any other. }
@@ -213,6 +216,7 @@ begin
     C_OPT.OPT_JOURNAL: KeyName := 'JOURNAL';
     C_OPT.OPT_NONHUMAN_CAP: KeyName := 'NONHUMANCAP';
     C_OPT.OPT_LEVEL_CAP: KeyName := 'LEVELCAP';
+    C_OPT.OPT_TRAIN_ANYWHERE: KeyName := 'TRAINANYWHERE';
     C_OPT.OPT_MUSIC: KeyName := 'MUSIC';
     C_OPT.OPT_TITLE_MUSIC: KeyName := 'TITLEMUSIC';
     C_OPT.OPT_BATTLE_MUSIC: KeyName := 'BATTLEMUSIC';
@@ -256,10 +260,11 @@ begin
     C_OPT.OPT_JOURNAL: SettingName := 'Journal';
     C_OPT.OPT_NONHUMAN_CAP: SettingName := 'Non-Human Level Cap';
     C_OPT.OPT_LEVEL_CAP: SettingName := 'Game Level Cap';
+    C_OPT.OPT_TRAIN_ANYWHERE: SettingName := 'Train Anywhere (F4)';
     C_OPT.OPT_MUSIC: SettingName := 'Music';
     C_OPT.OPT_TITLE_MUSIC: SettingName := '  Title Music';
     C_OPT.OPT_BATTLE_MUSIC: SettingName := '  Battle Music';
-    C_OPT.OPT_SOUND: SettingName := 'Sound';
+    C_OPT.OPT_SOUND: SettingName := 'Sound (Ctrl-S)';
     C_OPT.OPT_FOOTSTEPS: SettingName := '  Footsteps';
     C_OPT.OPT_RANGED: SettingName := '  Ranged Weapon Usage';
     C_OPT.OPT_MELEE: SettingName := '  Melee Attacks';
@@ -272,14 +277,14 @@ begin
     C_OPT.OPT_AIM: SettingName := 'Aim Cycles';
     C_OPT.OPT_RETRIEVE: SettingName := 'Retrieve Thrown';
     C_OPT.OPT_MINIMAP: SettingName := 'Minimap (F3)';
-    C_OPT.OPT_COMPANION: SettingName := 'Companion Tools';
+    C_OPT.OPT_COMPANION: SettingName := 'Companion Tools (F6)';
     C_OPT.OPT_CLUES: SettingName := '  Clue Book Notes';
     C_OPT.OPT_AUTO_MEMORIZE: SettingName := 'Auto Memorize';
     C_OPT.OPT_FIX_SCROLLS: SettingName := '  Use Scrolls';
     C_OPT.OPT_FIX_POTIONS: SettingName := '  Use Potions';
     C_OPT.OPT_FIX_CURE: SettingName := '  Use Paladin''s Cure';
     C_OPT.OPT_FIX_HEAL: SettingName := '  Use Paladin''s Heal';
-    C_OPT.OPT_COMBAT_LOG: SettingName := 'Combat Log';
+    C_OPT.OPT_COMBAT_LOG: SettingName := 'Combat Log (F7)';
     C_OPT.OPT_LOG_LINES: SettingName := '  Log Lines';
   else
     SettingName := '';
@@ -429,7 +434,8 @@ begin
   s.logLines := C_OPT.LOG_DEFAULT;
   for opt := C_OPT.OPT_FIRST_FLAG to C_OPT.OPT_LAST_FLAG do
     s.flags[opt] := Ord(not (opt in [C_OPT.OPT_CONSOLIDATE, C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION,
-                                     C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL, C_OPT.OPT_MINIMAP]));
+                                     C_OPT.OPT_TRAIN_ANYWHERE, C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL,
+                                     C_OPT.OPT_MINIMAP]));
   s.advised := '';
 end;
 

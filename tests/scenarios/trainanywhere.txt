@@ -1,0 +1,84 @@
+# Train Anywhere (#1212), from save G in the central wilderness with Morrigan, a 4th-level paladin, given the
+# experience for 5th (24,500) and 1,001 gold pieces (saves/trainanywhere): F4 with the setting off does nothing and
+# F1 does not list it; the setting turned on from camp's Alter, Settings (the Game page's tenth line, after Game Level
+# Cap; its label names F4); F1 then lists F4, and F4 on the wilderness map opens the training hall's menu cut down to
+# Train, View, Dual Class and Exit. Morrigan trains to 5th level for 1,000 gp, then has not the experience for 6th;
+# Gins, drained, is refused Dual Class as at a hall, and Morgan's screen offers every class the rules allow; Escape
+# gives the map back, and View shows Morrigan's level and purse. F4 in camp opens the menu too, and Exit gives camp
+# back. The golden build has no F4, so it fails until the goldens are recorded from a build with it.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/trainanywhere
+press l g
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+checkpoint map
+press f4
+wait ^(MOVE )?CAST VIEW ENCAMP 20
+checkpoint f4-off
+press f1
+wait HELP 20
+checkpoint keys-off
+press esc
+wait ^(MOVE )?CAST VIEW ENCAMP 20
+press e
+wait CAMP 60
+press a
+wait SETTINGS 20
+press s
+wait GAME SOUND 20
+press down down down down down down down down down ret
+checkpoint setting-on
+press e
+wait SETTINGS 20
+press e
+wait CAMP 20
+press e
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press f1
+wait HELP 20
+checkpoint keys-on
+press esc
+wait ^(MOVE )?CAST VIEW ENCAMP 20
+press f4
+wait \(BC\) 20
+checkpoint hall
+press t
+wait TRAIN 20
+checkpoint will-become
+press y
+wait \(BC\) 20
+checkpoint trained
+press t
+wait NOT ENOUGH|\(BC\) 20
+checkpoint not-enough
+press end
+wait \(BC\) 20
+press u
+wait RESTORATION|\(BC\) 20
+checkpoint gins-drained
+press end end
+wait \(BC\) 20
+press u
+wait EXIT 20
+checkpoint dual-class
+press e
+wait \(BC\) 20
+press esc
+wait ^(MOVE )?CAST VIEW ENCAMP 20
+checkpoint map-again
+# back from Morgan to Morrigan
+press home home home
+press v
+wait ITEMS 20
+checkpoint view-trained
+press e
+wait ^(MOVE )?CAST VIEW ENCAMP 20
+press e
+wait CAMP 60
+press f4
+wait \(BC\) 20
+checkpoint camp-hall
+press e
+wait CAMP 20
+checkpoint camp-again

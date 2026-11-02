@@ -150,7 +150,7 @@ begin
   TestKit.CheckEqualsL(1, s.speed, 'the default speed is 1');
   TestKit.CheckEqualsL(50, s.logLines, 'the default log keeps 50 lines');
   for opt := C_OPT.OPT_FIRST_FLAG to C_OPT.OPT_LAST_FLAG do
-    if opt in [C_OPT.OPT_CONSOLIDATE, C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION,
+    if opt in [C_OPT.OPT_CONSOLIDATE, C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION, C_OPT.OPT_TRAIN_ANYWHERE,
                C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL, C_OPT.OPT_MINIMAP] then
       TestKit.CheckEqualsL(0, CfgFile.Flag(s, opt), CfgFile.KeyName(opt) + ' is off by default')
     else
@@ -204,8 +204,9 @@ begin
   TestKit.CheckEqualsL(6, CfgFile.SettingLine(C_OPT.OPT_JOURNAL), 'the Journal after it (#1090)');
   TestKit.CheckEqualsL(7, CfgFile.SettingLine(C_OPT.OPT_NONHUMAN_CAP), 'Non-Human Level Cap after the Journal (#1176)');
   TestKit.CheckEqualsL(8, CfgFile.SettingLine(C_OPT.OPT_LEVEL_CAP), 'Game Level Cap after it (#1121)');
-  TestKit.CheckEqualsL(9, CfgFile.SettingLine(C_OPT.OPT_COMPANION), 'the Companion Tools after that');
-  TestKit.CheckEqualsL(10, CfgFile.SettingLine(C_OPT.OPT_CLUES), 'the Game page ends with the Clue Book notes');
+  TestKit.CheckEqualsL(9, CfgFile.SettingLine(C_OPT.OPT_TRAIN_ANYWHERE), 'Train Anywhere after it (#1212)');
+  TestKit.CheckEqualsL(10, CfgFile.SettingLine(C_OPT.OPT_COMPANION), 'the Companion Tools after that');
+  TestKit.CheckEqualsL(11, CfgFile.SettingLine(C_OPT.OPT_CLUES), 'the Game page ends with the Clue Book notes');
   TestKit.CheckEqualsL(1, CfgFile.SettingLine(C_OPT.OPT_QUICK), 'the Combat page starts under the Quick Mode heading');
   TestKit.CheckEqualsL(3, CfgFile.SettingLine(C_OPT.OPT_GEAR), 'Allow Gear Changes under Quick Mode, after Use Magic');
   TestKit.CheckEqualsL(5, CfgFile.SettingLine(C_OPT.OPT_RETRIEVE), 'Aim Cycles and Retrieve Thrown after it');
@@ -277,6 +278,19 @@ begin
   TestKit.Check(ReadText('LEVELCAP=OFF' + CRLF) = CfgFile.CFG_READ, 'LEVELCAP reads (#1121)');
   TestKit.CheckEqualsL(0, CfgFile.Flag(s, C_OPT.OPT_LEVEL_CAP), 'Game Level Cap off');
   TestKit.CheckEqualsS('Game Level Cap', CfgFile.SettingName(C_OPT.OPT_LEVEL_CAP), 'its label');
+  TestKit.Check(ReadText('TRAINANYWHERE=ON' + CRLF) = CfgFile.CFG_READ, 'TRAINANYWHERE reads (#1212)');
+  TestKit.CheckEqualsL(1, CfgFile.Flag(s, C_OPT.OPT_TRAIN_ANYWHERE), 'Train Anywhere on');
+  { a setting a key acts on names the key (#1215), and every label fits before the value's column (Options'
+    SETTING_COL 24 from LABEL_COL 2, POOLCFG's 26 from 4: 21 characters and a space) }
+  TestKit.CheckEqualsS('Train Anywhere (F4)', CfgFile.SettingName(C_OPT.OPT_TRAIN_ANYWHERE), 'its label names F4');
+  TestKit.CheckEqualsS('Combat Log (F7)', CfgFile.SettingName(C_OPT.OPT_COMBAT_LOG), 'the Combat Log''s F7');
+  TestKit.CheckEqualsS('Companion Tools (F6)', CfgFile.SettingName(C_OPT.OPT_COMPANION), 'the Companion Tools'' F6');
+  TestKit.CheckEqualsS('Sound (Ctrl-S)', CfgFile.SettingName(C_OPT.OPT_SOUND), 'Sound''s Ctrl-S');
+  bad := 0;
+  for opt := 1 to C_OPT.OPT_COUNT do
+    if Length(CfgFile.SettingLabel(s, opt)) > 21 then
+      Inc(bad);
+  TestKit.CheckEqualsL(0, bad, 'every label fits its line');
   TestKit.Check(ReadText('SPEED=9' + CRLF + 'SPEED=A' + CRLF + 'LOGLINES=60' + CRLF + 'LOGLINES=61' + CRLF +
                          'LOGLINES=9' + CRLF + 'LOGLINES=abc' + CRLF + 'MUSIC=maybe' + CRLF + 'SPEED=10')
                 = CfgFile.CFG_FIXED, 'bad values are a fixed read');
@@ -319,6 +333,8 @@ begin
                        'Non-Human Level Cap on by default, after the Journal (#1176)');
   TestKit.CheckEqualsL(C_OPT.OPT_LEVEL_CAP, LineNo(C_OPT.OPT_NAME, 'LEVELCAP=ON'),
                        'Game Level Cap on by default, after it (#1121)');
+  TestKit.CheckEqualsL(C_OPT.OPT_TRAIN_ANYWHERE, LineNo(C_OPT.OPT_NAME, 'TRAINANYWHERE=OFF'),
+                       'Train Anywhere off by default, after it (#1212)');
   TestKit.CheckEqualsL(C_OPT.OPT_JOURNAL, LineNo(C_OPT.OPT_NAME, 'JOURNAL=FOUND'),
                        'the Journal FOUND by default, after Auto Join');
   TestKit.CheckEqualsL(C_OPT.OPT_GEAR, LineNo(C_OPT.OPT_NAME, 'GEARCHANGES=ON'), 'Allow Gear Changes on by default');

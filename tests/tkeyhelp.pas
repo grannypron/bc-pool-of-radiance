@@ -21,6 +21,10 @@ begin
   Shows := (LineOf(k) <> 0) and KeyHelp.LineShown(LineOf(k), quickKeys);
 end;
 
+var
+  i: Byte;
+  shown: Byte;
+
 begin
   TestKit.Start('TKEYHELP');
   GameVars.companionOn := 0;
@@ -52,7 +56,17 @@ begin
   TestKit.Check(KeyHelp.KeyGroup(LineOf('1, 2')) = KeyHelp.KeyGroup(LineOf('F8 ')), 'in the function keys'' group');
   TestKit.Check(Shows('F3 ', True) and Shows('F3 ', False), 'F3, the combat minimap, shows on either menu (#1210)');
   TestKit.Check(LineOf('F3 ') = LineOf('F2 ') + 1, 'in key order');
+  GameVars.trainAnywhereOn := 0;
+  TestKit.Check(not Shows('F4 ', True) and not Shows('F4 ', False), 'F4 not with Train Anywhere off');
+  GameVars.trainAnywhereOn := 1;
+  TestKit.Check(Shows('F4 ', True) and Shows('F4 ', False), 'and with it on, on either menu (#1212)');
+  TestKit.Check(LineOf('F4 ') = LineOf('F3 ') + 1, 'after F3');
   TestKit.Check(not KeyHelp.GroupGaps(True), 'with every line shown the groups lose their blank rows, to fit');
+  shown := 0;
+  for i := 1 to KeyHelp.KEY_LINES do
+    if KeyHelp.LineShown(i, True) then
+      Inc(shown);
+  TestKit.CheckEqualsL(19, shown, 'every line shown, F4''s among them: the window''s 19 rows exactly (#1212)');
   GameVars.stingArg := False;
   GameVars.companionOn := 0;
   TestKit.Check(KeyHelp.GroupGaps(True) and KeyHelp.GroupGaps(False), 'with fewer they keep them');
