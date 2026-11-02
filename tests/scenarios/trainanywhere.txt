@@ -55,7 +55,12 @@ checkpoint not-enough
 press end
 wait \(BC\) 20
 press u
-wait RESTORATION|\(BC\) 20
+# the refusal holds the line for two seconds or until a key, which it takes (TextRend.FlashBottomLine), too briefly
+# for a wait on it to see it every time, and the hall's own line ends in (BC) before it and after it (#1227). So Z
+# ends it at once, or, landing after it, does nothing on the hall's menu, and the checkpoint is the hall's line back
+# either way: Gins refused, with no Dual Class screen
+press z
+wait \(BC\) 20
 checkpoint gins-drained
 press end end
 wait \(BC\) 20
