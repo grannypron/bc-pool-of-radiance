@@ -195,7 +195,8 @@ implementation
 
 uses C_ITEM, C_TERR, C_COND, GameDefs, GameVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
   C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, C_SPRITE, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend,
-  StrUtil, CharDisp, AbilAdj, Dice, Blit, ClassCal, Bestiary, CbtLog, C_BEAST, Party, ViewChar, C_MSG;
+  StrUtil, CharDisp, AbilAdj, Dice, Blit, ClassCal, Bestiary, CbtLog, C_BEAST, Party, ViewChar, C_MSG,
+  CbtMini;
 
 type
   { A spell's rule for the spell-aim count (#840): how it tells who the spell cannot affect, whatever the dice }
@@ -2042,6 +2043,8 @@ begin
   menu :='Next Prev Manual ' + menu + 'Center Exit';
   CbtMap.DisplayMapViewCentered(tgt, 3, True);
   CharDisp.CombatPrintCreatureInfo(tgt);
+  { the arena with the target marked, when the minimap is on (#1210) }
+  CbtMini.Show(cur, CbtMap.CombatCellX(tgt), CbtMap.CombatCellY(tgt));
   repeat
     MenuCore.arrowsToCaller := True;
     ch := MenuCore.MenuHorizontal('Aim: ', menu, LightMagenta, LightGreen, White, True, False, ext);
@@ -2158,6 +2161,8 @@ begin
       CharDisp.CombatPrintCreatureInfo(underCursor)
     else
       Border.ClearBox(23, 1, 38, 21);
+    { the arena with the cursor on it, when the minimap is on (#1210) }
+    CbtMini.Show(cur, cx, cy);
     if (range < dist) or (GameDefs.terrainInfo[terrIdx].cost = 255) then
       valid := False;
     if underCursor <> nil then begin

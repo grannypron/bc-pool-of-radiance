@@ -16,11 +16,13 @@ implementation
 
 uses Types, C_TIME, C_COND, GameDefs, GameVars, Crt, CombatAi, CombatSt, Magic, C_KEYS,
   C_STATUS, C_IFC, C_GBVM, C_DIR, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
-  TextRend, StrUtil, CharDisp, Dice, CbtLog, LogView, ClassCal, MapTiles;
+  TextRend, StrUtil, CharDisp, Dice, CbtLog, LogView, ClassCal, MapTiles, CbtMini;
 
 const
   { CombatMenu's answer for F7, the combat log (#841): F7's scan code is the character code of 'A', which is Aim }
   SHOW_LOG = #255;
+  { its answer for F3, the minimap (#1210): F3's scan code is the character code of '=' }
+  SHOW_MAP = #254;
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
 
@@ -216,6 +218,12 @@ begin
                       LogView.ShowLog('Combat Messages');
                       CharDisp.DisplayCombatInterface;
                     end;
+          { the Minimap setting turned over, and written at once, as Ctrl-S writes the Sound setting; the redraw below
+            clears the panel, and the menu draws the map again when it is on }
+          SHOW_MAP: begin
+                      GameVars.minimapOn := Ord(GameVars.minimapOn = 0);
+                      Options.SaveOptions;
+                    end;
           { Alt-M scan code: toggle quick magic }
           C_KEYS.ALT_M: CombatAi.ToggleQuickMagic;
           { every creature under the player's control back to manual; NPCs and animated creatures stay on quick-fight,
@@ -250,8 +258,9 @@ begin
     done := CharHlp.EndActions(creature);
 end;
 
-{ Build the command list and run the horizontal menu until an accepted key arrives. F7, while the combat log is kept,
-  is answered as SHOW_LOG; it is on no menu line, as Move View Aim Use Cast Turn Quick Done fills it (#841). }
+{ Draw the minimap when it is on (CbtMini.Show), build the command list and run the horizontal menu until an accepted
+  key arrives. F7, while the combat log is kept, is answered as SHOW_LOG, and F3 as SHOW_MAP; they are on no menu line,
+  as Move View Aim Use Cast Turn Quick Done fills it (#841, #1210). }
 procedure CombatMenu(creature: Types.PCharRecord; var ch: Char);
 var
   menu: String[40];
@@ -278,16 +287,20 @@ begin
      and (creature^.combatAddr^.usedTurnUndead = 0) then
     menu := menu + 'Turn ';
   menu := menu + 'Quick Done';
-  { An extended key other than Alt-Q, Alt-X or Alt-M becomes C_KEYS.NONE and is rejected. SSI's took Alt-R too, which
-    no command answers (#818). }
+  CbtMini.Show(creature, CbtMini.NO_CURSOR, CbtMini.NO_CURSOR);
+  { An extended key other than Alt-Q, Alt-X, Alt-M, F3 or F7 becomes C_KEYS.NONE and is rejected. SSI's took Alt-R too,
+    which no command answers (#818). }
   repeat
     ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
     if ext then
       if (ch = C_KEYS.F7) and CbtLog.Active then
         ch := SHOW_LOG
+      else if ch = C_KEYS.F3 then
+        ch := SHOW_MAP
       else if not (ch in [C_KEYS.ALT_Q, C_KEYS.ALT_X, C_KEYS.ALT_M]) then
         ch := C_KEYS.NONE;
-  until ch in [C_KEYS.ALT_Q, ' ', C_KEYS.ALT_X, C_KEYS.ALT_M, SHOW_LOG, 'A', 'C', 'D', 'M', 'Q', 'T', 'U', 'V'];
+  until ch in [C_KEYS.ALT_Q, ' ', C_KEYS.ALT_X, C_KEYS.ALT_M, SHOW_LOG, SHOW_MAP, 'A', 'C', 'D', 'M', 'Q', 'T', 'U',
+               'V'];
 end;
 
 { Advance the clock one minute, fire round-end effects and the clouds' checks (Stinking Cloud's, Cloudkill's), bleed
@@ -356,6 +369,7 @@ begin
   while (creature^.combatAddr^.movement > 1) and (ch <> C_KEYS.NONE)
         and (ch <> C_KEYS.ENTER) do begin
     Border.ClearBox(24, 24, 39, 24);
+    CbtMini.Show(creature, CbtMini.NO_CURSOR, CbtMini.NO_CURSOR);
     MenuCore.arrowsToCaller := True;
     ch :=
       MenuCore.MenuHorizontal('Move/Attack, Move Left = ' + StrUtil.NumStr(creature^.combatAddr^.movement div 2) +

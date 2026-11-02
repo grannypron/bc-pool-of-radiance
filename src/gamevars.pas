@@ -77,6 +77,9 @@ var
   { the Retrieve Thrown setting: nonzero gives each single thrown weapon back to its thrower after the fight
     (PostCbt, CbtActs.ReturnThrown, #1118) }
   retrieveThrownOn: Byte;
+  { the Minimap setting, which F3 on the combat menu turns over: nonzero draws the whole arena in the combat panel
+    (CbtMini, #1210) }
+  minimapOn: Byte;
   { the Companion Tools setting: nonzero lets F6 open the Tools screen outside combat (phase 8) }
   companionOn: Byte;
   { the Clue Book Notes setting, under the Companion Tools: nonzero shows the Clue Book's map keys on their map (#856) }
