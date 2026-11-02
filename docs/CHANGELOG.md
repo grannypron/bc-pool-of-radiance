@@ -193,6 +193,7 @@ The fixes below cover both visible bugs and rare failures that could damage a sa
 - A 255-character message now prints once instead of repeating forever.
 - Walls loaded into the second or third wall slot no longer show a stray 8x8 cell from another wall set.
 - A picture that could not load for lack of memory is tried again instead of staying blank.
+- In VGA on a machine without expanded memory, returning to the wilderness map after a fight no longer stops with "Out of memory", in Move mode as well.
 - Fleeing an encounter now takes Haste and Slow on the first party member into account.
 - After the STING memory pop-up, the next arrow key works normally, and an arrow key that answers any "press a key" message no longer leaks into the next menu.
 - Several faults that the shipped scripts never reach are fixed too: a box fill of zero height, monster icons loaded over the combat sprites, and a script removing a character by number.

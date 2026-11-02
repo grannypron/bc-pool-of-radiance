@@ -1,0 +1,99 @@
+# The central wilderness after a fight, in VGA on a 1 MB machine with no EMS (#1218). Save G, wildfight's 32-step walk
+# to the stirges under NORAND, a Quick fight, No to Continue Battle and Exit from the loot: the wilderness menu has to
+# come back, not "OUT OF MEMORY: ENTER SAVES, ESC QUITS", which the map's second tile set gave when it was reloaded in a
+# 65K block. Then the overlay loads, heap and picture memory there (Ctrl-Y; ours only). It runs in VGA (the video line
+# below): in EGA that tile set is half the size and the map came back either way.
+#video vga
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/wild
+press l g
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press up
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press right
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press down
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press left
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press up
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press right
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press down
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press left
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press up
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press right
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press down
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press left
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press up
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press right
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press down
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press left
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press up
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press right
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press down
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press left
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press up
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press right
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press down
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press left
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press up
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press right
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press down
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press left
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press up
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press right
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press down
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press left
+wait ^COMBAT WAIT FLEE PARLAY 60
+press c
+wait QUICK 120
+press alt-q
+wait CONTINUE 180
+press n
+wait ENTER 60
+checkpoint over
+press ret
+wait EXIT 60
+checkpoint loot
+press e
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+checkpoint map
+ignore OVERLAY LOADS
+press ctrl-y
+checkpoint overlay-loads
+press ret ret
+ignore HEAP FREE
+checkpoint heap
+press ret
+checkpoint pictures
+press ret
