@@ -1,0 +1,99 @@
+# wildafter in Move mode (#1218, #1186): Move from the wilderness menu, the same 32 steps to the stirges and the same
+# fight. Back on the map the wide view (#1186) comes back beside the second tile set, the tightest point for VGA's
+# heap; the status line and Exit have to show, not "OUT OF MEMORY". Then Ctrl-Y's figures. VGA only (the video line
+# below); a golden build without Move fails at its first wait.
+#video vga
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/wild
+press l g
+wait ^(MOVE )?CAST VIEW ENCAMP 60
+press m
+wait EXIT$ 60
+press up
+wait EXIT$ 60
+press right
+wait EXIT$ 60
+press down
+wait EXIT$ 60
+press left
+wait EXIT$ 60
+press up
+wait EXIT$ 60
+press right
+wait EXIT$ 60
+press down
+wait EXIT$ 60
+press left
+wait EXIT$ 60
+press up
+wait EXIT$ 60
+press right
+wait EXIT$ 60
+press down
+wait EXIT$ 60
+press left
+wait EXIT$ 60
+press up
+wait EXIT$ 60
+press right
+wait EXIT$ 60
+press down
+wait EXIT$ 60
+press left
+wait EXIT$ 60
+press up
+wait EXIT$ 60
+press right
+wait EXIT$ 60
+press down
+wait EXIT$ 60
+press left
+wait EXIT$ 60
+press up
+wait EXIT$ 60
+press right
+wait EXIT$ 60
+press down
+wait EXIT$ 60
+press left
+wait EXIT$ 60
+press up
+wait EXIT$ 60
+press right
+wait EXIT$ 60
+press down
+wait EXIT$ 60
+press left
+wait EXIT$ 60
+press up
+wait EXIT$ 60
+press right
+wait EXIT$ 60
+press down
+wait EXIT$ 60
+press left
+wait ^COMBAT WAIT FLEE PARLAY 60
+press c
+wait QUICK 120
+press alt-q
+wait CONTINUE 180
+press n
+wait ENTER 60
+checkpoint over
+press ret
+wait EXIT 60
+checkpoint loot
+press e
+wait EXIT$ 60
+checkpoint map
+ignore OVERLAY LOADS
+press ctrl-y
+checkpoint overlay-loads
+press ret ret
+ignore HEAP FREE
+checkpoint heap
+press ret
+checkpoint pictures
+press ret

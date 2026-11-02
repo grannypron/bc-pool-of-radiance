@@ -230,6 +230,52 @@ begin
   Blit.FreePic(pic);
 end;
 
+{ A capped picture in VGA (#1218): the second tile set's 128 frames of 24 rows by 3 cells under a 16,384-byte cap take
+  five blocks, none over the cap, 28 frames a block, so FrameBlock finds frame 127 in the fifth at index 15; the same
+  picture with no cap is one block of 113 frames and one of 15, as before; and a frame larger than the cap gets a block
+  of its own rather than stopping the game. }
+procedure CheckBlocks;
+var
+  pic: Types.PImgBuf;
+  p: Types.PImgBuf;
+  frame: Word;
+  blocks: Word;
+  fits: Boolean;
+  held: LongInt;
+begin
+  held := Blit.picBytes;
+  Blit.AllocPicBlocks(24, 3, 128, 0, 16384, pic);
+  TestKit.CheckEqualsL(128, Blit.FrameCount(pic), 'a capped picture has all its frames');
+  blocks := 0;
+  fits := True;
+  p := pic;
+  while p <> nil do begin
+    Inc(blocks);
+    if LongInt(p^.count) * p^.imgSize + (SizeOf(Types.TImgBuf) - SizeOf(p^.data)) > 16384 then
+      fits := False;
+    p := p^.more;
+  end;
+  TestKit.CheckEqualsL(5, blocks, 'a capped picture takes five blocks');
+  TestKit.Check(fits, 'no block of a capped picture is over the cap');
+  TestKit.CheckEqualsL(28, pic^.count, 'a capped block holds 28 VGA frames');
+  p := pic;
+  frame := 127;
+  Blit.FrameBlock(p, frame);
+  TestKit.Check(p = pic^.more^.more^.more^.more, 'frame 127 is in the fifth block');
+  TestKit.CheckEqualsL(15, frame, 'frame 127 is the fifth block''s 16th');
+  Blit.FreePic(pic);
+  Blit.AllocPic(24, 3, 128, 0, pic);
+  TestKit.CheckEqualsL(113, pic^.count, 'an uncapped picture''s first block holds 113 VGA frames');
+  TestKit.Check((pic^.more <> nil) and (pic^.more^.count = 15) and (pic^.more^.more = nil),
+                'an uncapped picture''s other 15 frames are in a second block');
+  Blit.FreePic(pic);
+  Blit.AllocPicBlocks(24, 3, 2, 1, 100, pic);
+  TestKit.Check((pic^.count = 1) and (pic^.more <> nil) and (pic^.more^.count = 1),
+                'a frame over the cap gets a block of its own');
+  Blit.FreePic(pic);
+  TestKit.CheckEqualsL(held, Blit.picBytes, 'freeing capped pictures returns every byte');
+end;
+
 {$IFNDEF FPC}
 { In a banked mode (CGA, Tandy), the routines that write the screen: a picture shown, glyphs drawn, the view's dirty
   spans flushed and a rectangle cleared, checked by a hash of the 32 KB from B800. The test runs in DOS's text mode,
@@ -356,5 +402,6 @@ begin
   CheckMode(-1469357773, 1744798254, -1851751357, 828998018, -2103238238, 976113281, -1611165980, 686670744,
             -1722318564, -939524097);
   CheckGuards;
+  CheckBlocks;
   TestKit.Done;
 end.

@@ -28,6 +28,9 @@
 # MEMSIZE=N gives the emulator N MB instead of goldbox-player's 1 MB: more gives the game EMS, which it loads its
 # overlays from (STING Ctrl-Y says from EMS or disk). Its golden results are kept apart too: record-16mb.json,
 # record-vga-16mb.json and so on.
+# A scenario with a line "#video MODE" runs only in that mode: with VIDEO unset it runs apart from the rest, as
+# VIDEO=MODE would run it, its report in obj/regress-MODE.json (wildafter, a heap failure only VGA's larger pictures
+# show, #1218); with VIDEO set to another mode it is left out.
 
 set -u
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -42,6 +45,29 @@ if [ ${#scenarios[@]} -eq 0 ]; then
         [ "$(basename "$f")" = ssiformat.txt ] || scenarios+=("$f")
     done
 fi
+# the scenarios pinned to a video mode: run apart, in that mode, when VIDEO is unset, and left out under another mode
+pinned=()
+rest=()
+for s in "${scenarios[@]}"; do
+    mode="$(sed -n 's/^#video  *\([a-z]*\).*/\1/p' "$s" | head -n 1)"
+    if [ -z "$mode" ] || [ "$mode" = "${VIDEO:-$mode}" ]; then
+        if [ -n "$mode" ] && [ -z "${VIDEO:-}" ]; then pinned+=("$mode:$s"); else rest+=("$s"); fi
+    else
+        echo "regress.sh: $(basename "$s") runs only with VIDEO=$mode; left out" >&2
+    fi
+done
+if [ ${#pinned[@]} -gt 0 ]; then
+    status=0
+    if [ ${#rest[@]} -gt 0 ]; then "$0" "$golden" "$candidate" "${rest[@]}" || status=1; fi
+    for mode in $(printf '%s\n' "${pinned[@]}" | cut -d: -f1 | sort -u); do
+        mine=()
+        for p in "${pinned[@]}"; do [ "${p%%:*}" = "$mode" ] && mine+=("${p#*:}"); done
+        VIDEO=$mode REPORT="$root/obj/regress-$mode.json" "$0" "$golden" "$candidate" "${mine[@]}" || status=1
+    done
+    exit $status
+fi
+scenarios=("${rest[@]}")
+[ ${#scenarios[@]} -gt 0 ] || exit 0
 case "${VIDEO:-ega}" in
     ega) config="$root/tests/scenarios/POOL.CFG"; record="$golden/record.json"; title=por-v13 ;;
     cga) config="$root/tests/scenarios/POOL-CGA.CFG"; record="$golden/record-cga.json"; title=por-v13 ;;
@@ -100,5 +126,5 @@ done
 [ -x "$player/.venv/bin/python" ] || { echo "regress.sh: no goldbox-player checkout at $player" >&2; exit 2; }
 exec "$player/.venv/bin/python" "$player/tools/regress.py" --golden "$golden" --candidate "$candidate" \
     --title "$title" --config "$config" --record "$record" "${memsize[@]}" "${sound[@]}" "${demo[@]}" \
-    --report "$root/obj/regress.json" \
+    --report "${REPORT:-$root/obj/regress.json}" \
     "${scenarios[@]}"

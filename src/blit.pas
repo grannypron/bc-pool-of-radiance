@@ -13,6 +13,10 @@ interface
 
 uses Types;
 
+const
+  { the most bytes one heap block holds (GetMem's limit in real mode), and so the largest block of a picture }
+  MAX_BLOCK = 65520;
+
 var
   { heap bytes held by pictures (AllocPic less FreePic), and the most they have reached; STING Ctrl-Y shows them }
   picBytes: LongInt;
@@ -37,6 +41,11 @@ procedure RestoreVideoMode;
   pic buffer is freed first. When hasMask is True, transpColor becomes
   transparent. If the file supplies no data, pic is left nil. }
 procedure LoadPic(name: string; fileId: Byte; hasMask: Boolean; transpColor: Byte; var pic: Types.PImgBuf);
+
+{ LoadPic, with no heap block of the picture over blockBytes (AllocPicBlocks): a large picture loaded in small blocks
+  still loads when the heap is split into pieces too small for one large block (#1218). }
+procedure LoadPicBlocks(name: string; fileId: Byte; hasMask: Boolean; transpColor: Byte; blockBytes: Word;
+                        var pic: Types.PImgBuf);
 
 { Draws frame tileIdx from gfx into dest at a character-cell position. Bit 0 of
   flag enables transparency when gfx has a mask. The changed scanlines are
@@ -83,6 +92,10 @@ procedure RemapPic(fromColors, toColors: Types.TColorTab; frame: Integer; isDith
   and width is in eight-pixel cells. Bit 0 of flag requests a transparency
   mask. Frames that do not fit in one heap block continue in pic^.more. }
 procedure AllocPic(height, width: Word; count: Byte; flag: Byte; var pic: Types.PImgBuf);
+
+{ AllocPic, with each heap block holding as many frames as fit in blockBytes (header included) rather than 65,520; a
+  frame larger than blockBytes still gets a block of its own. FrameBlock finds a frame in any of them. }
+procedure AllocPicBlocks(height, width: Word; count: Byte; flag: Byte; blockBytes: Word; var pic: Types.PImgBuf);
 
 { Frees pic and its transparency mask, then sets pic to nil. The mask size
   depends on the current video mode, so a picture must be freed in the mode in
@@ -168,6 +181,12 @@ begin
 end;
 
 procedure LoadPic(name: string; fileId: Byte; hasMask: Boolean; transpColor: Byte; var pic: Types.PImgBuf);
+begin
+  Blit.LoadPicBlocks(name, fileId, hasMask, transpColor, MAX_BLOCK, pic);
+end;
+
+procedure LoadPicBlocks(name: string; fileId: Byte; hasMask: Boolean; transpColor: Byte; blockBytes: Word;
+                        var pic: Types.PImgBuf);
 var
   picHeight: Word;
   picWidth: Word;
@@ -188,7 +207,7 @@ begin
   Move(PDaxPicHeader(data)^.originY, picOriginY, SizeOf(picOriginY));
   Move(PDaxPicHeader(data)^.count, picCount, SizeOf(picCount));
   Move(PDaxPicHeader(data)^.map, colorMap, SizeOf(colorMap));
-  Blit.AllocPic(picHeight, picWidth, picCount, Byte(hasMask), pic);
+  Blit.AllocPicBlocks(picHeight, picWidth, picCount, Byte(hasMask), blockBytes, pic);
   with pic^ do begin
     originX := picOriginX;
     originY := picOriginY;
@@ -445,6 +464,11 @@ begin
 end;
 
 procedure AllocPic(height, width: Word; count: Byte; flag: Byte; var pic: Types.PImgBuf);
+begin
+  Blit.AllocPicBlocks(height, width, count, flag, MAX_BLOCK, pic);
+end;
+
+procedure AllocPicBlocks(height, width: Word; count: Byte; flag: Byte; blockBytes: Word; var pic: Types.PImgBuf);
 var
   frameSize: Word;
   totalSize: Word;
@@ -452,14 +476,18 @@ var
   rest: Byte;
 begin
   frameSize := Blit.FrameBytes(height, width);
-  { A heap block holds at most 65,520 bytes: frames past what one holds go to a further block, pic^.more. A frame that
-    alone is too large cannot be drawn in this mode. }
+  { A heap block holds at most 65,520 bytes, and the caller may ask for less: frames past what one holds go to a
+    further block, pic^.more. A frame that alone is too large for 65,520 cannot be drawn in this mode. }
   if frameSize = 0 then
     { a frame of no rows or no cells takes no bytes: they all fit (SSI divided by 0) }
     fit := count
-  else
-    fit := (65520 - (SizeOf(Types.TImgBuf) - SizeOf(pic^.data))) div frameSize;
-  if (fit = 0) and (frameSize > 0) then
+  else begin
+    fit := (LongInt(blockBytes) - (SizeOf(Types.TImgBuf) - SizeOf(pic^.data))) div frameSize;
+    { a frame over the caller's cap still goes in a block of its own, when the heap can hold one }
+    if (fit < 1) and (frameSize <= MAX_BLOCK - (SizeOf(Types.TImgBuf) - SizeOf(pic^.data))) then
+      fit := 1;
+  end;
+  if (fit < 1) and (frameSize > 0) then
     GameIo.FatalError('A picture of ' + StrUtil.NumStr(height) + ' rows and ' + StrUtil.NumStr(width) +
                       ' cells is too large for the ' + GameVars.video.name + ' video mode.');
   rest := 0;
@@ -484,7 +512,7 @@ begin
   if picBytes > picPeak then
     picPeak := picBytes;
   if rest > 0 then
-    Blit.AllocPic(height, width, rest, flag, pic^.more);
+    Blit.AllocPicBlocks(height, width, rest, flag, blockBytes, pic^.more);
 end;
 
 procedure FreePic(var pic: Types.PImgBuf);

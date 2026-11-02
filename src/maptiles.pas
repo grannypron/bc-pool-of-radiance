@@ -18,6 +18,8 @@ const
   FIRST_WILD_ICON = 9;
   { combat's first tile slot for the random-feature set, RANDCOM.DAX (CombatSt.LoadCombatTileSet): terrains 26..31 }
   FEATURE_SLOT = 34;
+  { the largest heap block the second tile set takes (SecondSheet): 28 frames on VGA, 56 on EGA and Tandy, 113 on CGA }
+  SHEET_BLOCK = 16384;
 
 var
   { 2D map tile set image buffer 2; bit 7 of a tile id selects it }
@@ -45,7 +47,9 @@ procedure FreeCloudkillArt;
 
 { Lazily loads the second 24x24 tile sheet (SQRPACI block 2, IDs 128 and up).
   Only the wilderness and ending need it, and combat frees it. Returns nil if
-  it cannot be loaded. }
+  it cannot be loaded. It loads in blocks of SHEET_BLOCK bytes, not one of up to
+  65,520: on VGA it takes 74 KB, and coming back to the map from a fight the
+  heap has that much free but no single piece that large (#1218). }
 function SecondSheet: Types.PImgBuf;
 
 { Load the second tile set now, if it is not loaded, as SecondSheet would when it is next needed. }
@@ -171,7 +175,7 @@ end;
 procedure LoadSecondSheet;
 begin
   if mapTilePtr2 = nil then
-    Blit.LoadPic('sqrpaci', 2, False, 0, mapTilePtr2);
+    Blit.LoadPicBlocks('sqrpaci', 2, False, 0, SHEET_BLOCK, mapTilePtr2);
 end;
 
 procedure FreeSecondSheet;
