@@ -41,7 +41,7 @@ function Refusal(creature: Types.PCharRecord; atHall: Boolean): Types.TStr40;
   human can take, each with its prime requisites one to a line, what each needs and what the character has, white for
   one it qualifies for here and dark gray for one it does not; the explanation of the rule; and a status line for the
   highlighted class. Up and Down move the highlight (the class in yellow, its name in inverse video) through the
-  classes. A class qualifies when ClassCal.CanTakeClass allows it, this hall trains it (C_GBVM.TRAIN_CLASS_MASK,
+  classes. A class qualifies when ClassCal.CanTakeClass allows it, this hall trains it (CharHlp.HallMask,
   GameDefs.classBits) and the character has the CHANGE_FEE; freeTraining (CharGen's STING switch) waives the hall and
   the fee. The status line says which of these fails, or what choosing it costs. Choose, offered on a qualifying class,
   asks Yes or No, takes the fee and changes the class (ClassCal.ChangeClass, SyncClassPowers). A character whose current
@@ -51,7 +51,7 @@ procedure ChangeClassMenu(freeTraining: Boolean);
 
 implementation
 
-uses Crt, C_STAT, C_EFFECT, C_GBVM, C_KEYS, C_LEVEL, C_MSG, C_RACE, C_STATUS, GameDefs, GameVars, Border,
+uses Crt, C_STAT, C_EFFECT, C_KEYS, C_LEVEL, C_MSG, C_RACE, C_STATUS, GameDefs, GameVars, Border,
   CharDisp, CharHlp, ClassCal, FxEngine, MenuCore, Money, MoneyCal, StrUtil, TextRend;
 
 const
@@ -216,7 +216,7 @@ begin
     Obstacle := RULES_OBSTACLE
   else if freeTraining then
     Obstacle := NO_OBSTACLE
-  else if GameDefs.classBits[cls] and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] = 0 then
+  else if GameDefs.classBits[cls] and CharHlp.HallMask = 0 then
     Obstacle := HALL_OBSTACLE
   else if MoneyCal.CreatureGold(creature) < CHANGE_FEE then
     Obstacle := FEE_OBSTACLE

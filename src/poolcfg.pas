@@ -829,6 +829,10 @@ begin
                                       'clerics and magic-users at|6, paladins and rangers at|' +
                                       '7, fighters at 8.||Off: every class trains to|' +
                                       '9, with the spells of|levels 4 and 5.';
+    C_OPT.OPT_TRAIN_ANYWHERE: AboutText := 'F4 opens the training hall''s|menu anywhere outside|' +
+                                           'combat: Train, View and Dual|Class. The hall''s rules all|' +
+                                           'hold: 1000 gp, the|experience, one level at a|' +
+                                           'time and the level caps.|Training takes no time.';
     C_OPT.OPT_MUSIC: AboutText := 'Every tune at once.';
     C_OPT.OPT_TITLE_MUSIC: AboutText := 'The title theme.';
     C_OPT.OPT_BATTLE_MUSIC: AboutText := 'The music as a fight starts.';

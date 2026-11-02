@@ -15,8 +15,9 @@ const
   SHOW_STING = 3;
   SHOW_SOUND = 4;
   SHOW_LOG = 5;
+  SHOW_TRAIN = 6;
   { Number of entries in KEYS. }
-  KEY_LINES = 17;
+  KEY_LINES = 18;
 
 type
   { One row in the help window. }
@@ -32,6 +33,7 @@ const
     (key: 'F1  '; what: 'This Screen'; show: SHOW_ALWAYS),
     (key: 'F2  '; what: 'Bestiary'; show: SHOW_ALWAYS),
     (key: 'F3  '; what: 'Minimap (Combat Only)'; show: SHOW_ALWAYS),
+    (key: 'F4  '; what: 'Train Anywhere'; show: SHOW_TRAIN),
     (key: 'F5  '; what: 'Quick Save'; show: SHOW_QUICK),
     (key: 'F6  '; what: 'Companion Tools'; show: SHOW_COMPANION),
     (key: 'F7  '; what: 'Action Log (Combat Only)'; show: SHOW_LOG),
@@ -88,6 +90,7 @@ begin
     SHOW_STING: LineShown := GameVars.stingArg;
     SHOW_SOUND: LineShown := GameVars.sound.mode <> C_SOUND.MODE_DISABLED;
     SHOW_LOG: LineShown := GameVars.combatLogOn <> 0;
+    SHOW_TRAIN: LineShown := GameVars.trainAnywhereOn <> 0;
   else
     LineShown := True;
   end;

@@ -16,20 +16,28 @@ begin
   TestKit.Start('TPARTYMN');
   all := [PartyMnu.CMD_ADD..PartyMnu.CMD_LAST];
   { no party at a hall: Create, Add, Load, Settings and Exit to DOS }
-  PartyMnu.OfferedCmds(False, True, True, start);
+  PartyMnu.OfferedCmds(False, True, True, False, start);
   { a party in play away from a hall: all but Train and Load }
-  PartyMnu.OfferedCmds(True, False, True, hall);
+  PartyMnu.OfferedCmds(True, False, True, False, hall);
 
   { the commands offered (OfferedCmds) }
   TestKit.Check(start = [PartyMnu.CMD_CREATE, PartyMnu.CMD_ADD, PartyMnu.CMD_LOAD, PartyMnu.CMD_SETTINGS,
                          PartyMnu.CMD_EXIT], 'no character: Create, Add, Load, Settings and Exit, no Dual Class');
   TestKit.Check(hall = all - [PartyMnu.CMD_TRAIN, PartyMnu.CMD_LOAD], 'a character in play: all but Train and Load');
-  PartyMnu.OfferedCmds(True, True, True, offered);
+  PartyMnu.OfferedCmds(True, True, True, False, offered);
   TestKit.Check(offered = all - [PartyMnu.CMD_LOAD], 'and Train at a hall');
-  PartyMnu.OfferedCmds(True, True, False, offered);
+  TestKit.Check(not PartyMnu.ExitLeaves(offered) and not PartyMnu.ExitLeaves(start) and not PartyMnu.ExitLeaves(hall),
+                'their Exit is Exit to DOS');
+  PartyMnu.OfferedCmds(True, True, True, True, offered);
+  TestKit.Check(offered = [PartyMnu.CMD_TRAIN, PartyMnu.CMD_VIEW, PartyMnu.CMD_DUAL, PartyMnu.CMD_EXIT],
+                'Train Anywhere: Train, View, Dual Class and Exit (#1212)');
+  TestKit.Check(PartyMnu.ExitLeaves(offered), 'whose Exit leaves the menu');
+  PartyMnu.OfferedCmds(False, True, True, True, offered);
+  TestKit.Check(offered = [PartyMnu.CMD_EXIT], 'and with no character, Exit alone');
+  PartyMnu.OfferedCmds(True, True, False, False, offered);
   TestKit.Check(offered = all - [PartyMnu.CMD_LOAD, PartyMnu.CMD_DUAL],
                 'SSI''s start-up menu never offers Dual Class, free training or not');
-  PartyMnu.OfferedCmds(False, True, False, offered);
+  PartyMnu.OfferedCmds(False, True, False, False, offered);
   TestKit.Check(offered = start, 'nor with no character');
   TestKit.CheckEqualsL(PartyMnu.CMD_EXIT, PartyMnu.StepCmd(start, PartyMnu.CMD_CREATE, 1),
                        'no character: Down from Create passes Dual Class, gray, to Exit to DOS');

@@ -49,6 +49,11 @@ begin
   TestKit.Check(LineOf('ALT-1 ') = LineOf('F8 ') + 1, 'after the function keys');
   TestKit.Check(Shows('F3 ', True) and Shows('F3 ', False), 'F3, the combat minimap, shows on either menu (#1210)');
   TestKit.Check(LineOf('F3 ') = LineOf('F2 ') + 1, 'in key order');
+  GameVars.trainAnywhereOn := 0;
+  TestKit.Check(not Shows('F4 ', True) and not Shows('F4 ', False), 'F4 not with Train Anywhere off');
+  GameVars.trainAnywhereOn := 1;
+  TestKit.Check(Shows('F4 ', True) and Shows('F4 ', False), 'and with it on, on either menu (#1212)');
+  TestKit.Check(LineOf('F4 ') = LineOf('F3 ') + 1, 'after F3');
   TestKit.Check(not KeyHelp.GroupGaps(True), 'with every line shown the groups lose their blank rows, to fit');
   GameVars.stingArg := False;
   GameVars.companionOn := 0;

@@ -4,8 +4,8 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GameVars, C_ITEM, C_EQUIP, C_LEVEL, C_RACE, C_EFFECT, C_STATUS, C_MONEY, C_NPC, C_IFC, C_SPELL, CharHlp,
-  AbilAdj, TestKit;
+uses Types, GameVars, C_ITEM, C_EQUIP, C_LEVEL, C_RACE, C_EFFECT, C_STATUS, C_MONEY, C_NPC, C_IFC, C_SPELL, C_GBVM,
+  CharHlp, AbilAdj, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -558,6 +558,18 @@ begin
   CharHlp.InflictDamage(c, 3);
   TestKit.Check(c^.status = C_STATUS.DEAD_STATUS, 'past 9 in all it dies');
   GameVars.ifcState := C_IFC.INDOORS;
+
+  { the hall's classes (#1212): the script's word, or every class under Train Anywhere, the word left as it was }
+  GameVars.trainingAnywhere := False;
+  TestKit.CheckEqualsL(0, CharHlp.HallMask, 'no hall here: no class');
+  GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] := 8;
+  TestKit.CheckEqualsL(8, CharHlp.HallMask, 'a fighters'' hall: its word');
+  GameVars.trainingAnywhere := True;
+  TestKit.CheckEqualsL(15, CharHlp.HallMask, 'Train Anywhere: every class''s bit');
+  TestKit.CheckEqualsL(8, GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK], 'the script''s word untouched');
+  GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] := 0;
+  TestKit.CheckEqualsL(15, CharHlp.HallMask, 'with no hall here too');
+  GameVars.trainingAnywhere := False;
   FreeMem(GameVars.zone1, SizeOf(Types.TGbvmZone1));
   GameVars.zone1 := nil;
 

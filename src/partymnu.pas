@@ -40,8 +40,14 @@ type
 { The commands the party menu offers: Create, Add, Settings and Exit to DOS always; with a character selected View,
   Modify, Drop, Remove, Save and Begin Adventuring, Train with a training hall here or free training on (atHall, #765),
   and Dual Class on the two-column menu (inGame); with none, Load. SSI's start-up menu never offers Dual Class (#885),
-  and the two-column menu does not without a character, who would be the one to change class. }
-procedure OfferedCmds(hasChar, atHall, inGame: Boolean; var offered: TCmdSet);
+  and the two-column menu does not without a character, who would be the one to change class. Train Anywhere's menu
+  (anywhere, #1212) offers Train, View and Dual Class with a character, and Exit, which leaves it (ExitLeaves): the
+  rest would add, drop or remake characters, or load and save, away from the hall. }
+procedure OfferedCmds(hasChar, atHall, inGame, anywhere: Boolean; var offered: TCmdSet);
+
+{ True when offered is Train Anywhere's menu (OfferedCmds), told by its Exit without Settings, which every other form
+  offers: Exit is then drawn 'Exit' and leaves the menu, and Escape chooses it. }
+function ExitLeaves(offered: TCmdSet): Boolean;
 
 { The row of the PARTY and CHARACTER headings under a roster of members creatures (CharDisp.DisplayParty's, from row 4
   on the two-column menu, #1071): MENU_TOP, or lower, so a blank row stays between, for a party of six or seven. Under
@@ -70,7 +76,8 @@ procedure Draw(offered: TCmdSet; top, cur: Byte);
   move the highlight (cur, a command offered, as Draw drew it) through the commands offered, and Left and Right
   between the columns (StepCmd, OtherColumn). A command's key (cmdKeys), or Enter for cur, returns that key when the
   command is offered, and makes it cur; a key of one not offered is ignored, and so are Escape and Space. J (CharGen's
-  free training) returns J. Any other extended key, such as Home and End, returns its scan code with ext set. }
+  free training) returns J. Any other extended key, such as Home and End, returns its scan code with ext set. On Train
+  Anywhere's menu (ExitLeaves) Escape returns Exit's key. }
 function ChooseCmd(offered: TCmdSet; top: Byte; var cur: Byte; var ext: Boolean): Char;
 
 { The row of SSI's menu's first command when count are listed: LIST_TOP, or higher so the last stays in the window. }
@@ -119,8 +126,14 @@ const
   { SSI's menu's keys, given as the bottom-line menu's options in black so that none shows }
   LIST_KEYS = 'C D M T V A R L S B G E J';
 
-procedure OfferedCmds(hasChar, atHall, inGame: Boolean; var offered: TCmdSet);
+procedure OfferedCmds(hasChar, atHall, inGame, anywhere: Boolean; var offered: TCmdSet);
 begin
+  if anywhere then begin
+    offered := [CMD_EXIT];
+    if hasChar then
+      offered := offered + [CMD_TRAIN, CMD_VIEW, CMD_DUAL];
+    Exit;
+  end;
   offered := [CMD_CREATE, CMD_ADD, CMD_SETTINGS, CMD_EXIT];
   if hasChar then begin
     offered := offered + [CMD_VIEW, CMD_MODIFY, CMD_DROP, CMD_REMOVE, CMD_SAVE, CMD_BEGIN];
@@ -130,6 +143,11 @@ begin
       offered := offered + [CMD_DUAL];
   end else
     offered := offered + [CMD_LOAD];
+end;
+
+function ExitLeaves(offered: TCmdSet): Boolean;
+begin
+  ExitLeaves := (CMD_EXIT in offered) and not (CMD_SETTINGS in offered);
 end;
 
 function MenuTop(members: Byte): Byte;
@@ -197,6 +215,8 @@ var
   name: string[17];
 begin
   name := cmdNames[cmd];
+  if (cmd = CMD_EXIT) and PartyMnu.ExitLeaves(offered) then
+    name := 'Exit';
   row := PartyMnu.CmdRow(cmd, top);
   col := cmdCols[cmd];
   if not (cmd in offered) then
@@ -249,6 +269,9 @@ begin
       Exit;
     end else if ch = 'J' then begin
       ChooseCmd := ch;
+      Exit;
+    end else if (ch = C_KEYS.NONE) and PartyMnu.ExitLeaves(offered) then begin
+      ChooseCmd := cmdKeys[CMD_EXIT + 1];
       Exit;
     end else begin
       cmd := Pos(ch, cmdKeys);
