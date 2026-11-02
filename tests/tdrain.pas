@@ -31,7 +31,6 @@ var
   counts: Types.TClassCounts;
   poison: Types.TEffectRec;
   old: TExtFile2;
-  f: file;
   i: Byte;
 
 { c: a creature of race and class cls (a C_CLASS value) with Str 18, Int 17, Wis 16, Dex 16, Con 14, Cha 10, its
@@ -216,10 +215,10 @@ begin
   old.randByte := c^.randByte;
   old.formerClasses := C_LEVEL.FIGHTER_BIT;
   old.flags := CharExt.EXT_ANIMATE_JOINED;
-  Assign(f, FN + '.chx');
-  Rewrite(f, 1);
-  BlockWrite(f, old, SizeOf(old));
-  Close(f);
+  { written as the game writes a .chx (FileUtil), so that the save below erases this one and not another file of the
+    name in another case (#1221) }
+  FileUtil.NewSet(s, '');
+  TestKit.Check(FileUtil.WriteToSet(s, FN + '.chx', old, SizeOf(old)) and FileUtil.CommitSet(s), 'written');
   FillChar(d^.portExt, SizeOf(d^.portExt), $FF);
   d^.drainedLevels := 1;
   CharExt.ReadExt(d, FN);
@@ -229,6 +228,7 @@ begin
   Ship;
   FileUtil.NewSet(s, '');
   TestKit.Check(CharExt.WriteExt(s, c, FN) and FileUtil.CommitSet(s), 'an ordinary character''s save erases it');
+  TestKit.Check(not FileUtil.Exists(FN + '.chx'), 'it is gone');
 
   { the secondary statuses }
   Ship;
