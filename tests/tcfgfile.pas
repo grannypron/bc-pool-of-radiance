@@ -151,7 +151,7 @@ begin
   TestKit.CheckEqualsL(50, s.logLines, 'the default log keeps 50 lines');
   for opt := C_OPT.OPT_FIRST_FLAG to C_OPT.OPT_LAST_FLAG do
     if opt in [C_OPT.OPT_CONSOLIDATE, C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION,
-               C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL] then
+               C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL, C_OPT.OPT_MINIMAP] then
       TestKit.CheckEqualsL(0, CfgFile.Flag(s, opt), CfgFile.KeyName(opt) + ' is off by default')
     else
       TestKit.CheckEqualsL(1, CfgFile.Flag(s, opt), CfgFile.KeyName(opt) + ' is on by default');
@@ -185,8 +185,9 @@ begin
   TestKit.Check((CfgFile.SettingPage(C_OPT.OPT_QUICK) = C_OPT.OPT_PAGE_COMBAT) and
                 (CfgFile.SettingPage(C_OPT.OPT_AIM) = C_OPT.OPT_PAGE_COMBAT) and
                 (CfgFile.SettingPage(C_OPT.OPT_RETRIEVE) = C_OPT.OPT_PAGE_COMBAT) and
+                (CfgFile.SettingPage(C_OPT.OPT_MINIMAP) = C_OPT.OPT_PAGE_COMBAT) and
                 (CfgFile.SettingPage(C_OPT.OPT_LOG_LINES) = C_OPT.OPT_PAGE_COMBAT),
-                'Quick Mode, Aim Cycles, Retrieve Thrown and the combat log are the Combat page''s (#1180)');
+                'Quick Mode, Aim Cycles, Retrieve Thrown, the Minimap and the combat log are the Combat page''s');
   bad := 0;
   for opt := 2 to C_OPT.OPT_COUNT do
     if CfgFile.SettingPage(opt) < CfgFile.SettingPage(opt - 1) then
@@ -208,7 +209,9 @@ begin
   TestKit.CheckEqualsL(1, CfgFile.SettingLine(C_OPT.OPT_QUICK), 'the Combat page starts under the Quick Mode heading');
   TestKit.CheckEqualsL(3, CfgFile.SettingLine(C_OPT.OPT_GEAR), 'Allow Gear Changes under Quick Mode, after Use Magic');
   TestKit.CheckEqualsL(5, CfgFile.SettingLine(C_OPT.OPT_RETRIEVE), 'Aim Cycles and Retrieve Thrown after it');
-  TestKit.CheckEqualsL(7, CfgFile.SettingLine(C_OPT.OPT_LOG_LINES), 'the Combat page ends with the log lines');
+  TestKit.CheckEqualsL(6, CfgFile.SettingLine(C_OPT.OPT_MINIMAP), 'the Minimap after Retrieve Thrown (#1210)');
+  TestKit.CheckEqualsL(8, CfgFile.SettingLine(C_OPT.OPT_LOG_LINES), 'the Combat page ends with the log lines');
+  TestKit.CheckEqualsS('Minimap (F3)', CfgFile.SettingName(C_OPT.OPT_MINIMAP), 'the Minimap''s label names its key');
   TestKit.CheckEqualsS('Quick Mode', CfgFile.Heading(C_OPT.OPT_QUICK), 'the Quick Mode heading');
   TestKit.CheckEqualsS('Fix', CfgFile.Heading(C_OPT.OPT_FIX_SCROLLS), 'the Fix heading (#1129)');
   TestKit.CheckEqualsS('', CfgFile.Heading(C_OPT.OPT_FIX_POTIONS), 'and none on the other lines');
@@ -322,6 +325,7 @@ begin
   TestKit.CheckEqualsL(C_OPT.OPT_AIM, LineNo(C_OPT.OPT_NAME, 'AIMCYCLES=ENEMIES'), 'Aim Cycles at ENEMIES by default');
   TestKit.CheckEqualsL(C_OPT.OPT_RETRIEVE, LineNo(C_OPT.OPT_NAME, 'RETRIEVETHROWN=ON'),
                        'Retrieve Thrown on by default');
+  TestKit.CheckEqualsL(C_OPT.OPT_MINIMAP, LineNo(C_OPT.OPT_NAME, 'MINIMAP=OFF'), 'the Minimap off by default (#1210)');
   TestKit.CheckEqualsL(C_OPT.OPT_AUTO_MEMORIZE, LineNo(C_OPT.OPT_NAME, 'AUTOMEMORIZE=ON'),
                        'Auto Memorize on by default');
   TestKit.CheckEqualsL(C_OPT.OPT_FIX_SCROLLS, LineNo(C_OPT.OPT_NAME, 'FIXSCROLLS=OFF'), 'Use Scrolls off by default');

@@ -850,6 +850,10 @@ begin
     C_OPT.OPT_RETRIEVE: AboutText := 'A thrown hammer, axe, spear|or the like goes back to|' +
                                      'whoever threw it after the|fight, readied if the hand|' +
                                      'is free. One who cannot|carry it leaves it in the|loot.';
+    C_OPT.OPT_MINIMAP: AboutText := 'The whole arena as a small|map under the creature''s|' +
+                                    'details in combat: walls in|blue, the party light cyan,|' +
+                                    'enemies yellow, the fallen|light red and whoever acts|' +
+                                    'white.||F3 in combat turns it on|and off.';
     C_OPT.OPT_COMPANION: AboutText := 'The Companion Tools: F6 on|the map and camp menus.';
     C_OPT.OPT_CLUES: AboutText := 'The Companion Tools'' notes|from the Clue Book.';
     C_OPT.OPT_AUTO_MEMORIZE: AboutText := 'Rest memorizes each caster''s|usual spells again (those it|' +
