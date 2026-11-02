@@ -1,0 +1,57 @@
+# Weapon sets (#1209), from the cloudkill fixture's party in Podal Plaza with a long bow added to TALONIA's items after
+# her shield (saves/weaponsets, slot D). On her Items screen 2 tags the arrows and the bow for set 2 and 1 the broad
+# sword and shield for set 1 (the Set column); a quick save and load keeps the tags (her .chx). Resting draws orcs;
+# on Talonia's turn the combat menu ends in 1 2, 2 readies the bow and arrows and 1 the sword and shield again (the
+# info panel's weapon). The golden build has no weapon sets, so it fails until the goldens are recorded from a build
+# with them.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/weaponsets
+press l d
+wait AREA
+press v i
+wait READY
+checkpoint items
+# the arrows, the sword, the shield, the bow
+press down 2 down 1 down 1 down 2
+wait READY
+checkpoint tagged
+press esc esc
+wait AREA
+press f5
+press ret
+wait AREA
+press f8
+wait AREA
+press v i
+wait READY
+checkpoint reloaded
+press esc esc
+wait AREA
+press e
+wait CAMP
+press r d i i i i i r
+wait CAMP
+press r d i i i i i r
+wait CAMP
+press r d i h i i i i i i i i r
+wait MOVE 180
+checkpoint encounter
+# Gins and Andrea guard; Talonia's turn
+press d g
+wait-text ^ANDREA$ 120
+wait MOVE 60
+press d g
+wait-text ^TALONIA$ 120
+wait MOVE 60
+checkpoint talonia
+press 2
+wait MOVE 60
+checkpoint set-2
+press 1
+wait MOVE 60
+checkpoint set-1
+press v i
+wait READY
+checkpoint combat-items

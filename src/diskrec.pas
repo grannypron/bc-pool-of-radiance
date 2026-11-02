@@ -5,8 +5,8 @@
 
   Native writes replace pointers with four zero bytes and native reads restore
   them as nil. Turbo Pascal can copy the records directly. Port-specific fields
-  after TCharRecord.portExt are not part of the SSI character record; CharExt
-  stores them separately. }
+  after TCharRecord.portExt, and TItemRec.weaponSet, are not part of SSI's
+  records; CharExt stores them separately. }
 {$I COMPILER.INC}
 unit DiskRec;
 
@@ -36,11 +36,11 @@ procedure ItemToDisk(var it: Types.TItemRec; var disk);
 procedure EffectToDisk(var ef: Types.TEffectRec; var disk);
 
 { A record from its disk form: a file's or a DAX block's bytes. Its pointers are nil natively; under Turbo Pascal they
-  are the bytes the file held, which the callers clear. A character's port fields (portExt) are cleared. A name whose
-  length byte is past its field is cut to the field (StrUtil.FitLength, #917): a damaged save or DAX record is read
-  whatever it holds. A character's drainedLevels of DRAINED_FILLER, SSI's monster records' filler, is read as no drain
-  (#1155). An item that is Keoghtom's Ointment or the Manual of Bodily Health by its name parts and still has the
-  effect SSI's data gave it, spell 58's or 67's, gets its spell's new effect (C_SPELL.ITEM_OINTMENT's,
+  are the bytes the file held, which the callers clear. A character's port fields (portExt) and an item's weaponSet are
+  cleared. A name whose length byte is past its field is cut to the field (StrUtil.FitLength, #917): a damaged save or
+  DAX record is read whatever it holds. A character's drainedLevels of DRAINED_FILLER, SSI's monster records' filler, is
+  read as no drain (#1155). An item that is Keoghtom's Ointment or the Manual of Bodily Health by its name parts and
+  still has the effect SSI's data gave it, spell 58's or 67's, gets its spell's new effect (C_SPELL.ITEM_OINTMENT's,
   ITEM_BODILY_HEALTH's), as Curse's numbers have other spells there (#1121): a save, a vault, a script's item or a
   shop's all come in through here. }
 procedure CharFromDisk(var disk; var c: Types.TCharRecord);
@@ -69,8 +69,9 @@ type
   PByteBuf = ^TByteBuf;
 
 var
-  { the bytes of TCharRecord in memory before portExt, the part the disk form holds }
+  { the bytes of TCharRecord in memory before portExt, and of TItemRec before weaponSet: the parts the disk forms hold }
   charMem: Word;
+  itemMem: Word;
   charPtrs: TPtrOffsets;
   itemPtrs: TPtrOffsets;
   effectPtrs: TPtrOffsets;
@@ -146,6 +147,7 @@ begin
     charPtrs[2 + i - C_EQUIP.WEAPON] := PtrUInt(@c.equipped[i]) - PtrUInt(@c);
   charPtrs[CHAR_POINTERS - 2] := PtrUInt(@c.nextCharAddr) - PtrUInt(@c);
   charPtrs[CHAR_POINTERS - 1] := PtrUInt(@c.combatAddr) - PtrUInt(@c);
+  itemMem := PtrUInt(@it.weaponSet) - PtrUInt(@it);
   itemPtrs[0] := PtrUInt(@it.next) - PtrUInt(@it);
   effectPtrs[0] := PtrUInt(@ef.next) - PtrUInt(@ef);
 end;
@@ -163,7 +165,7 @@ end;
 procedure ItemToDisk(var it: Types.TItemRec; var disk);
 begin
 {$IFDEF FPC}
-  Pack(it, SizeOf(it), disk, itemPtrs, ITEM_POINTERS);
+  Pack(it, itemMem, disk, itemPtrs, ITEM_POINTERS);
 {$ELSE}
   Move(it, disk, ITEM_DISK_BYTES);
 {$ENDIF}
@@ -209,10 +211,11 @@ var
   ok: Boolean;
 begin
 {$IFDEF FPC}
-  Unpack(disk, it, SizeOf(it), itemPtrs, ITEM_POINTERS);
+  Unpack(disk, it, itemMem, itemPtrs, ITEM_POINTERS);
 {$ELSE}
   Move(disk, it, ITEM_DISK_BYTES);
 {$ENDIF}
+  it.weaponSet := C_ITEM.SET_NONE;
   ok := StrUtil.FitLength(it.name, SizeOf(it.name) - 1);
   if (it.effect = C_SPELL.OLD_OINTMENT_EFFECT) and
       (HasNamePart(it, C_ITEM.NAME_OINTMENT) or HasNamePart(it, C_ITEM.NAME_OINTMENT_2)) then
@@ -271,8 +274,16 @@ begin
 end;
 
 function ItemDiskSize: Word;
+{$IFNDEF FPC}
+var
+  it: Types.TItemRec;
+{$ENDIF}
 begin
-  ItemDiskSize := SizeOf(Types.TItemRec) - ITEM_POINTERS * Types.PTR_GROWTH;
+{$IFDEF FPC}
+  ItemDiskSize := itemMem - ITEM_POINTERS * Types.PTR_GROWTH;
+{$ELSE}
+  ItemDiskSize := Ofs(it.weaponSet) - Ofs(it);
+{$ENDIF}
 end;
 
 function EffectDiskSize: Word;

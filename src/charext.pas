@@ -5,7 +5,10 @@
   and a ranger's druid slots, spells known past 56, and memorized spells past
   the record's 21 (#1121). SSI's 285-byte character format has no room for these
   fields, so they are stored in a separate .chx file. They remain part of the
-  in-memory record, allowing normal record copies to preserve them. }
+  in-memory record, allowing normal record copies to preserve them. The .chx
+  file also keeps the weapon set of each of the character's items
+  (TItemRec.weaponSet, #1209), which SSI's 63-byte item format has no room for
+  either: by the item's place in the list, the .itm file's order. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit CharExt;
@@ -25,19 +28,20 @@ const
   it slips away while the party sleeps at its next rest (#1089). }
 function SlipsAway(creature: Types.PCharRecord): Boolean;
 
-{ True when creature has a port field that is not 0, one a .chx file must hold. }
+{ True when creature has a port field that is not 0, or an item tagged for a weapon set: what a .chx file must hold. }
 function HasExt(creature: Types.PCharRecord): Boolean;
 
 { Write creature's port fields as file <base>.chx of save s (FileUtil.WriteToSet); for a creature whose fields are all
   0 the save erases the old file instead. False when the write failed. }
 function WriteExt(var s: FileUtil.TFileSet; creature: Types.PCharRecord; base: FileUtil.TSetName): Boolean;
 
-{ Read creature's port fields from <fn>.chx. They are left 0 unless the file is exactly one record with this format's
-  signature and version (or version 3's, from before the spells past SSI's record, whose class left, flags and drain
-  log are read, or version 2's, from before the drain log, whose class left and flags are read, or version
-  1's, from before the flags, whose class left is read), made for a character of this name and randByte: a character
-  from SSI's game, from before #838, or whose .chx was lost, is an ordinary one. A drain log longer than the record's
-  drainedLevels is cut to it, the oldest entries going. }
+{ Read creature's port fields from <fn>.chx, and its items' weapon sets: call it once the items are loaded. They are
+  left 0 unless the file is exactly one record with this format's signature and version (or version 4's, from before the
+  weapon sets, whose port fields are read, or version 3's, from before the spells past SSI's record, whose class left,
+  flags and drain log are read, or version 2's, from before the drain log, whose class left and flags are read, or
+  version 1's, from before the flags, whose class left is read), made for a character of this name and randByte: a
+  character from SSI's game, from before #838, or whose .chx was lost, is an ordinary one. A drain log longer than the
+  record's drainedLevels is cut to it, the oldest entries going. }
 procedure ReadExt(creature: Types.PCharRecord; fn: Types.TPathStr);
 
 { Log a level an energy drain took (#1174): xp experience, hp hit points, class cls lowered. The log is full at
@@ -58,14 +62,15 @@ function LoggedDrains(creature: Types.PCharRecord; cls: ShortInt): Byte;
 
 implementation
 
-uses C_STATUS;
+uses C_ITEM, C_STATUS;
 
 const
   { EXT_SIG and EXT_VERSION open every .chx file; a file without both is not read }
   EXT_SIG = 'CEXT';
-  EXT_VERSION = 4;
-  { version 3's files hold the class left, the flags and the drain log, version 2's the class left and the flags,
-    version 1's the class left alone }
+  EXT_VERSION = 5;
+  { version 4's files hold the port fields without the weapon sets, version 3's the class left, the flags and the
+    drain log, version 2's the class left and the flags, version 1's the class left alone }
+  EXT_VERSION_4 = 4;
   EXT_VERSION_3 = 3;
   EXT_VERSION_2 = 2;
   EXT_VERSION_1 = 1;
@@ -73,6 +78,17 @@ const
 type
   { A .chx file: the port fields, with the name and randByte of the character they belong to. }
   TCharExtFile = record
+    sig: string[4];
+    version: Byte;
+    name: string[Types.NAME_LEN];
+    randByte: Byte;
+    portExt: Types.TCharExt;
+    { the weapon set of each item, by its place in the list (TItemRec.weaponSet, #1209) }
+    itemSets: array[1..C_ITEM.CARRY_MAX] of Byte;
+  end;
+
+  { A version 4 .chx file, from before the weapon sets (#1209). }
+  TCharExtFile4 = record
     sig: string[4];
     version: Byte;
     name: string[Types.NAME_LEN];
@@ -121,18 +137,27 @@ var
   p: Types.PBytes;
   i: Word;
   any: Boolean;
+  item: Types.PItemRec;
 begin
   any := False;
   p := @creature^.portExt;
   for i := 0 to SizeOf(Types.TCharExt) - 1 do
     if p^[i] <> 0 then
       any := True;
+  item := creature^.itemsAddr;
+  while item <> nil do begin
+    if item^.weaponSet <> C_ITEM.SET_NONE then
+      any := True;
+    item := item^.next;
+  end;
   HasExt := any;
 end;
 
 function WriteExt(var s: FileUtil.TFileSet; creature: Types.PCharRecord; base: FileUtil.TSetName): Boolean;
 var
   rec: TCharExtFile;
+  item: Types.PItemRec;
+  i: Byte;
 begin
   WriteExt := True;
   if CharExt.HasExt(creature) then begin
@@ -142,6 +167,13 @@ begin
     rec.name := creature^.name;
     rec.randByte := creature^.randByte;
     rec.portExt := creature^.portExt;
+    i := 0;
+    item := creature^.itemsAddr;
+    while (item <> nil) and (i < C_ITEM.CARRY_MAX) do begin
+      Inc(i);
+      rec.itemSets[i] := item^.weaponSet;
+      item := item^.next;
+    end;
     WriteExt := FileUtil.WriteToSet(s, base + '.chx', rec, SizeOf(rec));
   end else
     FileUtil.AddToSet(s, base + '.chx', False);
@@ -168,15 +200,27 @@ end;
 procedure ReadExt(creature: Types.PCharRecord; fn: Types.TPathStr);
 var
   rec: TCharExtFile;
+  rec4: TCharExtFile4;
   rec3: TCharExtFile3;
   rec2: TCharExtFile2;
   rec1: TCharExtFile1;
+  sets: array[1..C_ITEM.CARRY_MAX] of Byte;
+  item: Types.PItemRec;
+  i: Byte;
 begin
   FillChar(creature^.portExt, SizeOf(creature^.portExt), 0);
+  FillChar(sets, SizeOf(sets), C_ITEM.SET_NONE);
   { read-only, so a write-protected .chx is read too; each version's file has its own size }
   if FileUtil.ReadRecord(fn + '.chx', rec, SizeOf(rec)) then begin
-    if (rec.sig = EXT_SIG) and (rec.version = EXT_VERSION) and CharExt.SameChar(creature, rec.name, rec.randByte) then
+    if (rec.sig = EXT_SIG) and (rec.version = EXT_VERSION) and
+        CharExt.SameChar(creature, rec.name, rec.randByte) then begin
       creature^.portExt := rec.portExt;
+      Move(rec.itemSets, sets, SizeOf(sets));
+    end;
+  end else if FileUtil.ReadRecord(fn + '.chx', rec4, SizeOf(rec4)) then begin
+    if (rec4.sig = EXT_SIG) and (rec4.version = EXT_VERSION_4) and
+        CharExt.SameChar(creature, rec4.name, rec4.randByte) then
+      creature^.portExt := rec4.portExt;
   end else if FileUtil.ReadRecord(fn + '.chx', rec3, SizeOf(rec3)) then begin
     if (rec3.sig = EXT_SIG) and (rec3.version = EXT_VERSION_3) and
         CharExt.SameChar(creature, rec3.name, rec3.randByte) then begin
@@ -200,6 +244,18 @@ begin
       drainCount := Types.DRAIN_LOG_LEN;
     while drainCount > creature^.drainedLevels do
       CharExt.DropDrain(creature, 1);
+  end;
+  { the sets go to the items in order; a set that is no 1 or 2 is none }
+  i := 0;
+  item := creature^.itemsAddr;
+  while item <> nil do begin
+    item^.weaponSet := C_ITEM.SET_NONE;
+    if i < C_ITEM.CARRY_MAX then begin
+      Inc(i);
+      if sets[i] <= C_ITEM.SET_LAST then
+        item^.weaponSet := sets[i];
+    end;
+    item := item^.next;
   end;
 end;
 
