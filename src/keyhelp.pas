@@ -17,7 +17,7 @@ const
   SHOW_LOG = 5;
   SHOW_TRAIN = 6;
   { Number of entries in KEYS. }
-  KEY_LINES = 18;
+  KEY_LINES = 19;
 
 type
   { One row in the help window. }
@@ -74,8 +74,8 @@ uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, C_KEYS, C_SOUND, GameVars, TextRend, Bor
 const
   { The window's frame and rows, as the Quests page's (#855): the title box on TITLE_ROW, the lines' box from LIST_TOP
     to BOTTOM_ROW, and the lines from a blank row into it. Keys start at KEY_COL. BOTTOM_ROW is a row below the Quests
-    page's, the row above the menu line, so that LIST_ROWS is 19: every line fits when every one is shown, without
-    the groups' blank rows (GroupGaps), F4's still to come among them (#1209). }
+    page's, the row above the menu line, so that LIST_ROWS is 19: every line fits when every one is shown, F4's
+    (#1212) among them, without the groups' blank rows (GroupGaps) (#1209). }
   LEFT_COL = 1;
   RIGHT_COL = 38;
   TITLE_ROW = 1;
