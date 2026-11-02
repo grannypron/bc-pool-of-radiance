@@ -182,6 +182,12 @@ function CanTrain(creature: Types.PCharRecord): Boolean;
   experience table, with the experience for it unless anyXp (free training). CanTrain and CharGen.TrainingMenu ask it. }
 function TrainClasses(creature: Types.PCharRecord; anyXp: Boolean): Byte;
 
+{ The classes the training hall here trains, as GameDefs.classBits: the hall's script's word (C_GBVM.TRAIN_CLASS_MASK),
+  or every class while Train Anywhere's menu runs (GameVars.trainingAnywhere, #1212), which never writes the word, so a
+  game saved there carries no hall into the scripts. CharGen.TrainingMenu, the party menu and the Dual Class screen ask
+  it. }
+function HallMask: Word;
+
 function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
 
 function RawWeight(creature: Types.PCharRecord): LongInt;
@@ -375,7 +381,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 
 implementation
 
-uses C_ITEM, GameDefs, GameVars, C_EFFECT, C_EQUIP, C_RACE, C_LEVEL, C_STATUS, C_IFC,
+uses C_ITEM, GameDefs, GameVars, C_EFFECT, C_EQUIP, C_RACE, C_LEVEL, C_STATUS, C_IFC, C_GBVM,
   C_MONEY, Stats, C_NPC, StrUtil, AbilAdj, C_SPELL, ClassCal;
 
 const
@@ -1582,6 +1588,20 @@ end;
 function CanTrain(creature: Types.PCharRecord): Boolean;
 begin
   CanTrain := CharHlp.TrainClasses(creature, False) <> 0;
+end;
+
+function HallMask: Word;
+var
+  cls: ShortInt;
+  mask: Byte;
+begin
+  if GameVars.trainingAnywhere then begin
+    mask := 0;
+    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
+      mask := mask or GameDefs.classBits[cls];
+    HallMask := mask;
+  end else
+    HallMask := GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK];
 end;
 
 function TrainClasses(creature: Types.PCharRecord; anyXp: Boolean): Byte;

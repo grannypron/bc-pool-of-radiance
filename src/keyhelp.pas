@@ -15,8 +15,9 @@ const
   SHOW_STING = 3;
   SHOW_SOUND = 4;
   SHOW_LOG = 5;
+  SHOW_TRAIN = 6;
   { Number of entries in KEYS. }
-  KEY_LINES = 18;
+  KEY_LINES = 19;
 
 type
   { One row in the help window. }
@@ -32,6 +33,7 @@ const
     (key: 'F1  '; what: 'This Screen'; show: SHOW_ALWAYS),
     (key: 'F2  '; what: 'Bestiary'; show: SHOW_ALWAYS),
     (key: 'F3  '; what: 'Minimap (Combat Only)'; show: SHOW_ALWAYS),
+    (key: 'F4  '; what: 'Train Anywhere'; show: SHOW_TRAIN),
     (key: 'F5  '; what: 'Quick Save'; show: SHOW_QUICK),
     (key: 'F6  '; what: 'Companion Tools'; show: SHOW_COMPANION),
     (key: 'F7  '; what: 'Action Log (Combat Only)'; show: SHOW_LOG),
@@ -72,8 +74,8 @@ uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, C_KEYS, C_SOUND, GameVars, TextRend, Bor
 const
   { The window's frame and rows, as the Quests page's (#855): the title box on TITLE_ROW, the lines' box from LIST_TOP
     to BOTTOM_ROW, and the lines from a blank row into it. Keys start at KEY_COL. BOTTOM_ROW is a row below the Quests
-    page's, the row above the menu line, so that LIST_ROWS is 19: every line fits when every one is shown, without
-    the groups' blank rows (GroupGaps), F4's still to come among them (#1209). }
+    page's, the row above the menu line, so that LIST_ROWS is 19: every line fits when every one is shown, F4's
+    (#1212) among them, without the groups' blank rows (GroupGaps) (#1209). }
   LEFT_COL = 1;
   RIGHT_COL = 38;
   TITLE_ROW = 1;
@@ -95,6 +97,7 @@ begin
     SHOW_STING: LineShown := GameVars.stingArg;
     SHOW_SOUND: LineShown := GameVars.sound.mode <> C_SOUND.MODE_DISABLED;
     SHOW_LOG: LineShown := GameVars.combatLogOn <> 0;
+    SHOW_TRAIN: LineShown := GameVars.trainAnywhereOn <> 0;
   else
     LineShown := True;
   end;

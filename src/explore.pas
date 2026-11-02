@@ -11,9 +11,10 @@ procedure ResolveMovement;
 
 function MapMainMenu: Char;
 
-{ F1, F2, F6 and Alt-1 to Alt-8 on the map and camp menus: the Command Keys window (KeyHelp.ShowKeys, #855; quickKeys
-  says whether it lists F5 and F8), the Bestiary (#842), the Companion Tools while that setting is on (phase 8) and
-  party member n's items (ViewChar.AltItems, #1175; nothing without a member n), each followed by the screen drawn
+{ F1, F2, F4, F6 and Alt-1 to Alt-8 on the map and camp menus: the Command Keys window (KeyHelp.ShowKeys, #855;
+  quickKeys says whether it lists F5 and F8), the Bestiary (#842), the training hall's menu while the Train Anywhere
+  setting is on (CharGen.TrainAnywhere, #1212), the Companion Tools while that setting is on (phase 8) and party
+  member n's items (ViewChar.AltItems, #1175; nothing without a member n), each followed by the screen drawn
   again (CharDisp.DisplayWildernessInterface when wild, else DisplayNoncombatInterface). False for any other key, which
   the caller handles. }
 function SideScreen(c: Char; quickKeys, wild: Boolean): Boolean;
@@ -39,7 +40,8 @@ implementation
 
 uses Crt, C_AREA, C_TIME, C_MSG, GameDefs, GameVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
   C_KEYS, C_LEVEL, C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
-  MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool, KeyHelp, BeastMnu, Magic, JrnlSeen, Wilds;
+  MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool, KeyHelp, BeastMnu, Magic, JrnlSeen, Wilds,
+  CharGen;
 
 var
   { Door-opening flags: bash, pick and knock. }
@@ -342,6 +344,11 @@ begin
     { a party member's items (#1175); with no member n, nothing }
     C_KEYS.ALT_1..C_KEYS.ALT_8: shown := ViewChar.AltItems(c);
     C_KEYS.F2: BeastMnu.BestiaryMenu;
+    { with the setting off, nothing }
+    C_KEYS.F4: if GameVars.trainAnywhereOn <> 0 then
+                 CharGen.TrainAnywhere
+               else
+                 shown := False;
     C_KEYS.F6: if GameVars.companionOn <> 0 then
                  CompTool.ToolsMenu
                else
@@ -362,8 +369,8 @@ end;
 { MapMainMenu: the 3D / wilderness command loop. Returns the key that ended it: 'E' (Encamp), 'L' (Look: sets
   C_GBVM.SEARCH_FLAGS bit 1, advances the clock one turn and points eclIp at the search script entry), an arrow scan
   code (in 3D 'H' after MoveForward, in the wilderness 'H', 'M', 'P' or 'K' after setting the facing), or F8's after
-  AskQuickLoad has set quickLoadAsked. F5 quick-saves (SaveLoad.QuickSave) and F1, F2, F6 and Alt-1 to Alt-8 open their
-  screens (SideScreen); the menu goes on after each. In 3D the other arrows turn the party. Cast goes to
+  AskQuickLoad has set quickLoadAsked. F5 quick-saves (SaveLoad.QuickSave) and F1, F2, F4, F6 and Alt-1 to Alt-8 open
+  their screens (SideScreen); the menu goes on after each. In 3D the other arrows turn the party. Cast goes to
   Camp.NoncombatCastMenu, which says why a character who cannot cast cannot; SSI's 3D menu ignored Cast from a
   character not Okay. The wilderness menu's Move, as Pools of Darkness's, turns the bottom line to Exit: there the
   arrows and Home, Page Up, End and Page Down (the keypad's 7, 9, 1 and 3) set the facing in all eight directions and

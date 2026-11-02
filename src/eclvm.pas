@@ -1691,7 +1691,7 @@ begin
   v := EclVars.GetEclVar(1);
   case v of
     PROG_TRAINING: begin
-      CharGen.MainMenu(True);
+      CharGen.MainMenu(True, False);
       { a game loaded from the menu (Load, once the party is empty) leaves this script, which v1.3 ran on over the
         loaded game: GameLoop returns and the program starts it again in the loaded area }
       if GameVars.loadedSave <> 0 then

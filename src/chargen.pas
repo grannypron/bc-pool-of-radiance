@@ -6,8 +6,16 @@ unit CharGen;
 interface
 
 { The party menu: SSI's at start-up and after the party is destroyed, the two-column one at a training hall in a game in
-  play (inGame), #885. }
-procedure MainMenu(inGame: Boolean);
+  play (inGame), #885, and that one cut down to Train, View, Dual Class and Exit for Train Anywhere (anywhere, with
+  inGame, #1212). }
+procedure MainMenu(inGame, anywhere: Boolean);
+
+{ F4 outside combat with the Train Anywhere setting on (#1212): the training hall's menu where the party stands
+  (MainMenu, anywhere), training every class (CharHlp.HallMask) with every other rule of the hall: the fee, the
+  experience, a level at a time, the Game Level Cap and the Non-Human Level Cap. No time passes. The portrait archive
+  (GameVars.diskIndex), the interface state and the bottom line's option are put back after it; the caller draws its
+  screen again. }
+procedure TrainAnywhere;
 
 { The combat-icon editor for curChar: head, weapon, size and colours, each picked from a grid of the icon with every
   option; Keep keeps the icon, Exit puts it back as it was. }
@@ -104,8 +112,9 @@ procedure AddCharacterMenu; forward;
   SaveLoad.QuitToDos: with a party not saved since it changed, it asks to save first: Yes opens the save menu, and
   leaving it without saving stays in the menu; No quits unsaved (#660). Settings opens the Settings screen
   (Options.OptionsMenu). J sets stingMode when the first command-line parameter is STING. The start-up menu left alone
-  with no party returns with GameVars.demoMode set, for FixMain to play the demo (#1109). }
-procedure MainMenu(inGame: Boolean);
+  with no party returns with GameVars.demoMode set, for FixMain to play the demo (#1109). Train Anywhere's menu
+  (anywhere, #1212; PartyMnu.OfferedCmds) has Train, View and Dual Class, and its Exit, or Escape, returns. }
+procedure MainMenu(inGame, anywhere: Boolean);
 var
   ch: Char;
   ext: Boolean;
@@ -125,13 +134,15 @@ begin
   redraw := True;
   stingMode := 0;
   cur := PartyMnu.CMD_ADD;
+  if anywhere then
+    cur := PartyMnu.CMD_TRAIN;
   CharDisp.hallMenu := inGame;
   GameVars.ifcState := C_IFC.MAIN_MENU;
   while True do begin
     if redraw then begin
       Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
-      atHall := (GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0);
-      PartyMnu.OfferedCmds(GameVars.curChar <> nil, atHall, inGame, offered);
+      atHall := (CharHlp.HallMask > 0) or (stingMode <> 0);
+      PartyMnu.OfferedCmds(GameVars.curChar <> nil, atHall, inGame, anywhere, offered);
       top := PartyMnu.MENU_TOP;
       if GameVars.curChar <> nil then begin
         CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
@@ -205,7 +216,10 @@ begin
                Exit;
              end;
         'G': Options.OptionsMenu;
-        'E': SaveLoad.QuitToDos(True);
+        'E': if anywhere then
+               Exit
+             else
+               SaveLoad.QuitToDos(True);
         { free training, turned on and off as in Curse }
         'J': if GameVars.stingArg then
              begin
@@ -219,6 +233,27 @@ begin
       redraw := True;
     end;
   end;
+end;
+
+procedure TrainAnywhere;
+var
+  savedDisk: Byte;
+  savedIfc: Byte;
+  savedChoice: Byte;
+  savedHall: Boolean;
+begin
+  savedDisk := GameVars.diskIndex;
+  savedIfc := GameVars.ifcState;
+  savedChoice := GameVars.horizChoice;
+  savedHall := CharDisp.hallMenu;
+  GameVars.trainingAnywhere := True;
+  CharGen.MainMenu(True, True);
+  GameVars.trainingAnywhere := False;
+  GameVars.diskIndex := savedDisk;
+  GameVars.ifcState := savedIfc;
+  GameVars.horizChoice := savedChoice;
+  CharDisp.hallMenu := savedHall;
+  TextRend.ClearBottomLine;
 end;
 
 { ShowRaceInfo: Fill the race screen's panes for race: its ability adjustments (raceAbilityAdj) beside the race
@@ -1086,13 +1121,13 @@ begin
 end;
 
 { TrainingMenu: Train curChar for 1000 gp. Refuses characters that are not C_STATUS.OKAY, have under 1000 gp, have no
-  class this hall trains (C_GBVM.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee, but
-  not the class and level limits, so a character with no class left to train is still sent away. Applies the racial
-  level caps (CharHlp.AtLevelCap) and the experience table's end (ClassCal.LevelOpen). A character who trains
-  has experience clamped to one below the highest level + 2 threshold it has reached. A class a dual-classed human has
-  left neither trains nor counts for the hall (#838). Each trained class gains a level and restores one drained level; a
-  new magic-user level picks one spell; hit points grow by the rolled dice (and, for hpMax, the trained classes' Con
-  bonus) divided by the class count, at least 1, as GainLevels gives them. }
+  class this hall trains (CharHlp.HallMask: every class under Train Anywhere) or lack the experience; stingMode skips
+  these checks and the fee, but not the class and level limits, so a character with no class left to train is still
+  sent away. Applies the racial level caps (CharHlp.AtLevelCap) and the experience table's end (ClassCal.LevelOpen). A
+  character who trains has experience clamped to one below the highest level + 2 threshold it has reached. A class a
+  dual-classed human has left neither trains nor counts for the hall (#838). Each trained class gains a level and
+  restores one drained level; a new magic-user level picks one spell; hit points grow by the rolled dice (and, for
+  hpMax, the trained classes' Con bonus) divided by the class count, at least 1, as GainLevels gives them. }
 procedure TrainingMenu;
 var
   xpClamp: LongInt;
@@ -1138,16 +1173,16 @@ begin
         end;
       end;
     if stingMode = 0 then begin
-      if Byte(classMask and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK]) = 0 then begin
+      if Byte(classMask and CharHlp.HallMask) = 0 then begin
         TextRend.PrintAndPause('We don''t train that class here', Yellow);
         Exit;
-      end else if Byte(trainMask and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK]) = 0 then begin
+      end else if Byte(trainMask and CharHlp.HallMask) = 0 then begin
         TextRend.PrintAndPause('Not Enough Experience', Yellow);
         Exit;
       end;
     end;
     if stingMode = 0 then
-      trainable := trainMask and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK]
+      trainable := trainMask and CharHlp.HallMask
     else
       trainable := trainMask;
     { free training passes the hall's checks with every class at its limit: GainLevels would then gain no level and
