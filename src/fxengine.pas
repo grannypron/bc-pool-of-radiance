@@ -221,6 +221,19 @@ function ReviveDeadCreature(creature: Types.PCharRecord; hp: Byte): Boolean;
   effect handler when readied and when unreadied. }
 procedure ToggleReadyItem(item: Types.PItemRec);
 
+{ ToggleReadyItem's checks for readying creature's item, as an error code: 0 when it may be readied, else 3 (no free
+  hands), 2 (the slot or ammunition slot, returned in slot, is taken) or 1 (the class may not use it), later checks
+  overriding earlier ones. }
+function ReadyCheck(creature: Types.PCharRecord; item: Types.PItemRec; var slot: ShortInt): Byte;
+
+{ Ready creature's weapon set n (C_ITEM.SET_FIRST..SET_LAST, #1209), as 1 and 2 do in combat: put away every readied
+  item of another set and every one in the way of an item of set n (its slot, its ammunition slot, or the hands it
+  needs), then ready each item of set n not yet readied, each as ToggleReadyItem would; untagged items not in the way
+  stay as they are. A cursed item stays readied ("It's Cursed"), and the first item refused shows ToggleReadyItem's
+  message; "No set n" when no item is in set n. Stats are recalculated (CharHlp.RecalcStats); the caller rechecks
+  the attacks left in combat. True when any item was readied or put away. }
+function ReadySet(creature: Types.PCharRecord; n: Byte): Boolean;
+
 { Put creature's readied item away, cursed or not: it is no longer equipped, and a special item (special > $7F) calls
   its effect handler to undo what readying did. ToggleReadyItem and ChgClass.SyncClassPowers use it. }
 procedure UnreadyItem(creature: Types.PCharRecord; item: Types.PItemRec);
@@ -1164,14 +1177,70 @@ begin
     FxEngine.CallEffectHandler(item^.special, creature, item, True);
 end;
 
+function ReadyCheck(creature: Types.PCharRecord; item: Types.PItemRec; var slot: ShortInt): Byte;
+var
+  err: Byte;
+begin
+  err := 0;
+  if creature^.handsEquipped + CharHlp.BaseItem(item^.itemType)^.hands > 2 then
+    err := 3;
+  slot := CharHlp.BaseItem(item^.itemType)^.slot;
+  { slots 0..8 each hold one item; a ring (slot 9) fails only when the second ring slot is taken }
+  case Byte(slot) of
+    C_EQUIP.WEAPON..C_EQUIP.BOOTS:
+      if creature^.equipped[slot] <> nil then
+        err := 2;
+    C_EQUIP.RING1:
+      if creature^.equipped[C_EQUIP.RING2] <> nil then
+        { second ring slot already in use }
+        err := 2;
+  end;
+  { arrows }
+  if item^.itemType = C_ITEM.ARROW then
+    if creature^.equipped[C_EQUIP.ARROW] <> nil then begin
+      err := 2;
+      slot := C_EQUIP.ARROW;
+    end;
+  { quarrels }
+  if item^.itemType = C_ITEM.QUARREL then
+    if creature^.equipped[C_EQUIP.BOLT] <> nil then begin
+      err := 2;
+      slot := C_EQUIP.BOLT;
+    end;
+  if CharHlp.BaseItem(item^.itemType)^.classMask and creature^.itemLimits = 0 then
+    err := 1;
+  ReadyCheck := err;
+end;
+
+{ Ready creature's item, whose checks passed (ReadyCheck): a special item (special > $7F) calls its effect handler. }
+procedure ReadyItem(creature: Types.PCharRecord; item: Types.PItemRec);
+begin
+  item^.equipped := 1;
+  if item^.special > $7F then
+    FxEngine.CallEffectHandler(item^.special, creature, item, False);
+end;
+
+{ Say why creature may not ready an item: ReadyCheck's err, with its slot. The hands-full message is skipped for a
+  quick-fighting creature in combat. }
+procedure SayReadyError(creature: Types.PCharRecord; err: Byte; slot: ShortInt);
+begin
+  case err of
+    1: CharDisp.PrintBottomLine('Wrong Class');
+    2: begin
+         CharHlp.ItemLabel(creature^.equipped[slot], False);
+         CharDisp.PrintBottomLine('already using ' + creature^.equipped[slot]^.name);
+       end;
+    3: if (GameVars.ifcState <> C_IFC.IN_COMBAT) or (creature^.quickfight = 0) then
+         CharDisp.PrintBottomLine('Your hands are full!');
+  end;
+end;
+
 procedure ToggleReadyItem(item: Types.PItemRec);
 var
-  hasSpecial: Boolean;
   err: Byte;
   slot: ShortInt;
   creature: Types.PCharRecord;
 begin
-  hasSpecial := item^.special > $7F;
   creature := GameVars.curChar;
   if item^.equipped <> 0 then begin
     if item^.cursed <> 0 then
@@ -1179,49 +1248,102 @@ begin
     else
       FxEngine.UnreadyItem(creature, item);
   end else begin
-    err := 0;
-    if creature^.handsEquipped + CharHlp.BaseItem(item^.itemType)^.hands > 2 then
-      err := 3;
-    slot := CharHlp.BaseItem(item^.itemType)^.slot;
-    { slots 0..8 each hold one item; a ring (slot 9) fails only when the second ring slot is taken }
-    case Byte(slot) of
-      C_EQUIP.WEAPON..C_EQUIP.BOOTS:
-        if creature^.equipped[slot] <> nil then
-          err := 2;
-      C_EQUIP.RING1:
-        if creature^.equipped[C_EQUIP.RING2] <> nil then
-          { second ring slot already in use }
-          err := 2;
+    err := FxEngine.ReadyCheck(creature, item, slot);
+    if err = 0 then
+      FxEngine.ReadyItem(creature, item)
+    else
+      FxEngine.SayReadyError(creature, err, slot);
+  end;
+end;
+
+{ True when a readied item, other, stands in the way of readying item: other holds the slot or the ammunition slot
+  item needs. }
+function InTheWay(item, other: Types.PItemRec): Boolean;
+var
+  slot: Byte;
+begin
+  slot := CharHlp.BaseItem(item^.itemType)^.slot;
+  InTheWay := ((slot <= C_EQUIP.BOOTS) and (CharHlp.BaseItem(other^.itemType)^.slot = slot)) or
+              ((item^.itemType = C_ITEM.ARROW) and (other^.itemType = C_ITEM.ARROW)) or
+              ((item^.itemType = C_ITEM.QUARREL) and (other^.itemType = C_ITEM.QUARREL));
+end;
+
+{ ReadySet's putting away of creature's readied item other: a cursed one stays, and says so unless something was
+  said already (said). changed turns True when it goes. }
+procedure PutAwayForSet(creature: Types.PCharRecord; other: Types.PItemRec; var said, changed: Boolean);
+begin
+  if other^.cursed <> 0 then begin
+    if not said then
+      CharDisp.PrintBottomLine('It''s Cursed');
+    said := True;
+  end else begin
+    FxEngine.UnreadyItem(creature, other);
+    CharHlp.RecalcStats(creature);
+    changed := True;
+  end;
+end;
+
+function ReadySet(creature: Types.PCharRecord; n: Byte): Boolean;
+var
+  item: Types.PItemRec;
+  other: Types.PItemRec;
+  any: Boolean;
+  changed: Boolean;
+  said: Boolean;
+  err: Byte;
+  slot: ShortInt;
+begin
+  any := False;
+  changed := False;
+  said := False;
+  item := creature^.itemsAddr;
+  while item <> nil do begin
+    if item^.weaponSet = n then
+      any := True;
+    item := item^.next;
+  end;
+  if not any then
+    CharDisp.PrintBottomLine('No set ' + Char(Ord('0') + n))
+  else begin
+    CharHlp.RecalcStats(creature);
+    { the other sets go first }
+    other := creature^.itemsAddr;
+    while other <> nil do begin
+      if (other^.equipped <> 0) and (other^.weaponSet <> C_ITEM.SET_NONE) and (other^.weaponSet <> n) then
+        FxEngine.PutAwayForSet(creature, other, said, changed);
+      other := other^.next;
     end;
-    { arrows }
-    if item^.itemType = C_ITEM.ARROW then
-      if creature^.equipped[C_EQUIP.ARROW] <> nil then begin
-        err := 2;
-        slot := C_EQUIP.ARROW;
+    item := creature^.itemsAddr;
+    while item <> nil do begin
+      if (item^.weaponSet = n) and (item^.equipped = 0) then begin
+        { what holds its slot, then what holds the hands it needs }
+        other := creature^.itemsAddr;
+        while other <> nil do begin
+          if (other^.equipped <> 0) and (other^.weaponSet <> n) and FxEngine.InTheWay(item, other) then
+            FxEngine.PutAwayForSet(creature, other, said, changed);
+          other := other^.next;
+        end;
+        other := creature^.itemsAddr;
+        while other <> nil do begin
+          if (other^.equipped <> 0) and (other^.weaponSet <> n) and (CharHlp.BaseItem(other^.itemType)^.hands > 0)
+              and (creature^.handsEquipped + CharHlp.BaseItem(item^.itemType)^.hands > 2) then
+            FxEngine.PutAwayForSet(creature, other, said, changed);
+          other := other^.next;
+        end;
+        err := FxEngine.ReadyCheck(creature, item, slot);
+        if err = 0 then begin
+          FxEngine.ReadyItem(creature, item);
+          CharHlp.RecalcStats(creature);
+          changed := True;
+        end else if not said then begin
+          FxEngine.SayReadyError(creature, err, slot);
+          said := True;
+        end;
       end;
-    { quarrels }
-    if item^.itemType = C_ITEM.QUARREL then
-      if creature^.equipped[C_EQUIP.BOLT] <> nil then begin
-        err := 2;
-        slot := C_EQUIP.BOLT;
-      end;
-    if CharHlp.BaseItem(item^.itemType)^.classMask and creature^.itemLimits = 0 then
-      err := 1;
-    case err of
-      0: begin
-           item^.equipped := 1;
-           if hasSpecial then
-             FxEngine.CallEffectHandler(item^.special, creature, item, False);
-         end;
-      1: CharDisp.PrintBottomLine('Wrong Class');
-      2: begin
-           CharHlp.ItemLabel(creature^.equipped[slot], False);
-           CharDisp.PrintBottomLine('already using ' + creature^.equipped[slot]^.name);
-         end;
-      3: if (GameVars.ifcState <> C_IFC.IN_COMBAT) or (creature^.quickfight = 0) then
-           CharDisp.PrintBottomLine('Your hands are full!');
+      item := item^.next;
     end;
   end;
+  ReadySet := changed;
 end;
 
 { Age every timed effect (duration > 0 minutes) of each creature by count units of tUnit (ten segments to the minute),

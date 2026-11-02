@@ -47,7 +47,7 @@ function WasVisited: Boolean;
 
 implementation
 
-uses Crt, GameVars, Dos, CharHlp, MenuCore, TextRend, SaveMenu, DiskRec{$IFDEF FPC}, NatFile{$ENDIF};
+uses Crt, GameVars, Dos, CharHlp, C_ITEM, MenuCore, TextRend, SaveMenu, DiskRec{$IFDEF FPC}, NatFile{$ENDIF};
 
 const
   SESSION_FILE = 'tmpvault.dat';
@@ -148,6 +148,8 @@ end;
 
 procedure DepositItem(creature: Types.PCharRecord; item: Types.PItemRec);
 begin
+  { the vault's file has no room for a weapon set (#1209), and a withdrawn item is tagged afresh }
+  item^.weaponSet := C_ITEM.SET_NONE;
   CharHlp.AppendItemCopy(GameVars.treasureItems, item);
   CharHlp.RemoveItem(creature, item);
 end;

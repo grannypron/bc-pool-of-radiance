@@ -43,7 +43,7 @@ implementation
 
 uses Crt, C_MSG, C_SPELL, GameVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM, C_MONEY, C_EFFECT, Stats,
   Bestiary, BeastFil, Border, CharHlp, CharExt, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice,
-  ClassCal, CbtActs;
+  ClassCal, CbtActs, C_ITEM;
 
 var
   { Combat outcome. }
@@ -91,6 +91,7 @@ begin
               CharHlp.ItemLabel(item, False);
               CharHlp.PrependItemCopy(GameVars.treasureItems, item);
               GameVars.treasureItems^.equipped := 0;
+              GameVars.treasureItems^.weaponSet := C_ITEM.SET_NONE;
             end;
             item := item^.next;
           end;
@@ -337,6 +338,9 @@ begin
       done := True
     else begin
       done := False;
+      { a weapon set is its owner's (#1209): a thrown weapon left in the loot goes back to its thrower with its set
+        (CbtActs.ReturnThrown), but a member who takes one from the loot tags it afresh }
+      itemToTake^.weaponSet := C_ITEM.SET_NONE;
       Shop.GiveItemCopyToCreature(itemToTake, failed);
       { loot after a fight, not the vault's own items (#611) }
       if not failed and (GameVars.ifcState = C_IFC.LOOT) then

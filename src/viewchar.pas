@@ -49,8 +49,16 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 { The inventory's action line for creature's item: Ready, then Use, Trade, Drop or Deposit, Halve, Join and Sell as
   they apply. The I key is Id at a shop's or temple's counter, offered on every item as SSI offered it, so that the
   line does not tell which items are magic (#1115); elsewhere it is Info, on an item with a spell page. Halve is
-  dropped when the complete line would exceed 40 columns. }
+  dropped when the complete line would exceed 40 columns. ' 1 2', the weapon-set keys (#1209), end the line where
+  sets are tagged (TagsSets) on an item that takes one, when they fit. }
 function ItemMenuLine(creature: Types.PCharRecord; item: Types.PItemRec): Types.TStr40;
+
+{ True where the Items screen tags weapon sets (#1209): everywhere but the vault and a shop's or temple's counter. }
+function TagsSets: Boolean;
+
+{ Tag item for weapon set n (#1209), or clear the tag when it already has n; "Weapons and shields only" for an item
+  that takes none (CharHlp.SetTaggable). }
+procedure TagSet(item: Types.PItemRec; n: Byte);
 
 implementation
 
@@ -879,11 +887,27 @@ begin
   TextRend.DisplayAndPause(LightGreen, 'press a key');
 end;
 
+function TagsSets: Boolean;
+begin
+  TagsSets := (GameVars.ifcState <> C_IFC.VAULT) and (GameVars.ifcState <> C_IFC.SHOP_TEMPLE);
+end;
+
+procedure TagSet(item: Types.PItemRec; n: Byte);
+begin
+  if not CharHlp.SetTaggable(item) then
+    CharDisp.PrintBottomLine('Weapons and shields only')
+  else if item^.weaponSet = n then
+    item^.weaponSet := C_ITEM.SET_NONE
+  else
+    item^.weaponSet := n;
+end;
+
 function ItemMenuLine(creature: Types.PCharRecord; item: Types.PItemRec): Types.TStr40;
 const
   { the bottom line's columns, and MenuVertical's ' Exit' }
   LINE_WIDTH = 40;
   EXIT_WIDTH = 5;
+  SET_KEYS = ' 1 2';
 var
   s: String;
   halve: Boolean;
@@ -912,6 +936,9 @@ begin
     s := s + ' Info';
   if halve and (Length(s) + EXIT_WIDTH > LINE_WIDTH) then
     Delete(s, Pos(' Halve', s), Length(' Halve'));
+  { the weapon-set keys (#1209), shown when they fit; they work either way }
+  if ViewChar.TagsSets and CharHlp.SetTaggable(item) and (Length(s) + Length(SET_KEYS) + EXIT_WIDTH <= LINE_WIDTH) then
+    s := s + SET_KEYS;
   ItemMenuLine := s;
 end;
 
@@ -990,13 +1017,19 @@ begin
       TextRend.DisplayString(Length(creature^.name) + 4, 1, LightGreen, 'Items');
       Border.DrawWindow(1, 3, 38, 22, 0, Black, '');
       TextRend.DisplayString(1, 3, White, 'Ready Item');
+      if ViewChar.TagsSets then
+        TextRend.DisplayString(CharHlp.SET_LABEL_COL - 2, 3, White, 'Set');
       vmRedraw := True;
       needRedraw := False;
       GameVars.invRedraw := 0;
     end;
-    { STING: V, not on the menu line, shows the selected item's raw record, as Curse's debug mode does }
+    { 1 and 2 tag the item for a weapon set (#1209), whether the line shows them or not; STING: V, not on the menu
+      line, shows the selected item's raw record, as Curse's debug mode does }
+    MenuCore.extraKeys := '';
+    if ViewChar.TagsSets then
+      MenuCore.extraKeys := '12';
     if GameVars.stingArg then
-      MenuCore.extraKeys := 'V';
+      MenuCore.extraKeys := MenuCore.extraKeys + 'V';
     { a move returns, so that the line follows the highlighted item }
     MenuCore.movesToCaller := True;
     MenuCore.memberKeysToCaller := GameVars.ifcState <> C_IFC.IN_COMBAT;
@@ -1026,6 +1059,10 @@ begin
                needRedraw := True;
              end;
         'R': FxEngine.ToggleReadyItem(sel);
+        '1', '2': if ViewChar.TagsSets then begin
+                    ViewChar.TagSet(sel, Ord(ch) - Ord('0'));
+                    vmRedraw := True;
+                  end;
         { a scroll the Cast list offers (CharHlp.CastableScroll) need not be readied; other items must be }
         'U': if (sel^.equipped = 0) and not CharHlp.CastableScroll(creature, sel) then
              begin
