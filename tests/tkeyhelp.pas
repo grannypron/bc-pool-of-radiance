@@ -47,5 +47,11 @@ begin
   TestKit.Check(KeyHelp.KEYS[LineOf('ALT-1 ')].what = 'View PC 1''s inventory', 'as the member''s inventory');
   TestKit.Check(Shows('ALT-8 ', True) and Shows('ALT-8 ', False), 'on either menu');
   TestKit.Check(LineOf('ALT-1 ') = LineOf('F8 ') + 1, 'after the function keys');
+  TestKit.Check(Shows('F3 ', True) and Shows('F3 ', False), 'F3, the combat minimap, shows on either menu (#1210)');
+  TestKit.Check(LineOf('F3 ') = LineOf('F2 ') + 1, 'in key order');
+  TestKit.Check(not KeyHelp.GroupGaps(True), 'with every line shown the groups lose their blank rows, to fit');
+  GameVars.stingArg := False;
+  GameVars.companionOn := 0;
+  TestKit.Check(KeyHelp.GroupGaps(True) and KeyHelp.GroupGaps(False), 'with fewer they keep them');
   TestKit.Done;
 end.
