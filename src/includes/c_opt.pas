@@ -103,12 +103,14 @@ const
   OPT_RETRIEVE = 32;
   { the whole arena as a small map in the combat panel, which F3 turns over in combat (#1210) }
   OPT_MINIMAP = 33;
+  { the full-width combat view, the creature and the messages on three lines under it (#1211) }
+  OPT_WIDE_COMBAT = 34;
   { the combat log (#841), and how many messages it keeps }
-  OPT_COMBAT_LOG = 34;
-  OPT_LOG_LINES = 35;
+  OPT_COMBAT_LOG = 35;
+  OPT_LOG_LINES = 36;
   OPT_FIRST_COMBAT = OPT_QUICK;
   OPT_LAST_COMBAT = OPT_LOG_LINES;
-  OPT_COUNT = 35;
+  OPT_COUNT = 36;
   { the pages the settings are shown on (CfgFile.SettingPage), in the order the game's Settings screen and POOLCFG
     offer them }
   OPT_PAGE_GAME = 1;

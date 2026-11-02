@@ -30,9 +30,34 @@ procedure DisplayCreatureName(creature: Types.PCharRecord; col, row: Byte; posse
   its own as the combat window shows it. }
 procedure LogCreatureName(creature: Types.PCharRecord);
 
+{ Show the creature's name, hit points, armor class, equipped weapon and status: in the panel beside the 7x7 combat
+  view, or on one line under the full-width one (#1211), the name in its colour, then HP, AC, and the status of one out
+  of action or helpless, else the weapon, cut to the line. Either way the messages are cleared. }
 procedure CombatPrintCreatureInfo(creature: Types.PCharRecord);
 
+{ Clear what CombatPrintCreatureInfo shows, with the messages. }
+procedure ClearCreatureInfo;
+
+{ The combat messages' first column: 23 in the panel beside the 7x7 view, 1 under the full-width one (#1211). }
+function MsgLeft: Byte;
+
+{ Show "<name> <text>" in the message window. In combat beside the 7x7 view, the name on row of the panel from column
+  23 and the text word-wrapped under it; row C_MSG.COMBAT_MESSAGE_TOP or below starts a combat log message (#841).
+  Under the full-width view (#1211) the message has two lines, the name and the text on one: a row up to
+  COMBAT_MESSAGE_TOP starts a new message on the first line, a later one goes on the line after the last part (after the
+  text delay and on the first line again, when that is past the second; NextMsgRow). Outside combat, the full-width
+  bottom window (bordered unless suppressDrawingBorderFlag is set), the name on its first line and the text
+  word-wrapped below. With pause, wait on the text delay and clear the window. }
 procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pause: Boolean);
+
+{ A further line of a combat message that names another creature (CbtActs.ProcessAttackResult's defender): its name
+  on row of the panel and s word-wrapped under it, on rows row + 1 to row + 4; under the full-width view, the name and s
+  on the line after the last part, as PrintNameString's later rows. The caller logs it. }
+procedure PrintNameLine(creature: Types.PCharRecord; s: string; row: Byte);
+
+{ The end of a combat message, s in color: on row of the panel from column 23; under the full-width view after the last
+  part, on its line. The caller logs it. }
+procedure PrintMsgTail(s: string; color, row: Byte);
 
 procedure PrintMessage(s: string);
 
@@ -111,9 +136,92 @@ implementation
 uses CharHlp, Crt, C_AREA, C_MSG, GameDefs, GameVars, MenuCore, MapView, Pathing, CbtMap, C_EQUIP, C_KEYS, C_IFC, Blit,
   Border, Portrait, SoundDrv, C_SOUND, C_SPELL, TextRend, Wilds, StrUtil, C_GBVM, Party, C_DIR, CbtLog, JrnlSeen;
 
+const
+  { the full-width combat view's text lines (#1211): the creature's, then the messages' first; the last is
+    C_MSG.COMBAT_BOTTOM, as beside the 7x7 view }
+  WIDE_INFO_ROW = 19;
+  WIDE_MSG_TOP = 20;
+
 var
   { the bottom message window's top row, from MessageText's first part for the parts after it }
   messageTop: Byte;
+  { TextRend.pauseCount when the full-width combat view's message lines were last written (NoteWideMsg) }
+  wideMsgPauses: Word;
+
+{ Clear the full-width combat view's message lines and put the cursor at the start of the first. }
+procedure ClearWideMsg;
+begin
+  Border.ClearBox(C_MSG.TEXT_LEFT, WIDE_MSG_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
+  GameVars.curCol := C_MSG.TEXT_LEFT;
+  GameVars.curRow := WIDE_MSG_TOP;
+end;
+
+{ Note that the full-width view's message lines were written: what is on them now has not been waited over. }
+procedure NoteWideMsg;
+begin
+  wideMsgPauses := TextRend.pauseCount;
+end;
+
+{ The full-width view's message lines are full: wait on the text delay, unless the game has waited over its text since
+  they were written, then clear them for what comes next. }
+procedure TurnWideMsg;
+begin
+  if TextRend.pauseCount = wideMsgPauses then
+    TextRend.PauseOnly;
+  CharDisp.ClearWideMsg;
+end;
+
+{ The line under the full-width view that a message part starting on panel row row goes on: a row up to
+  C_MSG.COMBAT_MESSAGE_TOP starts a message, on the first line, cleared with the second. A later row carries on from the
+  last part, on the line after the cursor (the cursor's own, when it is at the start of one); past the second line, the
+  lines are turned (TurnWideMsg) and it is the first. }
+function NextMsgRow(row: Byte): Byte;
+var
+  r: Byte;
+begin
+  if GameVars.curCol <= C_MSG.TEXT_LEFT then
+    r := GameVars.curRow
+  else
+    r := GameVars.curRow + 1;
+  if (row <= C_MSG.COMBAT_MESSAGE_TOP) or (r < WIDE_MSG_TOP) then begin
+    CharDisp.ClearWideMsg;
+    r := WIDE_MSG_TOP;
+  end else if r > C_MSG.COMBAT_BOTTOM then begin
+    CharDisp.TurnWideMsg;
+    r := WIDE_MSG_TOP;
+  end;
+  NextMsgRow := r;
+end;
+
+{ Write s in color under the full-width view from the cursor, which is put on the first line when it is off the two:
+  past the second, after turning them (TurnWideMsg). Text past the second line waits on the text delay
+  (TextRend.pageByDelay) and goes on from the first. }
+procedure WideMsgText(s: string; color: Byte);
+begin
+  if GameVars.curRow > C_MSG.COMBAT_BOTTOM then
+    CharDisp.TurnWideMsg
+  else if GameVars.curRow < WIDE_MSG_TOP then
+    CharDisp.ClearWideMsg;
+  TextRend.DisplayMessageWindow(C_MSG.TEXT_LEFT, WIDE_MSG_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM, color, False, s);
+  CharDisp.NoteWideMsg;
+end;
+
+{ Under the full-width view, the creature's name at the start of line row and the cursor a space after it. }
+procedure WideMsgName(creature: Types.PCharRecord; row: Byte);
+begin
+  Border.ClearBox(C_MSG.TEXT_LEFT, row, C_MSG.TEXT_RIGHT, row);
+  CharDisp.DisplayCreatureName(creature, C_MSG.TEXT_LEFT, row, False);
+  GameVars.curCol := C_MSG.TEXT_LEFT + Length(creature^.name) + 1;
+  GameVars.curRow := row;
+end;
+
+function MsgLeft: Byte;
+begin
+  if CbtMap.wideLayout then
+    MsgLeft := C_MSG.TEXT_LEFT
+  else
+    MsgLeft := C_MSG.COMBAT_LEFT;
+end;
 
 { Draw the party roster panel: 'Name' / 'AC HP' headers, then one row per creature -- the name (hl in white, others
   colored by DisplayCreatureName), then AC and HP right-aligned by nudging their columns by their digit counts. Clear
@@ -172,16 +280,22 @@ begin
   Border.ClearBox(col, row, 38, row);
 end;
 
-{ Print the creature's armor class in light green. AC is stored biased by 60, so print Abs(acCur - 60), with a '-'
-  prepended for ACs below 0 (acCur > 60). }
-procedure PrintArmorClass(creature: Types.PCharRecord; col, row: Byte);
+{ The creature's armor class as it is shown: AC is stored biased by 60, so Abs(acCur - 60), with a '-' prepended for
+  ACs below 0 (acCur > 60). }
+function ArmorClassText(creature: Types.PCharRecord): Types.TStr40;
 var
-  s: String;
+  s: Types.TStr40;
 begin
   s := StrUtil.NumStr(Abs(creature^.acCur - 60));
   if creature^.acCur > 60 then
     s := '-' + s;
-  TextRend.DisplayString(col, row, LightGreen, s);
+  ArmorClassText := s;
+end;
+
+{ Print the creature's armor class (ArmorClassText) in light green. }
+procedure PrintArmorClass(creature: Types.PCharRecord; col, row: Byte);
+begin
+  TextRend.DisplayString(col, row, LightGreen, CharDisp.ArmorClassText(creature));
 end;
 
 { Print the creature's current hit points: yellow when injured, light green at full health, light magenta when hotPink
@@ -199,12 +313,57 @@ begin
   TextRend.DisplayString(col, row, color, StrUtil.NumStr(creature^.hpCur));
 end;
 
-{ Show the creature's name, hit points, armor class, equipped weapon and status in the combat information panel. }
+{ CombatPrintCreatureInfo's line under the full-width view (#1211): the name, HP, AC, then the status or the weapon,
+  two spaces apart, the last cut to the line. }
+procedure WideCreatureInfo(creature: Types.PCharRecord);
+var
+  col: Byte;
+  s: string;
+  color: Byte;
+begin
+  CharDisp.ClearCreatureInfo;
+  CharDisp.DisplayCreatureName(creature, C_MSG.TEXT_LEFT, WIDE_INFO_ROW, False);
+  col := C_MSG.TEXT_LEFT + Length(creature^.name) + 2;
+  TextRend.DisplayString(col, WIDE_INFO_ROW, LightGreen, 'HP');
+  CharDisp.PrintHitPoints(creature, col + 3, WIDE_INFO_ROW, False);
+  Inc(col, 3 + Length(StrUtil.NumStr(creature^.hpCur)) + 2);
+  TextRend.DisplayString(col, WIDE_INFO_ROW, LightGreen, 'AC');
+  CharDisp.PrintArmorClass(creature, col + 3, WIDE_INFO_ROW);
+  Inc(col, 3 + Length(CharDisp.ArmorClassText(creature)) + 2);
+  s := '';
+  color := White;
+  if creature^.enabled = 0 then
+    s := GameDefs.statusNames[creature^.status]
+  else if CharHlp.IsHelpless(creature) then
+    s := '(Helpless)'
+  else if creature^.equipped[C_EQUIP.WEAPON] <> nil then begin
+    CharHlp.ItemLabel(creature^.equipped[C_EQUIP.WEAPON], False);
+    s := creature^.equipped[C_EQUIP.WEAPON]^.name;
+    color := LightGreen;
+  end;
+  if col <= C_MSG.TEXT_RIGHT then
+    TextRend.DisplayString(col, WIDE_INFO_ROW, color, Copy(s, 1, C_MSG.TEXT_RIGHT - col + 1));
+end;
+
+procedure ClearCreatureInfo;
+begin
+  if CbtMap.wideLayout then begin
+    Border.ClearBox(C_MSG.TEXT_LEFT, WIDE_INFO_ROW, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
+    GameVars.curCol := C_MSG.TEXT_LEFT;
+    GameVars.curRow := WIDE_MSG_TOP;
+  end else
+    Border.ClearBox(C_MSG.COMBAT_LEFT, 1, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
+end;
+
 procedure CombatPrintCreatureInfo(creature: Types.PCharRecord);
 var
   row: Byte;
 begin
-  Border.ClearBox(23, 1, 38, 21);
+  if CbtMap.wideLayout then begin
+    CharDisp.WideCreatureInfo(creature);
+    Exit;
+  end;
+  CharDisp.ClearCreatureInfo;
   row := 1;
   CharDisp.PrintNameString(creature, ' ', row, False);
   Inc(row);
@@ -277,10 +436,6 @@ begin
   OpenMessageWindow := top;
 end;
 
-{ Show "<name> <text>" in the message window: in combat, the combat window from column 23 at row; otherwise the
-  full-width bottom window (bordered unless suppressDrawingBorderFlag is set), the name on its first line and the text
-  word-wrapped below. With pause, wait for a key and clear the window. In combat's message rows (not the creature's
-  panel above them) it starts a combat log message (#841). }
 procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pause: Boolean);
 var
   top: Byte;
@@ -292,10 +447,17 @@ begin
       CbtLog.NextLine;
       CbtLog.Add(LightGreen, s);
     end;
-    Border.ClearBox(C_MSG.COMBAT_LEFT, row, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
-    CharDisp.DisplayCreatureName(creature, C_MSG.COMBAT_LEFT, row, False);
-    TextRend.DisplayMessageWindow(C_MSG.COMBAT_LEFT, row + 1, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM, LightGreen, True,
-                                  s);
+    if CbtMap.wideLayout then begin
+      row := CharDisp.NextMsgRow(row);
+      Border.ClearBox(C_MSG.TEXT_LEFT, row, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
+      CharDisp.WideMsgName(creature, row);
+      CharDisp.WideMsgText(s, LightGreen);
+    end else begin
+      Border.ClearBox(C_MSG.COMBAT_LEFT, row, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
+      CharDisp.DisplayCreatureName(creature, C_MSG.COMBAT_LEFT, row, False);
+      TextRend.DisplayMessageWindow(C_MSG.COMBAT_LEFT, row + 1, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM, LightGreen,
+                                    True, s);
+    end;
   end else begin
     top := CharDisp.OpenMessageWindow;
     CharDisp.DisplayCreatureName(creature, 1, top + 1, False);
@@ -306,6 +468,27 @@ begin
     TextRend.PauseOnly;
     CharDisp.ClearMessageWindow;
   end;
+end;
+
+procedure PrintNameLine(creature: Types.PCharRecord; s: string; row: Byte);
+begin
+  if CbtMap.wideLayout then begin
+    CharDisp.WideMsgName(creature, CharDisp.NextMsgRow(row));
+    CharDisp.WideMsgText(s, LightGreen);
+  end else begin
+    CharDisp.DisplayCreatureName(creature, C_MSG.COMBAT_LEFT, row, False);
+    TextRend.DisplayMessageWindow(C_MSG.COMBAT_LEFT, row + 1, C_MSG.TEXT_RIGHT, row + 4, LightGreen, True, s);
+  end;
+end;
+
+procedure PrintMsgTail(s: string; color, row: Byte);
+begin
+  if not CbtMap.wideLayout then
+    TextRend.DisplayString(C_MSG.COMBAT_LEFT, row, color, s)
+  else if GameVars.curCol <= C_MSG.TEXT_LEFT then
+    CharDisp.WideMsgText(s, color)
+  else
+    CharDisp.WideMsgText(' ' + s, color);
 end;
 
 { Show s in light green in the message window, cleared first, as PrintNameString does but without the name line, and
@@ -321,10 +504,16 @@ begin
     if first then
       CbtLog.NewEntry;
     CbtLog.Add(color, s);
-    if first then
-      Border.ClearBox(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
-    TextRend.DisplayMessageWindow(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM,
-                                  color, first, s);
+    if CbtMap.wideLayout then begin
+      if first then
+        CharDisp.ClearWideMsg;
+      CharDisp.WideMsgText(s, color);
+    end else begin
+      if first then
+        Border.ClearBox(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
+      TextRend.DisplayMessageWindow(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM,
+                                    color, first, s);
+    end;
   end else begin
     if first then
       messageTop := CharDisp.OpenMessageWindow;
@@ -344,7 +533,7 @@ var
   left: Byte;
 begin
   if GameVars.ifcState = C_IFC.IN_COMBAT then
-    left := C_MSG.COMBAT_LEFT
+    left := CharDisp.MsgLeft
   else
     left := C_MSG.TEXT_LEFT;
   CharDisp.MessageText(line1, LightGreen, True);
@@ -360,13 +549,16 @@ begin
   CharDisp.ClearMessageWindow;
 end;
 
-{ Clear whichever message window is active (combat or bottom), leaving its border alone. }
+{ Clear whichever message window is active (combat or bottom), leaving its border alone; under the full-width combat
+  view, the two message lines, with the cursor at the start of the first. }
 procedure ClearMessageWindow;
 begin
-  if GameVars.ifcState = C_IFC.IN_COMBAT then
-    Border.ClearBox(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM)
+  if GameVars.ifcState <> C_IFC.IN_COMBAT then
+    Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP + 1, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM)
+  else if CbtMap.wideLayout then
+    CharDisp.ClearWideMsg
   else
-    Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP + 1, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
+    Border.ClearBox(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
 end;
 
 { The colour of the creature's name: light red (out of action, enabled = 0), yellow (hostile), light magenta (ready to
@@ -436,8 +628,9 @@ end;
 { Fly an icon from the start cell to the end cell in the combat view. Trace the line at third-of-a-cell resolution
   (Pathing.PathFind sets it up, Pathing.NextPathStep yields one direction per step), scroll the view toward a focus
   point, then walk the icon one 8-pixel column per step: blit the facing frame from the moving-icon sheet, flush, delay,
-  restore the background, cycle frames. startX/startY track the current cell. When the walk leaves the 0..18 column
-  window before the end, rescroll and repeat; at the end, draw the icon on the end cell. }
+  restore the background, cycle frames. startX/startY track the current cell. When the walk leaves the view's columns
+  and rows (0..18 each in the 7x7 view, 0..36 and 0..15 in the full-width one, #1211) before the end, rescroll and
+  repeat; at the end, draw the icon on the end cell. }
 procedure CombatAnimateMovingIcon(startX, startY, endX, endY: ShortInt; frames, pace: Byte);
 var
   { a 49-cell span takes 148 steps; the last slot stays 8 (no move) for the walk's read one past count }
@@ -486,19 +679,19 @@ begin
   dirY := endY - startY;
   if not CbtMap.ViewCoordsValid(startX - GameVars.arenaPtr^.ox, startY - GameVars.arenaPtr^.oy) or
       not CbtMap.ViewCoordsValid(endX - GameVars.arenaPtr^.ox, endY - GameVars.arenaPtr^.oy) then begin
-    if (Abs(dirX) <= 6) and (Abs(dirY) <= 6) then begin
+    if (Abs(dirX) <= CbtMap.viewLastX) and (Abs(dirY) <= CbtMap.viewLastY) then begin
       lastPass := True;
       camX := startX + dirX div 2;
       camY := startY + dirY div 2;
     end else begin
       lastPass := False;
-      camX := GameVars.arenaPtr^.ox + 3;
-      camY := GameVars.arenaPtr^.oy + 3;
+      camX := CbtMap.CenterX;
+      camY := CbtMap.CenterY;
     end;
   end else begin
     lastPass := True;
-    camX := GameVars.arenaPtr^.ox + 3;
-    camY := GameVars.arenaPtr^.oy + 3;
+    camX := CbtMap.CenterX;
+    camY := CbtMap.CenterY;
   end;
   CbtMap.ScrollView(camX, camY, 255, 8);
   n := 0;
@@ -525,7 +718,7 @@ begin
       stepY := GameDefs.dirDY[steps[n]];
       Inc(pixX, stepX);
       Inc(pixY, stepY);
-      if (pixX < 0) or (pixX > 18) or (pixY < 0) or (pixY > 18) then
+      if (pixX < 0) or (pixX > CbtMap.viewLastX * 3) or (pixY < 0) or (pixY > CbtMap.viewLastY * 3) then
         done := True;
       if not done and (n < count) then begin
         Inc(accX, stepX);
@@ -546,16 +739,16 @@ begin
       dirX := Pathing.SignOf(prevX - startX);
       dirY := Pathing.SignOf(prevY - startY);
       if dirX <> 0 then begin
-        if startX >= GameVars.arenaPtr^.ox + 6 then
-          camX := startX + 3
+        if startX >= GameVars.arenaPtr^.ox + CbtMap.viewLastX then
+          camX := startX + CbtMap.halfX
         else if startX <= GameVars.arenaPtr^.ox then
-          camX := startX - 3;
+          camX := startX - CbtMap.halfX;
       end;
       if dirY <> 0 then begin
-        if startY >= GameVars.arenaPtr^.oy + 6 then
-          camY := startY + 3
+        if startY >= GameVars.arenaPtr^.oy + CbtMap.viewLastY then
+          camY := startY + CbtMap.halfY
         else if startY <= GameVars.arenaPtr^.oy then
-          camY := startY - 3;
+          camY := startY - CbtMap.halfY;
       end;
       CbtMap.ScrollView(camX, camY, 255, 8);
     end else begin
@@ -798,15 +991,19 @@ begin
     TextRend.ClearBottomLine;
 end;
 
-{ Draw the combat screen: combat palette, the two combat windows, the cleared bottom rows, and a forced rebuild of the
-  combat view centered on its current origin + 3. }
+{ Draw the combat screen: combat palette, the two combat windows (or the full-width view's one, its three text lines
+  under the arena, #1211), the cleared bottom rows, and a forced rebuild of the combat view on its current centre. }
 procedure DisplayCombatInterface;
 begin
   CbtMap.SetCombatPalette;
-  Border.DrawWindow(1, 1, 21, 21, 0, Black, '');
-  Border.DrawWindow(23, 1, 38, 21, 0, Black, '');
+  if CbtMap.wideLayout then
+    Border.DrawWindow(C_MSG.TEXT_LEFT, 1, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM, 0, Black, '')
+  else begin
+    Border.DrawWindow(1, 1, 21, 21, 0, Black, '');
+    Border.DrawWindow(C_MSG.COMBAT_LEFT, 1, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM, 0, Black, '');
+  end;
   Border.ClearBox(0, 23, 39, 24);
-  CbtMap.ScrollView(GameVars.arenaPtr^.ox + 3, GameVars.arenaPtr^.oy + 3, 255, 8);
+  CbtMap.ScrollView(CbtMap.CenterX, CbtMap.CenterY, 255, 8);
 end;
 
 { Let the player pick a character on the horizontal menu, starting from sel: End and Home (also keypad 1 and 7) cycle

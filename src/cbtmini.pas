@@ -51,14 +51,15 @@ procedure Build(var grid: TMiniGrid; current: Types.PCharRecord; cursorX, cursor
   margin round the map. }
 function PixelColor(var grid: TMiniGrid; px, py: Byte): Byte;
 
-{ Draw the map in the panel when the Minimap setting is on and the game is in combat, current being the creature whose
-  turn it is and (cursorX, cursorY) the aim cursor's cell (NO_CURSOR for none). Its buffers are taken for the drawing
-  only; without the memory for them nothing is drawn. }
+{ Draw the map in the panel when the Minimap setting is on and the game is in combat beside the 7x7 view (the
+  full-width one, #1211, has no panel), current being the creature whose turn it is and (cursorX, cursorY) the aim
+  cursor's cell (NO_CURSOR for none). Its buffers are taken for the drawing only; without the memory for them nothing
+  is drawn. }
 procedure Show(current: Types.PCharRecord; cursorX, cursorY: ShortInt);
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}C_IFC, GameDefs, GameVars, Pathing, Blit, VidOps;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}C_IFC, GameDefs, GameVars, Pathing, Blit, VidOps, CbtMap;
 
 const
   { a terrain's movement cost that no creature can pay: a wall (Pathing's WALL_COST) }
@@ -135,7 +136,9 @@ var
   x: Byte;
   y: Byte;
 begin
-  if (GameVars.minimapOn = 0) or (GameVars.ifcState <> C_IFC.IN_COMBAT) or (GameVars.arenaPtr = nil) then Exit;
+  { the full-width combat view has no panel to draw it in (#1211) }
+  if (GameVars.minimapOn = 0) or (GameVars.ifcState <> C_IFC.IN_COMBAT) or (GameVars.arenaPtr = nil) or
+     CbtMap.wideLayout then Exit;
   { the grid, and one 8 x 8 cell in the video mode's layout (64 bytes on VGA) with its header and mask }
   if MaxAvail < SizeOf(TMiniGrid) + LongInt(Blit.FrameBytes(8, 1)) + 1024 then Exit;
   GetMem(grid, SizeOf(TMiniGrid));

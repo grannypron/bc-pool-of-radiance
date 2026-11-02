@@ -140,6 +140,7 @@ begin
       C_OPT.OPT_AIM: s.flags[opt] := GameVars.aimEnemiesOn;
       C_OPT.OPT_RETRIEVE: s.flags[opt] := GameVars.retrieveThrownOn;
       C_OPT.OPT_MINIMAP: s.flags[opt] := GameVars.minimapOn;
+      C_OPT.OPT_WIDE_COMBAT: s.flags[opt] := GameVars.wideCombatOn;
       C_OPT.OPT_COMPANION: s.flags[opt] := GameVars.companionOn;
       C_OPT.OPT_CLUES: s.flags[opt] := GameVars.clueNotesOn;
       C_OPT.OPT_AUTO_MEMORIZE: s.flags[opt] := GameVars.autoMemorizeOn;
@@ -184,6 +185,7 @@ begin
       C_OPT.OPT_AIM: GameVars.aimEnemiesOn := s.flags[opt];
       C_OPT.OPT_RETRIEVE: GameVars.retrieveThrownOn := s.flags[opt];
       C_OPT.OPT_MINIMAP: GameVars.minimapOn := s.flags[opt];
+      C_OPT.OPT_WIDE_COMBAT: GameVars.wideCombatOn := s.flags[opt];
       C_OPT.OPT_COMPANION: GameVars.companionOn := s.flags[opt];
       C_OPT.OPT_CLUES: GameVars.clueNotesOn := s.flags[opt];
       C_OPT.OPT_AUTO_MEMORIZE: GameVars.autoMemorizeOn := s.flags[opt];

@@ -1,5 +1,5 @@
-{ Combat map display: a 7x7 viewport over the 50x25 arena, with creature icons, scrolling, a movement cursor and corpse
-  tracking. }
+{ Combat map display: a 7x7 viewport over the 50x25 arena, or the full-width one's 13x6 (#1211), with creature icons,
+  scrolling, a movement cursor and corpse tracking. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit CbtMap;
@@ -19,6 +19,29 @@ var
   gridX: array[1..Types.ARENA_SLOTS] of ShortInt;
   { view-relative Y deltas }
   gridY: array[1..Types.ARENA_SLOTS] of ShortInt;
+  { The combat view's shape (SetLayout): the full-width one is shown (#1211); its last column and row; the last column
+    shown whole, which the scroll band keeps to; and the column and row of its centre. The 7x7 view's are 6, 6, 6, 3
+    and 3. The full-width one's are 12, 5, 11, 6 and 2: 13 columns, the last cut to two thirds by the screen's edge, as
+    the wilderness's wide view's (#1186), and 6 rows, which leave three text lines under it. }
+  wideLayout: Boolean;
+  viewLastX: ShortInt;
+  viewLastY: ShortInt;
+  viewFullX: ShortInt;
+  halfX: ShortInt;
+  halfY: ShortInt;
+
+const
+  { the full-width view's buffer: 6 rows of 24 scanlines, and the 38 text cells between the window's sides }
+  WIDE_ROWS = 144;
+  WIDE_CELLS = 38;
+
+{ Set the combat view's shape: the full-width one when wide is set, else the 7x7 one. The view buffer is the caller's
+  (WideView). }
+procedure SetLayout(wide: Boolean);
+
+{ The arena cell at the centre of the view: the view's corner plus halfX, halfY. }
+function CenterX: ShortInt;
+function CenterY: ShortInt;
 
 { Where the mode has a palette (EGA), swap palette registers 0 and 8 so the combat map background is dark gray and
   register 8 black. }
@@ -46,17 +69,23 @@ function OccupantAt(x, y: ShortInt): Byte;
   that cell, and for a creature redraw (x, y) are replaced by the creature's own view coordinates. }
 procedure UpdateCombatMapTile(x, y: ShortInt; crIdx: Byte);
 
-{ Return True when both coordinates lie inside the 7x7 viewport. }
+{ Return True when both coordinates lie inside the view: 0..viewLastX, 0..viewLastY. }
 function ViewCoordsValid(x, y: ShortInt): Boolean;
 
 { Test whether a creature's icon is visible. A nonzero whole requires every tile to be in view; zero requires only one
   tile. }
 function CombatIconVisible(creature: Types.PCharRecord; whole: Byte): Boolean;
 
+{ Rebuild the view buffer when arena cell (x, y) lies outside ScrollView's band for delta (always for delta 255),
+  moving the view's centre to it, the whole view kept inside the arena; True when it rebuilt. ScrollView's first step,
+  open to the tests. }
+function BuildViewBuffer(x, y: ShortInt; delta: Byte): Boolean;
+
 { Target the arena cell one step in dir from (x, y) (dir 8 = the cell itself) and rebuild the view if the target lies
-  more than delta cells from the view center (delta=3: anywhere off the 7x7 view; 255: always rebuild), redrawing every
-  visible icon after a rebuild. Then redraw cell (x, y), draw the cursor at the target (clamped to the arena) and
-  flush. }
+  within 3 - delta cells of the view's edge (delta=3: anywhere off the view; 0: anywhere but its centre; 255: always
+  rebuild), redrawing every visible icon after a rebuild. In the 7x7 view that is more than delta cells from its
+  centre, as SSI's has it; the full-width view's edge is its last whole column. Then redraw cell (x, y), draw the cursor
+  at the target (clamped to the arena) and flush. }
 procedure ScrollView(x, y: ShortInt; delta, dir: Byte);
 
 { Turn a creature: scroll it into view unless it is wholly visible, repaint its terrain when the facing crosses the
@@ -175,8 +204,8 @@ const
   { Frames the whole area stays lit, then blank frames before the next cycle }
   PREVIEW_HOLD = 3;
   PREVIEW_GAP = 2;
-  { The most area cells the preview lights }
-  AREA_CELLS = 64;
+  { The most area cells the preview lights: a blast over the whole full-width view, 13 x 6 (#1211) }
+  AREA_CELLS = 80;
 
 var
   { Spell-aim preview settings (StartSpellPreview). }
@@ -390,8 +419,8 @@ begin
             AddAreaCell(tx, ty, Ord(i > 1));
       end;
   else
-    for relY := 0 to 6 do
-      for relX := 0 to 6 do begin
+    for relY := 0 to viewLastY do
+      for relX := 0 to viewLastX do begin
         tx := GameVars.arenaPtr^.ox + relX;
         ty := GameVars.arenaPtr^.oy + relY;
         dist := previewRadius;
@@ -596,9 +625,37 @@ begin
     MapTiles.DrawTerrain(x * 3, y * 3, GameVars.arenaPtr^.cells[absY, absX]);
 end;
 
+procedure SetLayout(wide: Boolean);
+begin
+  wideLayout := wide;
+  { the full-width view's two message lines page on the text delay, not on a key }
+  TextRend.pageByDelay := wide;
+  if wide then begin
+    viewLastX := 12;
+    viewLastY := 5;
+    viewFullX := 11;
+  end else begin
+    viewLastX := 6;
+    viewLastY := 6;
+    viewFullX := 6;
+  end;
+  halfX := viewLastX div 2;
+  halfY := viewLastY div 2;
+end;
+
+function CenterX: ShortInt;
+begin
+  CenterX := GameVars.arenaPtr^.ox + halfX;
+end;
+
+function CenterY: ShortInt;
+begin
+  CenterY := GameVars.arenaPtr^.oy + halfY;
+end;
+
 function ViewCoordsValid(x, y: ShortInt): Boolean;
 begin
-  if (x < 0) or (x > 6) or (y < 0) or (y > 6) then
+  if (x < 0) or (x > viewLastX) or (y < 0) or (y > viewLastY) then
     ViewCoordsValid := False
   else
     ViewCoordsValid := True;
@@ -629,16 +686,13 @@ begin
     end;
 end;
 
-{ Rebuild the viewport when the requested position falls outside its center band (delta cells either side of the view
-  center); return True when it rebuilds. delta=255 forces a rebuild. Move the center toward the position, clamped so the
-  full 7x7 view stays inside the arena, then repaint every tile into the buffer. }
 function BuildViewBuffer(x, y: ShortInt; delta: Byte): Boolean;
 var
-  d: Byte;
+  margin: ShortInt;
   pixX: ShortInt;
   pixY: ShortInt;
-  i: Byte;
-  j: Byte;
+  i: ShortInt;
+  j: ShortInt;
   cX: ShortInt;
   cY: ShortInt;
   minX: ShortInt;
@@ -647,33 +701,46 @@ var
   maxY: ShortInt;
 begin
   BuildViewBuffer := False;
-  cX := GameVars.arenaPtr^.ox + 3;
-  cY := GameVars.arenaPtr^.oy + 3;
-  d := delta;
-  if delta = 255 then
-    d := 0;
-  minX := cX - d;
-  maxX := cX + d;
-  minY := cY - d;
-  maxY := cY + d;
+  cX := CbtMap.CenterX;
+  cY := CbtMap.CenterY;
+  if (delta = 0) or (delta = 255) then begin
+    { the centre alone }
+    minX := cX;
+    maxX := cX;
+    minY := cY;
+    maxY := cY;
+  end else begin
+    if delta > 3 then
+      delta := 3;
+    margin := 3 - delta;
+    minX := GameVars.arenaPtr^.ox + margin;
+    maxX := GameVars.arenaPtr^.ox + viewFullX - margin;
+    minY := GameVars.arenaPtr^.oy + margin;
+    maxY := GameVars.arenaPtr^.oy + viewLastY - margin;
+  end;
   if (delta <> 255) and (x >= minX) and (x <= maxX)
      and (y >= minY) and (y <= maxY) then Exit;
-  if x < minX then
-    while (x < cX) and (cX > 3) do Dec(cX)
-  else if x > maxX then
-    while (x > cX) and (cX < Types.ARENA_LAST_X - 3) do Inc(cX);
-  if y < minY then
-    while (y < cY) and (cY > 3) do Dec(cY)
-  else if y > maxY then
-    while (y > cY) and (cY < Types.ARENA_LAST_Y - 3) do Inc(cY);
-  GameVars.arenaPtr^.ox := cX - 3;
-  GameVars.arenaPtr^.oy := cY - 3;
+  if (x < minX) or (x > maxX) then
+    cX := x;
+  if (y < minY) or (y > maxY) then
+    cY := y;
+  { the whole view inside the arena }
+  if cX > Types.ARENA_LAST_X - (viewLastX - halfX) then
+    cX := Types.ARENA_LAST_X - (viewLastX - halfX);
+  if cX < halfX then
+    cX := halfX;
+  if cY > Types.ARENA_LAST_Y - (viewLastY - halfY) then
+    cY := Types.ARENA_LAST_Y - (viewLastY - halfY);
+  if cY < halfY then
+    cY := halfY;
+  GameVars.arenaPtr^.ox := cX - halfX;
+  GameVars.arenaPtr^.oy := cY - halfY;
   pixY := 0;
   cY := GameVars.arenaPtr^.oy;
-  for j := 0 to 6 do begin
+  for j := 0 to viewLastY do begin
     pixX := 0;
     cX := GameVars.arenaPtr^.ox;
-    for i := 0 to 6 do begin
+    for i := 0 to viewLastX do begin
       MapTiles.DrawTerrain(pixX, pixY, GameVars.arenaPtr^.cells[cY, cX]);
       Inc(pixX, 3);
       Inc(cX);
@@ -1047,7 +1114,7 @@ begin
     CbtMap.UpdateCombatMapTile(0, 0, slot);
     GameVars.arenaLoc[slot].size := 0;
     CbtMap.BuildArenaArrays;
-    CbtMap.ScrollView(GameVars.arenaPtr^.ox + 3, GameVars.arenaPtr^.oy + 3, 3, C_DIR.CENTER);
+    CbtMap.ScrollView(CbtMap.CenterX, CbtMap.CenterY, 3, C_DIR.CENTER);
     creature^.combatAddr^.initiative := 0;
     creature^.combatAddr^.movement := 0;
     creature^.combatAddr^.spellCast := 0;
@@ -1163,4 +1230,5 @@ begin
   aimSet := False;
   FillChar(gridX, SizeOf(gridX), 0);
   FillChar(gridY, SizeOf(gridY), 0);
+  CbtMap.SetLayout(False);
 end.

@@ -8,6 +8,14 @@ interface
 
 uses Types;
 
+var
+  { DisplayMessageWindow's text that runs past its window's last row waits on the text delay (PauseOnly) before the rest
+    is shown, not for a key: the full-width combat view's two message lines (CbtMap.SetLayout, #1211) }
+  pageByDelay: Boolean;
+  { how many times the game has waited over its text, by PauseOnly or DisplayAndPause: CharDisp waits before writing
+    over the full-width combat view's two message lines only when no wait came since they were written (#1211) }
+  pauseCount: Word;
+
 procedure LoadGameFont;
 
 { Draws count copies of a game-font glyph from a cell, one column apart.
@@ -182,7 +190,8 @@ begin
   end;
 end;
 
-{ Print text with word wrapping and paging inside the requested window. Skip leading break characters, scan each word
+{ Print text with word wrapping and paging inside the requested window: text past its last row waits for a key, or on
+  the text delay while pageByDelay is set, and goes on from its top row. Skip leading break characters, scan each word
   and include trailing punctuation before deciding where to wrap. }
 procedure DisplayMessageWindow(ulCol, ulRow, lrCol, lrRow, color: Byte; clearFirst: Boolean; source: string);
 const
@@ -255,7 +264,10 @@ begin
       if (GameVars.curRow > lrRow) and ((idx < len) or (source[idx] <> ' ')) then begin
         GameVars.curCol := ulCol;
         GameVars.curRow := ulRow;
-        TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
+        if pageByDelay then
+          TextRend.PauseOnly
+        else
+          TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
         TextRend.ClearRect(ulCol, ulRow, lrCol, lrRow);
         PrintCharInWindow;
       end else if GameVars.curRow > lrRow then
@@ -332,6 +344,7 @@ begin
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, color, msg);
   key := GameIo.ReadAnyKey;
+  Inc(pauseCount);
 end;
 
 function TickCount: LongInt;
@@ -383,6 +396,7 @@ begin
     TextRend.PauseTicks(LongInt(GameVars.gameDelay) * 45 div 2)
   else
     Delay(GameVars.gameDelay * 225);
+  Inc(pauseCount);
 end;
 
 procedure PauseTicks(hundredths: LongInt);
@@ -431,4 +445,8 @@ begin
   GameVars.video.ClearRect(ulCol, ulRow, lrCol, lrRow);
 end;
 
+begin
+  { Turbo Pascal clears no variable }
+  pageByDelay := False;
+  pauseCount := 0;
 end.
