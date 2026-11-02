@@ -1,0 +1,40 @@
+# The demo (#1109) ended by a key, mid-walk and mid-battle: the main menu left alone for thirty seconds with no party
+# plays it, Space during the walk ends it, the main menu waits another thirty seconds and plays it again, and Space in
+# the battle ends that one. Each time the main menu comes back with no party; the saves are untouched and free memory
+# is what it was (the System page's, ignored in the comparison: check its lines in obj/regress.json); and a character
+# created then rolls what chargen's does (its rolled checkpoint), so the demo left the random numbers where they were,
+# and save A loads. Needs DEMO.DAX, which regress.sh stages for a scenario named demo*; a golden build without the demo
+# fails at the first wait.
+boot NORAND
+ignore POOL OF RADIANCE V
+ignore FREE MEMORY|LARGEST BLOCK|COMMIT  |VERSION  
+strip V\d+ +MERGED
+wait RADIANCE
+press g y
+checkpoint memory-before
+press esc
+wait RADIANCE
+saves before
+wait-text GET.READY.FOR 60
+press spc
+wait RADIANCE 30
+checkpoint walk-ended
+wait-text HITPOINTS 120
+force spc
+wait RADIANCE 60
+checkpoint battle-ended
+saves after
+press g y
+checkpoint memory-after
+press esc
+wait RADIANCE
+press c
+checkpoint races
+press end end end end end ret ret end end end end ret ret
+checkpoint rolled
+press y a r n o l d ret k y k y
+wait RADIANCE
+press l
+press a
+wait AREA
+checkpoint loaded

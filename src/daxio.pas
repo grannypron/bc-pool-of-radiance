@@ -99,15 +99,17 @@ procedure PopState;
 {$IFDEF FPC}
 { The folder file name (a name and extension) is in, with its closing separator. Natively a file DataBld makes (a merged
   archive, DATABLD.LOG; the archive's temporary copy is in TMP\ there) is in the writable folder, GameDirs.writeFolder,
-  which is another than the game's when the data must not be written (#1064); any other file is in GameVars.gameDir.
-  Under DOS every file is in GameVars.gameDir, and the callers name it themselves. }
+  which is another than the game's when the data must not be written (#1064); the demo's archive (C_DEMO.ARCHIVE,
+  #1109) is beside the program, where the release zip puts it, or else in the data folder (GameDirs.OwnFolder), as
+  RAVFULL.DAX is; any other file is in GameVars.gameDir. Under DOS every file is in GameVars.gameDir, and the callers
+  name it themselves. }
 function FolderOf(name: Types.TStr20): Types.TPathStr;
 {$ENDIF}
 
 implementation
 
 uses Crt, GameVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil, StrUtil
-  {$IFDEF FPC}, Host, NatFile, GameDirs{$ENDIF};
+  {$IFDEF FPC}, Host, NatFile, GameDirs, C_DEMO{$ENDIF};
 
 var
   { Temporary compressed DAX data buffer. }
@@ -637,6 +639,8 @@ begin
     built := built or (base = DataArc.MergedName(family));
   if built then
     FolderOf := GameDirs.writeFolder
+  else if base = C_DEMO.ARCHIVE then
+    FolderOf := GameDirs.OwnFolder(C_DEMO.ARCHIVE + '.DAX')
   else
     FolderOf := GameVars.gameDir;
 end;

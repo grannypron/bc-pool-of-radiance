@@ -58,6 +58,11 @@ var
   fullPaging: Boolean;
   { Called on every pass of MenuHorizontal's key wait while set; combat sets it to animate the spell-aim preview. }
   idleHook: Types.TIdleProc;
+  { Set just before a MenuHorizontal call that is to give up waiting: after menuTimeout hundredths of a second with no
+    key pressed, it returns menuDefaultKey, as Curse's title menu does to start its demo. 0 waits for ever. Every
+    return clears both. }
+  menuTimeout: Word;
+  menuDefaultKey: Char;
 
 { Returns zero-based member n, or nil when the list is shorter. }
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
@@ -84,7 +89,8 @@ procedure DrawMore(leftCol, rightCol, row: Byte);
   1-9 and backslash map to keypad scan codes, all with ext set; F1 returns its scan code, with ext set, only under
   helpToCaller, and Alt-1 to Alt-8 return theirs with or without reinterpret under memberKeysToCaller. The picture
   animates when animate is set or the GBVM menuAnimation flag is nonzero (that flag also advances a frame every pass
-  and is cleared on exit). }
+  and is cleared on exit). In the demo (GameVars.demoMode) it waits for nothing: it returns #0 at once, as for Escape,
+  and ends the demo (GameIo.ReadGameKey). }
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
                         var ext: Boolean): Char;
 
@@ -102,7 +108,7 @@ function MenuVertical(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; ulCol,
                       list: Types.PItemRec; addExit: Boolean; var redraw: Boolean; var idx: Integer;
                       var sel: Types.PItemRec): Char;
 
-{ Prompts for Yes or No and returns 'Y' or 'N'. }
+{ Prompts for Yes or No and returns 'Y' or 'N'; in the demo (GameVars.demoMode), 'N' without waiting. }
 function YesNoMenu(query: Types.TStr40; qCol, mCol, hlCol: Byte): Char;
 
 { Appends a display line and updates head/tail. inUse marks title rows. }
@@ -198,6 +204,8 @@ var
   opt: array[1..20] of Types.TOptRange;
   optCnt: Byte;
   enterOk: Boolean;
+  { when the wait for a key began, for menuTimeout }
+  waitStart: LongInt;
 
   { Split the menu into options: each starts at a digit or capital letter and ends two characters before the next one,
     the last at the end of the menu. There are at most 20 options (opt's size); the 20th runs to the end of the menu. }
@@ -310,6 +318,7 @@ begin
   ext := False;
   done := False;
   frameTick := TextRend.GetTicks;
+  waitStart := frameTick;
   if Length(query) <> 0 then
     TextRend.DisplayString(0, 24, qCol, query);
   qLen := Length(query);
@@ -320,6 +329,12 @@ begin
     { the tick count restarts at midnight: restart the frame timer with it }
     if TextRend.GetTicks < frameTick then
       frameTick := TextRend.GetTicks;
+    if TextRend.GetTicks < waitStart then
+      waitStart := TextRend.GetTicks;
+    if (menuTimeout > 0) and (TextRend.GetTicks - waitStart >= menuTimeout) and not KeyPressed then begin
+      ch := menuDefaultKey;
+      done := True;
+    end;
     if ((GameVars.zone0^.savedWalls.menuAnimation <> 0) or animate) and (GameVars.animData.current > 0) then begin
       Portrait.DisplayImageBuf(3, 3, animate, GameVars.animData.frames[GameVars.animData.current].pic);
       if (TextRend.GetTicks - frameTick >= GameVars.animData.frames[GameVars.animData.current].time * 10)
@@ -330,8 +345,11 @@ begin
         frameTick := TextRend.GetTicks;
       end;
     end;
-    if KeyPressed then begin
+    { in the demo, ReadGameKey returns Escape at once }
+    if not done and (KeyPressed or GameVars.demoMode) then begin
       ch := GameIo.ReadGameKey;
+      { any key, one the menu ignores too, starts menuTimeout's wait again }
+      waitStart := TextRend.GetTicks;
       { a STING pop-up (Ctrl-Y) wrote over the menu line }
       if GameVars.bottomLineTaken then begin
         GameVars.bottomLineTaken := False;
@@ -408,6 +426,8 @@ begin
   unmarked := [];
   quickKeysToCaller := False;
   helpToCaller := False;
+  menuTimeout := 0;
+  menuDefaultKey := C_KEYS.NONE;
   memberKeysToCaller := False;
   GameVars.zone0^.savedWalls.menuAnimation := 0;
   HorizontalMenu := ch;
@@ -717,6 +737,9 @@ begin
   GameVars.horizChoice := 2;
   repeat
     ch := MenuCore.MenuHorizontal(query, 'Yes No', qCol, mCol, hlCol, False, False, ext);
+    { in the demo the menu waits for nothing, and the answer is No }
+    if GameVars.demoMode then
+      ch := 'N';
   until ch in ['Y', 'N'];
   YesNoMenu := ch;
 end;
@@ -780,6 +803,8 @@ begin
   unmarked := [];
   quickKeysToCaller := False;
   helpToCaller := False;
+  menuTimeout := 0;
+  menuDefaultKey := #0;
   memberKeysToCaller := False;
   @idleHook := nil;
 end.

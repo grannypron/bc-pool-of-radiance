@@ -14,8 +14,10 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
   VidOps, PicCga, PicEga, PicTdy, PicVga, UsualSpl, SaveLoad, CharGen, Camp,
   Journal1, Journal2, Journal3, Journal4, JrnlList, JrnlQst, JrnlView, Options, CbtLog, LogWrap, LogView,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclVars, EclMenu, Shop, PostCbt, TownCore, Temple,
-  EclVm, BldShow, DataPat, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault, VaultMnu, EclTrace, KeyHelp, Advisory;
+  EclVm, BldShow, DataPat, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault, VaultMnu, EclTrace, KeyHelp, Advisory,
+  Demo;
 
+{$O Demo}
 {$O Advisory}
 {$O AdvPlan}
 {$O EclTrace}
@@ -117,23 +119,28 @@ begin
   Advisory.Show;
   { the vault of a game left unsaved last time is gone with it }
   Vault.ForgetSessionVault;
-  { the main menu's Exit is the way out; a destroyed party ends GameLoop and the game returns to the main menu }
+  { the main menu's Exit is the way out; a destroyed party ends GameLoop and the game returns to the main menu, and so
+    does the demo (#1109), which the main menu starts when it is left alone with no party }
   while True do begin
     CharGen.MainMenu(False);
-    View3D.SetView3DColors(LightCyan, Black, LightGray, Brown);
-    EclVm.GameLoop;
-    { F8 on the map menu ends GameLoop to load the quick save, and a load from the training hall's party menu ends it
-      loaded; the loop then starts again on the loaded game, as it does after a load from the main menu }
-    while Explore.quickLoadAsked or (GameVars.loadedSave <> 0) do begin
-      if Explore.quickLoadAsked then begin
-        Explore.quickLoadAsked := False;
-        SaveLoad.QuickLoad;
-      end;
+    if GameVars.demoMode then
+      Demo.Run
+    else begin
+      View3D.SetView3DColors(LightCyan, Black, LightGray, Brown);
       EclVm.GameLoop;
+      { F8 on the map menu ends GameLoop to load the quick save, and a load from the training hall's party menu ends it
+        loaded; the loop then starts again on the loaded game, as it does after a load from the main menu }
+      while Explore.quickLoadAsked or (GameVars.loadedSave <> 0) do begin
+        if Explore.quickLoadAsked then begin
+          Explore.quickLoadAsked := False;
+          SaveLoad.QuickLoad;
+        end;
+        EclVm.GameLoop;
+      end;
+      { the party was destroyed: a new game starts from the main menu, without the lost party's vault }
+      SaveLoad.FreeParty;
+      Vault.ForgetSessionVault;
+      GameInit.ResetGameState;
     end;
-    { the party was destroyed: a new game starts from the main menu, without the lost party's vault }
-    SaveLoad.FreeParty;
-    Vault.ForgetSessionVault;
-    GameInit.ResetGameState;
   end;
 end.

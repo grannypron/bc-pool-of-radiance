@@ -1,0 +1,11 @@
+# Without DEMO.DAX there is no demo (#1109): started with DEMO, and then left alone past the main menu's thirty seconds,
+# the main menu stays up with no message and no disk prompt. regress.sh stages DEMO.DAX only for scenarios named demo*,
+# so this one runs without it, as an install without the file does.
+boot NORAND DEMO
+ignore POOL OF RADIANCE V
+wait RADIANCE
+checkpoint main-menu
+sleep 40
+checkpoint still-main-menu
+press c
+checkpoint races

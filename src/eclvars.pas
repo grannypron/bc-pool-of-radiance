@@ -59,7 +59,7 @@ function GbvmZone(address: Word): Byte;
 
 implementation
 
-uses Types, Crt, C_NPC, C_SAVE, GameVars, C_ECL, C_STATUS, C_GBVM, C_DIR, C_MONEY, CharHlp, AbilAdj;
+uses Types, Crt, C_NPC, C_SAVE, GameVars, C_ECL, C_STATUS, C_GBVM, C_DIR, C_MONEY, CharHlp, AbilAdj, GameIo;
 
 procedure ConvGbString(len, strIdx: Byte); forward;
 
@@ -335,7 +335,11 @@ begin
   case zone of
     0:
       if (address = C_GBVM.SKY_CEILING_COLOR) or (address = C_GBVM.ALT_SKY_COLOR) then
-        redrawSky := True;
+        redrawSky := True
+      { the demo's script sets the game speed, which is its text delay, as the C64's did (#1109); other scripts' writes
+        are kept and change nothing }
+      else if (address = C_GBVM.GAME_SPEED) and GameVars.demoMode then
+        GameVars.gameDelay := Lo(value);
     1:
       EclVars.SpecialWriteZ1(address, value);
     4:
@@ -445,6 +449,8 @@ begin
         C_GBVM.CELL_FACING: ReadGbvm := GameVars.gFacing div 2;
         C_GBVM.CELL_WALL_AHEAD: ReadGbvm := GameVars.wallAhead;
         C_GBVM.CELL_EVENT: ReadGbvm := GameVars.eventAtCell;
+        { 1 when a key ends the demo (#1109); the key is left for Demo.Run }
+        C_GBVM.KEY_COUNT: ReadGbvm := Ord(GameIo.DemoEnding);
         { write only: no value }
         C_GBVM.CELL_WALL_COLOR: ;
       end;
