@@ -25,6 +25,8 @@
 # without it, its effects on the speaker. SOUND=none sets the letter to S, no sound device (#1156), on the same machine.
 # A scenario named demo* plays the demo (#1109), whose DEMO.DAX is staged too: the candidate's, copied from src/binaries
 # when the candidate folder has none, and the golden build's when it has one (a golden build without it has no demo).
+# They run apart from the other scenarios, as regress.py stages a --stage file for every scenario it runs; their report
+# goes to obj/regress-demo.json.
 # MEMSIZE=N gives the emulator N MB instead of goldbox-player's 1 MB: more gives the game EMS, which it loads its
 # overlays from (STING Ctrl-Y says from EMS or disk). Its golden results are kept apart too: record-16mb.json,
 # record-vga-16mb.json and so on.
@@ -68,6 +70,21 @@ if [ ${#pinned[@]} -gt 0 ]; then
 fi
 scenarios=("${rest[@]}")
 [ ${#scenarios[@]} -gt 0 ] || exit 0
+# the demo* scenarios run apart from the rest, their report in obj/regress-demo.json (regress-MODE-demo.json for a
+# pinned mode): goldbox-player stages --stage's files for every scenario of a run, so DEMO.DAX staged for them in one
+# run with the rest made nodemo play the demo and put the stage in every other scenario's record key (#1233)
+demos=()
+others=()
+for s in "${scenarios[@]}"; do
+    case "$(basename "$s")" in demo*) demos+=("$s") ;; *) others+=("$s") ;; esac
+done
+if [ ${#demos[@]} -gt 0 ] && [ ${#others[@]} -gt 0 ]; then
+    status=0
+    "$0" "$golden" "$candidate" "${others[@]}" || status=1
+    report="${REPORT:-$root/obj/regress.json}"
+    REPORT="${report%.json}-demo.json" "$0" "$golden" "$candidate" "${demos[@]}" || status=1
+    exit $status
+fi
 case "${VIDEO:-ega}" in
     ega) config="$root/tests/scenarios/POOL.CFG"; record="$golden/record.json"; title=por-v13 ;;
     cga) config="$root/tests/scenarios/POOL-CGA.CFG"; record="$golden/record-cga.json"; title=por-v13 ;;
