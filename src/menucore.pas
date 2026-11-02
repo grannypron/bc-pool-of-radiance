@@ -123,7 +123,7 @@ procedure FreeStringList(var list: Types.PItemRec);
 
 implementation
 
-uses GameVars, Crt, GameIo, Blit, Border, Portrait, C_KEYS, C_IFC, TextRend;
+uses GameVars, Crt, GameIo, Blit, Border, Portrait, C_KEYS, C_IFC, TextRend, StrUtil;
 
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 var
@@ -243,23 +243,25 @@ var
   end;
 
   { Draw the menu after the query with option cur in inverse video (black on hlCol), the other hotkeys in hlCol (but
-    not an unmarked option's) and the rest in mCol, then blank the rest of the line. The inverse covers the whole word
-    holding cur's hotkey, so a hotkey inside its word (coMbat, sYstem) still lights the word and nothing past it. }
+    not an unmarked option's) and the rest in mCol, then blank the rest of the line. The inverse covers the whole
+    option, from the start of the word holding cur's hotkey to the end of its last word (StrUtil.OptionSpan): a hotkey
+    inside its word (coMbat, sYstem) lights that word and nothing past it, and a script's ADVANCE CAUTIOUSLY or PRESS
+    <ENTER>/<RETURN> TO CONTINUE lights whole (#1216). A menu without hotkeys lights all of it. }
   procedure DisplayOption(cur: Byte);
   var
     i: Byte;
     hlFirst: Byte;
     hlLast: Byte;
+    nextFirst: Byte;
   begin
     if mLen > 0 then begin
       hlFirst := opt[cur].first;
       hlLast := opt[cur].last;
       if hlFirst > 0 then begin
-        while (hlFirst > 1) and (menu[hlFirst - 1] <> ' ') do
-          Dec(hlFirst);
-        hlLast := opt[cur].first;
-        while (hlLast < mLen) and (menu[hlLast + 1] <> ' ') do
-          Inc(hlLast);
+        nextFirst := 0;
+        if cur < optCnt then
+          nextFirst := opt[cur + 1].first;
+        StrUtil.OptionSpan(menu, opt[cur].first, nextFirst, hlFirst, hlLast);
       end;
       for i := 1 to mLen do
         if (hlFirst <= i) and (hlLast >= i)
