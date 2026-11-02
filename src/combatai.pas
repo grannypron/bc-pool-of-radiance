@@ -706,14 +706,19 @@ end;
 
 { Handle a key pressed during AI turns: Alt-M toggles quick magic, Space returns every non-NPC, non-animated creature to
   manual control (True when creature itself is now manual), Alt-X runs the STING victory cheat. Alt-M and Alt-X count
-  only after the extended-key prefix: SSI also took a plain '2' for Alt-M and a plain '-' for Alt-X. }
+  only after the extended-key prefix: SSI also took a plain '2' for Alt-M and a plain '-' for Alt-X. In the demo any key
+  ends the demo instead (GameIo.DemoEnding, #1109) and is left for Demo.Run; the creature finishes its turn, and
+  Combat.CombatMain ends the battle after it. }
 function CheckKeystroke(creature: Types.PCharRecord): Boolean;
 var
   ch: Char;
   ext: Boolean;
 begin
   CheckKeystroke := False;
-  if KeyPressed then begin
+  if GameVars.demoMode then begin
+    { the answer is kept in GameVars.demoAbort }
+    if GameIo.DemoEnding then begin end;
+  end else if KeyPressed then begin
     ch := GameIo.ReadGameKey;
     ext := ch = #0;
     if ext then

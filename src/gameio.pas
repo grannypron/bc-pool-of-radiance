@@ -25,8 +25,14 @@ var
   returned at once, leaving the extended scan byte pending when Crt's Ctrl-Break flag is clear; the next call returns
   that scan byte without the controls, so an extended key whose scan code matches one (Alt-R is 19, as Ctrl-S) does not
   run it (#736, #764). Ctrl-S turns the Sound setting over (SetSound) and, once POOLOPT.CFG has been read, writes it
-  back (saveSettings). }
+  back (saveSettings). In the demo (GameVars.demoMode) it never waits: the demo reaches no wait for a key, so a call
+  there comes from a key pressed (or a wait nobody foresaw) and ends the demo (GameVars.demoAbort), draining what is
+  pending and returning Escape. }
 function ReadGameKey: Char;
+
+{ In the demo (GameVars.demoMode): True once it is to end, which a key pressed sets (GameVars.demoAbort), leaving the
+  key unread. False outside the demo. }
+function DemoEnding: Boolean;
 
 { ReadGameKey for a wait on one key: an extended key's scan byte is read too and dropped, so the next read does not take
   it for a typed key (after STING Ctrl-Y's last wait the menu took the next arrow for its scan byte's letter, #768).
@@ -132,6 +138,14 @@ var
   end;
 
 begin
+  if GameVars.demoMode then begin
+    GameVars.demoAbort := True;
+    key := C_KEYS.ESCAPE;
+    DropTypeAhead;
+    scanPending := False;
+    ReadGameKey := C_KEYS.ESCAPE;
+    Exit;
+  end;
   key := ReadKey;
   if scanPending then begin
     scanPending := False;
@@ -172,6 +186,13 @@ begin
   if key <> #0 then
     DropTypeAhead;
   ReadGameKey := key;
+end;
+
+function DemoEnding: Boolean;
+begin
+  if GameVars.demoMode and not GameVars.demoAbort and KeyPressed then
+    GameVars.demoAbort := True;
+  DemoEnding := GameVars.demoMode and GameVars.demoAbort;
 end;
 
 function ReadAnyKey: Char;

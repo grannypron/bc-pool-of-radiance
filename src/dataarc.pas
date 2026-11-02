@@ -43,6 +43,13 @@ function HasBlock(path: Types.TPathStr; id: Byte): Boolean;
 { The size in bytes of the file at path; -1 when it cannot be opened. }
 function FileLength(path: Types.TPathStr): LongInt;
 
+{ The unpacked size of block id of the DAX archive at path, from its directory; -1 when the archive does not list it,
+  or cannot be read whole: a directory that runs past the file or is no whole number of entries, or any entry whose
+  packed block does not lie inside the file or is larger than C_DATA.PACKED_LIMIT (on which DaxIo.LoadDax stops the
+  game). Read failures return -1 without prompting for another disk. The demo checks its archive with it before it
+  starts (#1109). }
+function BlockRawSize(path: Types.TPathStr; id: Byte): LongInt;
+
 implementation
 
 uses C_DATA, FileUtil;
@@ -178,6 +185,40 @@ begin
     n := IOResult;
   end;
   HasBlock := found;
+end;
+
+function BlockRawSize(path: Types.TPathStr; id: Byte): LongInt;
+var
+  f: file;
+  dirSize: Word;
+  e: TDirEntry;
+  n: Word;
+  i: Word;
+  size: LongInt;
+  raw: LongInt;
+  ok: Boolean;
+begin
+  raw := -1;
+  if FileUtil.OpenReadOnly(f, path) then begin
+    size := FileSize(f);
+    BlockRead(f, dirSize, SizeOf(dirSize), n);
+    ok := (IOResult = 0) and (n = SizeOf(dirSize)) and (dirSize mod SizeOf(TDirEntry) = 0) and
+          (SizeOf(dirSize) + LongInt(dirSize) <= size);
+    i := 0;
+    while ok and (i < dirSize div SizeOf(TDirEntry)) do begin
+      BlockRead(f, e, SizeOf(e), n);
+      ok := (IOResult = 0) and (n = SizeOf(e)) and (e.offset >= 0) and (e.packedSize <= C_DATA.PACKED_LIMIT) and
+            (SizeOf(dirSize) + LongInt(dirSize) + e.offset + e.packedSize <= size);
+      if ok and (e.id = id) and (raw < 0) then
+        raw := e.rawSize;
+      Inc(i);
+    end;
+    if not ok then
+      raw := -1;
+    Close(f);
+    n := IOResult;
+  end;
+  BlockRawSize := raw;
 end;
 
 function FileLength(path: Types.TPathStr): LongInt;

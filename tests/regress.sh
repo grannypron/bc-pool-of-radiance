@@ -23,6 +23,8 @@
 # in record-adlib.json or record-sb.json. With sb, the candidate's SBSFX.DAT is staged too (copied from
 # drive_c/POOLRAD, where scripts/sbsfx.py writes it, when the candidate folder has none); a golden build without one runs
 # without it, its effects on the speaker. SOUND=none sets the letter to S, no sound device (#1156), on the same machine.
+# A scenario named demo* plays the demo (#1109), whose DEMO.DAX is staged too: the candidate's, copied from src/binaries
+# when the candidate folder has none, and the golden build's when it has one (a golden build without it has no demo).
 # MEMSIZE=N gives the emulator N MB instead of goldbox-player's 1 MB: more gives the game EMS, which it loads its
 # overlays from (STING Ctrl-Y says from EMS or disk). Its golden results are kept apart too: record-16mb.json,
 # record-vga-16mb.json and so on.
@@ -30,7 +32,7 @@
 set -u
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 player="${GBPLAYER_HOME:-$HOME/repos/goldbox-player}"
-[ $# -ge 1 ] || { sed -n '3,28p' "$0" >&2; exit 2; }
+[ $# -ge 1 ] || { sed -n '3,30p' "$0" >&2; exit 2; }
 golden="$1"; shift
 candidate="$root/obj"
 if [ $# -ge 1 ] && [ -d "$1" ]; then candidate="$1"; shift; fi
@@ -82,11 +84,21 @@ if [ "${SOUND:-}" = sb ] && [ ! -f "$candidate/SBSFX.DAT" ]; then
     [ -f "$root/drive_c/POOLRAD/SBSFX.DAT" ] || { echo "regress.sh: no SBSFX.DAT; run scripts/sbsfx.py" >&2; exit 2; }
     cp "$root/drive_c/POOLRAD/SBSFX.DAT" "$candidate/SBSFX.DAT"
 fi
+# the demo's archive, for the scenarios that play it: only then, so the other scenarios' golden records keep their keys
+demo=()
+for s in "${scenarios[@]}"; do
+    case "$(basename "$s")" in
+        demo*)
+            [ -f "$candidate/DEMO.DAX" ] || cp "$root/src/binaries/DEMO.DAX" "$candidate/DEMO.DAX"
+            demo=(--stage DEMO.DAX)
+            break ;;
+    esac
+done
 for f in "$golden/START.EXE" "$golden/GAME.OVR" "$candidate/START.EXE" "$candidate/GAME.OVR"; do
     [ -f "$f" ] || { echo "regress.sh: missing $f" >&2; exit 2; }
 done
 [ -x "$player/.venv/bin/python" ] || { echo "regress.sh: no goldbox-player checkout at $player" >&2; exit 2; }
 exec "$player/.venv/bin/python" "$player/tools/regress.py" --golden "$golden" --candidate "$candidate" \
-    --title "$title" --config "$config" --record "$record" "${memsize[@]}" "${sound[@]}" \
+    --title "$title" --config "$config" --record "$record" "${memsize[@]}" "${sound[@]}" "${demo[@]}" \
     --report "$root/obj/regress.json" \
     "${scenarios[@]}"

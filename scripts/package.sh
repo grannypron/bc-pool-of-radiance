@@ -93,6 +93,14 @@ into the game's folder too. The game runs without them, with SSI's
 title and the speaker's effects.
 EOF
 fi
+if [ -f "$root/src/binaries/DEMO.DAX" ]; then
+    cat >> "$stage/README.TXT" <<EOF
+
+DEMO.DAX is the demo the main menu plays when it is left alone for
+thirty seconds with no party, as the Commodore 64 release did. Any
+key ends it. Without the file there is no demo.
+EOF
+fi
 # Newer sources combine the per-disk archives at startup; historical tags do not.
 if [ -f "$root/src/databld.pas" ]; then
     cat >> "$stage/README.TXT" <<EOF

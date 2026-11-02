@@ -78,10 +78,12 @@ the DOS version.
 Files included with this release
 --------------------------------
 
-RAVFULL.DAX (the title picture) and SBSFX.DAT (the recorded Sound
-Blaster effects) belong to this release rather than the original SSI
-game. Keep both files beside poolrad.exe. Without them, the game falls
-back to SSI's title screen and the PC speaker sound effects.
+RAVFULL.DAX (the title picture), SBSFX.DAT (the recorded Sound Blaster
+effects) and DEMO.DAX (the demo the main menu plays when it is left
+alone for thirty seconds with no party) belong to this release rather
+than the original SSI game. Keep all three beside poolrad.exe. Without
+them, the game falls back to SSI's title screen and the PC speaker
+sound effects, and has no demo.
 
 SHA256.TXT contains the SHA-256 checksum of each file.
 

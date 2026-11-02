@@ -14,7 +14,7 @@ function BandageDying(bandage: Boolean): Boolean;
 
 implementation
 
-uses Types, C_TIME, C_COND, GameDefs, GameVars, Crt, CombatAi, CombatSt, Magic, C_KEYS,
+uses Types, C_TIME, C_COND, GameDefs, GameVars, GameIo, Crt, CombatAi, CombatSt, Magic, C_KEYS,
   C_STATUS, C_IFC, C_GBVM, C_DIR, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
   TextRend, StrUtil, CharDisp, Dice, CbtLog, LogView, ClassCal, MapTiles, C_ITEM;
 
@@ -69,7 +69,8 @@ end;
   left with no one in action, the round stops after that creature's turn, as Pools of Darkness has it (#1194): no one
   is left a turn with nothing to fight, and EndOfRound asks Continue Battle at once. That happens once a fight; after a
   Yes, every round is played to its end before the question comes again. The combat log starts empty, sized and turned
-  on by the settings, and each round's messages come under the round's number (#841). }
+  on by the settings, and each round's messages come under the round's number (#841). In the demo a key ends the
+  battle after the creature acting (GameIo.DemoEnding, #1109). }
 procedure CombatMain;
 var
   done: Boolean;
@@ -87,7 +88,7 @@ begin
   CharHlp.CountTeams;
   if CharHlp.SideEmpty then
     done := True;
-  while not done do begin
+  while not done and not GameIo.DemoEnding do begin
     CbtLog.Heading(White, 'Round ' + StrUtil.NumStr(GameVars.roundCounter + 1));
     CharHlp.CountTeams;
     creature := GameVars.creatureList;
@@ -97,7 +98,7 @@ begin
     end;
     GameVars.zone1^[C_GBVM.SURPRISE] := 0;
     Combat.NextCreature(creature);
-    while (creature <> nil) and not done do begin
+    while (creature <> nil) and not done and not GameIo.DemoEnding do begin
       Combat.CreatureAction(creature);
       CharHlp.CountTeams;
       if CharHlp.SideEmpty and not endNoticed then begin
@@ -106,7 +107,8 @@ begin
       end else
         Combat.NextCreature(creature);
     end;
-    Combat.EndOfRound(done);
+    if not GameIo.DemoEnding then
+      Combat.EndOfRound(done);
   end;
   Combat.CombatDoneCleanup;
 end;
@@ -330,8 +332,9 @@ end;
 
 { Advance the clock one minute, fire round-end effects and the clouds' checks (Stinking Cloud's, Cloudkill's), bleed
   dying creatures (dead at overkill 10), warn when a party member is dying, then end combat when a side is empty, unless
-  the party won and the player answers yes to Continue Battle. CombatMain may have stopped the round early, the first
-  time a side emptied (#1194); the round still ends here in full before the question. }
+  the party won and the player answers yes to Continue Battle (not asked in the demo, #1109). CombatMain may have
+  stopped the round early, the first time a side emptied (#1194); the round still ends here in full before the
+  question. }
 procedure EndOfRound(var done: Boolean);
 var
   p: Types.PCharRecord;
@@ -363,7 +366,7 @@ begin
     (a charm running out) }
   done := CharHlp.SideEmpty;
   { SSI's had a flag to skip the question, which nothing ever set }
-  if (GameVars.teamCount[0] > 0) and (GameVars.teamCount[1] = 0) then
+  if (GameVars.teamCount[0] > 0) and (GameVars.teamCount[1] = 0) and not GameVars.demoMode then
     if MenuCore.YesNoMenu('Continue Battle:', LightMagenta, LightGreen, White) = 'Y' then
       done := False;
 end;

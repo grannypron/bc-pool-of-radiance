@@ -188,7 +188,7 @@ function TryLead(paladin, npc: Types.PCharRecord; roll: Byte): Boolean;
 { At the start of a fight, once the creatures have combat records (CombatSt.CombatStart): each paladin who CanLead
   tries to lead each NPC who CanBeLed and is not led yet, with a d100 roll. The first success opens a window titled
   "Using leadership ability", each success adds "<paladin> leads <NPC>." and the window waits for Enter; nothing is
-  shown when none succeeds. }
+  shown when none succeeds. In the demo (#1109) no one leads: a led NPC comes under the player, and no one plays. }
 procedure UseLeadership;
 
 implementation
@@ -2595,6 +2595,7 @@ var
   c: Char;
   ext: Boolean;
 begin
+  if GameVars.demoMode then Exit;
   row := 0;
   paladin := GameVars.creatureList;
   while paladin <> nil do begin

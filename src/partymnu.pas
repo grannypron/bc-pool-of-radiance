@@ -83,12 +83,13 @@ procedure DrawList(offered: TCmdSet);
 { Wait for a command of SSI's menu with 'pool of radiance' and the version on the bottom line, as before #879. The
   first letter of a command listed returns that command's key in cmdKeys; a letter of one not listed is ignored, and
   so are Escape, Space and Enter. J (CharGen's free training) returns J, and an extended key, such as Home, End, Up
-  and Down, its scan code with ext set. }
-function ChooseListed(offered: TCmdSet; var ext: Boolean): Char;
+  and Down, its scan code with ext set. With idle set (no party, and the demo there), C_DEMO.IDLE_TIME without a
+  command returns C_DEMO.START_KEY, for the demo (#1109); under DEMO (GameVars.demoArg), after C_DEMO.ARG_IDLE_TIME. }
+function ChooseListed(offered: TCmdSet; idle: Boolean; var ext: Boolean): Char;
 
 implementation
 
-uses Crt, C_KEYS, C_MSG, GameDefs, MenuCore, StrUtil, TextRend;
+uses Crt, C_KEYS, C_MSG, C_DEMO, GameDefs, GameVars, MenuCore, StrUtil, TextRend;
 
 const
   cmdNames: array[CMD_ADD..CMD_LAST] of string[17] = (
@@ -293,15 +294,23 @@ begin
     end;
 end;
 
-function ChooseListed(offered: TCmdSet; var ext: Boolean): Char;
+function ChooseListed(offered: TCmdSet; idle: Boolean; var ext: Boolean): Char;
 var
   ch: Char;
   i: Byte;
 begin
   repeat
+    { the wait for a command ends in the demo, sooner the first time under DEMO (#1109) }
+    if idle then begin
+      if GameVars.demoArg then
+        MenuCore.menuTimeout := C_DEMO.ARG_IDLE_TIME
+      else
+        MenuCore.menuTimeout := C_DEMO.IDLE_TIME;
+      MenuCore.menuDefaultKey := C_DEMO.START_KEY;
+    end;
     ch := MenuCore.MenuHorizontal('pool of radiance ' + GameDefs.GAME_VERSION, LIST_KEYS, Cyan, Black, Black, True,
                                   False, ext);
-    if ext or (ch = 'J') then begin
+    if ext or (ch = 'J') or (ch = C_DEMO.START_KEY) then begin
       ChooseListed := ch;
       Exit;
     end;
