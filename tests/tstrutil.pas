@@ -1,5 +1,6 @@
 { Tests for StrUtil: numbers, numbers with commas, attacks a round, two-digit padding, nouns for a count, padding to a
-  width, '~'-hotkey menus, and a script menu option's hotkey marked so that no two options share one. }
+  width, '~'-hotkey menus, a script menu option's hotkey marked so that no two options share one, and the span a
+  menu option lights. }
 {$I COMPILER.INC}
 program TStrUtil;
 
@@ -10,6 +11,15 @@ var
   opts: String;
   short: string[5];
   taken: String;
+  hlFirst: Byte;
+  hlLast: Byte;
+
+{ The span OptionSpan last gave is first..last. }
+procedure CheckSpan(first, last: Byte; what: String);
+begin
+  TestKit.CheckEqualsL(first, hlFirst, what + ': first');
+  TestKit.CheckEqualsL(last, hlLast, what + ': last');
+end;
 
 begin
   TestKit.Start('TSTRUTIL');
@@ -74,6 +84,28 @@ begin
   taken := 'P';
   TestKit.CheckEqualsS('P~ASS ON BY', StrUtil.MarkHotkey('PASS ON BY', taken),
                        'the first free letter of the option, not of a later word');
+
+  { OptionSpan: the inverse runs from the hotkey's word to the option's last word (#1216) }
+  StrUtil.OptionSpan('coMbat sYstem', 3, 9, hlFirst, hlLast);
+  CheckSpan(1, 6, 'coMbat lights its word alone (#1198)');
+  StrUtil.OptionSpan('coMbat sYstem', 9, 0, hlFirst, hlLast);
+  CheckSpan(8, 13, 'and sYstem its word');
+  StrUtil.OptionSpan('Advance cautiously aTtack', 1, 21, hlFirst, hlLast);
+  CheckSpan(1, 18, 'a two-word option lights both words');
+  StrUtil.OptionSpan('Advance cautiously aTtack', 21, 0, hlFirst, hlLast);
+  CheckSpan(20, 25, 'and aTtack from the start of its word');
+  StrUtil.OptionSpan('Press <enter>/<return> to continue', 1, 0, hlFirst, hlLast);
+  CheckSpan(1, 34, 'a script''s continue prompt lights whole');
+  StrUtil.OptionSpan('Yes No', 1, 5, hlFirst, hlLast);
+  CheckSpan(1, 3, 'Yes');
+  StrUtil.OptionSpan('Yes No', 5, 0, hlFirst, hlLast);
+  CheckSpan(5, 6, 'No');
+  StrUtil.OptionSpan('Game Exit   ', 6, 0, hlFirst, hlLast);
+  CheckSpan(6, 9, 'trailing spaces are left out');
+  StrUtil.OptionSpan('Yes  No', 1, 6, hlFirst, hlLast);
+  CheckSpan(1, 3, 'and the spaces between options');
+  StrUtil.OptionSpan('aBC', 2, 3, hlFirst, hlLast);
+  CheckSpan(1, 2, 'two hotkeys in one word part before the next');
   TestKit.CheckEqualsS('AB', StrUtil.RemoveAll('A....B', '.'), 'RemoveAll takes every period in a row (#960)');
   TestKit.CheckEqualsS('SIRBOB', StrUtil.RemoveAll('SIR  BOB', ' '), 'and every space');
   TestKit.CheckEqualsS('ab', StrUtil.RemoveAll('xaxxbx', 'x'), 'at either end too');

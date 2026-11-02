@@ -58,6 +58,13 @@ procedure MenuToOptions(var menu, opts: String);
   takes no key. }
 function MarkHotkey(option: String; var taken: String): String;
 
+{ The columns a horizontal menu lights for the option whose hotkey is at menu position first: from the start of the
+  word holding the hotkey to the end of the option's last word, the word before the one holding the next option's
+  hotkey at nextFirst (0 for the last option, which runs to the end of the menu, trailing spaces left out). So coMbat
+  lights alone in 'coMbat sYstem' and 'Advance cautiously' whole in 'Advance cautiously aTtack' (#1216). When no space
+  parts the two hotkeys, the option runs to the character before the next one. first must be 1 or more. }
+procedure OptionSpan(menu: String; first, nextFirst: Byte; var hlFirst, hlLast: Byte);
+
 { s with every occurrence of del removed, adjacent ones and ones the removals bring together included: 'A....B' less '.'
   is 'AB' (SSI's pass moved on after each removal and kept one of two in a row, POR-0224, #960). An empty del removes
   nothing. }
@@ -179,6 +186,24 @@ begin
     taken := taken + UpCase(option[at]);
   Insert('~', option, at);
   MarkHotkey := option;
+end;
+
+procedure OptionSpan(menu: String; first, nextFirst: Byte; var hlFirst, hlLast: Byte);
+begin
+  hlFirst := first;
+  while (hlFirst > 1) and (menu[hlFirst - 1] <> ' ') do
+    Dec(hlFirst);
+  if nextFirst > first then begin
+    { back over the next option's word to the space before it }
+    hlLast := nextFirst - 1;
+    while (hlLast > first) and (menu[hlLast] <> ' ') do
+      Dec(hlLast);
+    if menu[hlLast] <> ' ' then
+      hlLast := nextFirst - 1;
+  end else
+    hlLast := Length(menu);
+  while (hlLast > first) and (menu[hlLast] = ' ') do
+    Dec(hlLast);
 end;
 
 function RemoveAll(s, del: String): String;

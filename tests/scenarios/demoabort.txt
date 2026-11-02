@@ -1,10 +1,17 @@
 # The demo (#1109) ended by a key, mid-walk and mid-battle: the main menu left alone for thirty seconds with no party
 # plays it, Space during the walk ends it, the main menu waits another thirty seconds and plays it again, and Space in
-# the battle ends that one. Each time the main menu comes back with no party; the saves are untouched and free memory
-# is what it was (the System page's, ignored in the comparison: check its lines in obj/regress.json); and a character
+# the battle ends that one. Each time the main menu comes back with no party; the saves are untouched; and a character
 # created then rolls what chargen's does (its rolled checkpoint), so the demo left the random numbers where they were,
-# and save A loads. Needs DEMO.DAX, which regress.sh stages for a scenario named demo*; a golden build without the demo
-# fails at the first wait.
+# and save A loads. The System page's free memory (ignored in the comparison: check its lines in obj/regress.json) is
+# about 11.5 KB lower after the demo than before, and stays there however often it plays: what the game keeps loaded
+# until something replaces it, not a leak (#1226). Measured with STING Ctrl-Y (EGA, 1 MB) and a build that logged
+# MemAvail and Blit.picBytes after each script command: a walk ended by a key keeps 12,407 bytes of pictures, Podol
+# Plaza's wall sets (LOAD PIECES, 8,481) and the title portrait (EclMenu.DisplayPortrait, 3,926); a battle ended by a
+# key keeps the wall sets and the four statistics blocks of the demo's party (Stats.NewEntry, 1,016 bytes each), made at
+# a member's first counted blow and kept for the next party's members, as their first fight would make them. Loading
+# save A afterwards leaves the same pictures as loading it without the demo, and the blocks wait for its first fight.
+# Needs DEMO.DAX, which regress.sh stages for a scenario named demo*; a golden build without the demo fails at the
+# first wait.
 boot NORAND
 ignore POOL OF RADIANCE V
 ignore FREE MEMORY|LARGEST BLOCK|COMMIT  |VERSION  

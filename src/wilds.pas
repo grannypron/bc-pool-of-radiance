@@ -120,9 +120,9 @@ end;
 procedure ShowWide(wide: Boolean);
 begin
   if wide = wideShown then Exit;
-  { the second tile set first, which the wider view is likelier to need: loaded later, its blocks of up to 64K would
-    have to fit beside the wide buffer, which takes the heap's largest block apart (from 70,904 bytes to 34,392 on VGA
-    in the central wilderness) }
+  { the second tile set first, which the wider view is likelier to need: its blocks are small (MapTiles.SHEET_BLOCK),
+    but loaded first they still leave the wide buffer the heap's largest block, which that buffer takes apart (from
+    70,904 bytes to 34,392 on VGA in the central wilderness) }
   if wide then begin
     MapTiles.LoadSecondSheet;
     wideShown := WideView.Enter(C_AREA.WILD_WIDE_ROWS, C_AREA.WILD_WIDE_CELLS);

@@ -21,12 +21,17 @@ The format, one step a line (`#` starts a comment):
 | `mask GLOB [every N] OFF:LEN...` | zero those bytes (in each N-byte record) before files are compared |
 | `golden: STEP`, `candidate: STEP` | a step for that build only, where the two need different keys |
 | `screens off` | record screen checkpoints without comparing them |
+| `#video MODE` | run this scenario only in that video mode (see below) |
 
 `POOL.CFG` points the game at `C:\POOLRAD\` and `C:\POOLRAD\SAVE\`, where the harness installs it.
 
 `POOL.CFG` runs the game in EGA. `VIDEO=cga tests/regress.sh ...` uses `POOL-CGA.CFG`, and `VIDEO=tandy` uses
 `POOL-TANDY.CFG`. Each mode keeps its own golden record, `record-cga.json` or `record-tandy.json`. Tandy runs on
 goldbox-player's `por-v13-tandy` title, a Tandy machine, because an EGA machine cannot set mode 9.
+
+A scenario with a `#video vga` line (a comment to the harness, read by `regress.sh`) tests something only that mode
+shows. With `VIDEO` unset, `regress.sh` runs it apart from the rest, as `VIDEO=vga` would, its report in
+`obj/regress-vga.json`; under another `VIDEO` it is left out.
 
 `combat`, `vault` and `areachange` end with an `overlay-loads` checkpoint (STING Ctrl-Y), recorded but not compared;
 `tests/ovlloads.py` prints both builds' counts from the last run's `obj/regress.json`, the measure of the overlay
@@ -67,6 +72,8 @@ the text matches (an animated picture) is only a warning.
 | `areachange` | New Phlan's script handing over to the training hall's (NEWECL), named in the save popup |
 | `wilderness` | the central wilderness from save G (`saves/wild`, put into `SAVE\` by the scenario): the map and its second tile set, three steps, and the overlay loads, heap and picture memory (Ctrl-Y; ours only) |
 | `wildfight` | save G again: a 32-step walk that meets a random encounter under NORAND, the fight's start, and the memory there |
+| `wildafter` | VGA only (`#video vga`, #1218): save G, wildfight's walk, a Quick fight, No to Continue Battle and Exit from the loot, then the wilderness menu back (not "Out of memory", which the second tile set's reload in a 65K block gave on a 1 MB machine) and Ctrl-Y's overlay loads, heap and picture memory |
+| `wildmoveafter` | VGA only (#1218, #1186): wildafter in Move mode, the wide view back beside the second tile set after the fight, its status line and Exit, and Ctrl-Y's figures; a golden build without Move fails at its first wait |
 | `cloudkill` | Cloudkill in combat (#1193), from save I's party in Podal Plaza with Andrea made a 9th-level magic-user with Cloudkill memorized (`saves/cloudkill`, slot D; the spell was put into her `.chx` memorized slots): three rests draw orcs, Andrea casts Cloudkill, the aim preview counts the orcs its 3x3 cloud catches, and the cloud kills them and stays on the map in its yellow art; the golden build has no Cloudkill, so it fails until the goldens are recorded from a build with it |
 | `leadership` | paladin leadership (#1124) and the end of a fight (#1194), from cloudkill's fixture with TALONIA an 8th-level paladin and ANDREA an NPC under the computer (`saves/leadership`, slot D): three rests draw orcs, the fight opens with "Using leadership ability" and "TALONIA LEADS ANDREA.", Andrea's turn comes with the combat menu, a Quick fight ends in Continue Battle, Yes plays one more round and asks again, No ends it; the golden build has neither, so it fails until the goldens are recorded from a build with them |
 | `minimap` | the combat minimap (#1210): Minimap (F3) turned on on the Settings screen's Combat page, then save I's party rests in Podal Plaza until orcs come: the first turn's menu with the arena under the creature's details, F3 taking it away and bringing it back, Aim marking the target on it, and a Quick fight to the end; the golden build has no minimap, so it fails until the goldens are recorded from a build with one |
