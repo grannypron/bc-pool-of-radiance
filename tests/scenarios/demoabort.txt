@@ -2,8 +2,9 @@
 # plays it, Space during the walk ends it, the main menu waits another thirty seconds and plays it again, and Space in
 # the battle ends that one. Each time the main menu comes back with no party; the saves are untouched; and a character
 # created then rolls what chargen's does (its rolled checkpoint), so the demo left the random numbers where they were,
-# and save A loads. The System page's free memory (ignored in the comparison: check its lines in obj/regress.json) is
-# about 11.5 KB lower after the demo than before, and stays there however often it plays: what the game keeps loaded
+# and save A loads. The System page's free memory and its measured speed (SPEED CHECK and CYCLES, which vary from run
+# to run) are ignored in the comparison: check their lines in obj/regress.json. The free memory is about 11.5 KB lower
+# after the demo than before, and stays there however often it plays: what the game keeps loaded
 # until something replaces it, not a leak (#1226). Measured with STING Ctrl-Y (EGA, 1 MB) and a build that logged
 # MemAvail and Blit.picBytes after each script command: a walk ended by a key keeps 12,407 bytes of pictures, Podol
 # Plaza's wall sets (LOAD PIECES, 8,481) and the title portrait (EclMenu.DisplayPortrait, 3,926); a battle ended by a
@@ -14,7 +15,7 @@
 # first wait.
 boot NORAND
 ignore POOL OF RADIANCE V
-ignore FREE MEMORY|LARGEST BLOCK|COMMIT  |VERSION  
+ignore FREE MEMORY|LARGEST BLOCK|COMMIT  |VERSION  |SPEED CHECK|CYCLES
 strip V\d+ +MERGED
 wait RADIANCE
 press g y

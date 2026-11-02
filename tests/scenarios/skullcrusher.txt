@@ -14,9 +14,9 @@ press l
 wait RETURN
 checkpoint farewell
 press ret
-# SSI left the fallen one in the party, without a word
-candidate: wait RETURN
+# SSI left the fallen one in the party, without a word; now Cadorna's guard carts him away
+wait RETURN
 checkpoint carted
-candidate: press ret
+press ret
 wait AREA
 checkpoint party
