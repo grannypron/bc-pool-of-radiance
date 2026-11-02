@@ -46,6 +46,8 @@ begin
   TestKit.Check((LineOf('ALT-1 ') <> 0) and (LineOf('ALT-8 ') <> 0), 'Alt-1 to Alt-8 are listed (#1175)');
   TestKit.Check(KeyHelp.KEYS[LineOf('ALT-1 ')].what = 'View PC 1''s inventory', 'as the member''s inventory');
   TestKit.Check(Shows('ALT-8 ', True) and Shows('ALT-8 ', False), 'on either menu');
-  TestKit.Check(LineOf('ALT-1 ') = LineOf('F8 ') + 1, 'after the function keys');
+  TestKit.Check(LineOf('ALT-1 ') = LineOf('1, 2') + 1, 'after the function keys and 1, 2');
+  TestKit.Check(LineOf('1, 2') = LineOf('F8 ') + 1, '1, 2, the weapon sets, after F8 (#1209)');
+  TestKit.Check(Shows('1, 2', True) and Shows('1, 2', False), 'on either menu, as the combat menu may not show them');
   TestKit.Done;
 end.

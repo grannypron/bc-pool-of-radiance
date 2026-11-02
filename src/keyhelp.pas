@@ -16,7 +16,7 @@ const
   SHOW_SOUND = 4;
   SHOW_LOG = 5;
   { Number of entries in KEYS. }
-  KEY_LINES = 16;
+  KEY_LINES = 17;
 
 type
   { One row in the help window. }
@@ -35,6 +35,7 @@ const
     (key: 'F6  '; what: 'Companion Tools'; show: SHOW_COMPANION),
     (key: 'F7  '; what: 'Action Log (Combat Only)'; show: SHOW_LOG),
     (key: 'F8  '; what: 'Quick Load'; show: SHOW_QUICK),
+    (key: '1, 2   '; what: 'Ready Set (Combat Only)'; show: SHOW_ALWAYS),
     (key: 'ALT-1  '; what: 'View PC 1''s inventory'; show: SHOW_ALWAYS),
     (key: 'ALT-2  '; what: 'View PC 2''s inventory'; show: SHOW_ALWAYS),
     (key: 'ALT-3  '; what: 'View PC 3''s inventory'; show: SHOW_ALWAYS),
@@ -60,12 +61,13 @@ uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, C_KEYS, C_SOUND, GameVars, TextRend, Bor
 
 const
   { The window's frame and rows, as the Quests page's (#855): the title box on TITLE_ROW, the lines' box from LIST_TOP
-    to BOTTOM_ROW, and the lines from a blank row into it. Keys start at KEY_COL. }
+    to BOTTOM_ROW, and the lines from a blank row into it. Keys start at KEY_COL. BOTTOM_ROW is a row below the Quests
+    page's, the row above the menu line, so that every line and the two blank rows fit with every line shown (#1209). }
   LEFT_COL = 1;
   RIGHT_COL = 38;
   TITLE_ROW = 1;
   LIST_TOP = 3;
-  BOTTOM_ROW = 22;
+  BOTTOM_ROW = 23;
   FIRST_ROW = LIST_TOP + 1;
   KEY_COL = 2;
   TITLE_COLOR = White;
@@ -85,11 +87,21 @@ begin
   end;
 end;
 
+{ Line n's group in the window: A for an Alt key, C for a Ctrl key, F for a function key or a plain one (the weapon
+  sets' 1 and 2, #1209, which take no group of their own: the window has no row to spare for its blank row). }
+function KeyGroup(n: Byte): Char;
+begin
+  if KEYS[n].key[1] in ['A', 'C'] then
+    KeyGroup := KEYS[n].key[1]
+  else
+    KeyGroup := 'F';
+end;
+
 procedure ShowKeys(quickKeys: Boolean);
 var
   n: Byte;
   row: Byte;
-  { the first character of the last line shown: F for a function key, A for an Alt key, C for a Ctrl key }
+  { the group of the last line shown (KeyGroup) }
   group: Char;
   ch: Char;
   ext: Boolean;
@@ -107,9 +119,9 @@ begin
   for n := 1 to KEY_LINES do
     if KeyHelp.LineShown(n, quickKeys) then begin
       { a blank row between groups: the function keys, the Alt keys (#1175) and the Ctrl keys }
-      if (group <> ' ') and (KEYS[n].key[1] <> group) then
+      if (group <> ' ') and (KeyHelp.KeyGroup(n) <> group) then
         Inc(row);
-      group := KEYS[n].key[1];
+      group := KeyHelp.KeyGroup(n);
       TextRend.DisplayString(KEY_COL, row, KEY_COLOR, KEYS[n].key);
       TextRend.DisplayString(KEY_COL + Length(KEYS[n].key), row, LINE_COLOR, KEYS[n].what);
       Inc(row);

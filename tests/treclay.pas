@@ -135,6 +135,8 @@ begin
   At(61, DiskRec.ItemDiskOfs(Ofs(it.effect) - Ofs(it)), 'TItemRec.effect');
   At(62, DiskRec.ItemDiskOfs(Ofs(it.special) - Ofs(it)), 'TItemRec.special');
   At(60, DiskRec.ItemDiskOfs(Ofs(it.spells) - Ofs(it)), 'TItemRec.spells');
+  { the port's own field, past the disk form (#1209) }
+  At(63, DiskRec.ItemDiskOfs(Ofs(it.weaponSet) - Ofs(it)), 'TItemRec.weaponSet');
   TestKit.CheckEqualsL(9, DiskRec.EffectDiskSize, 'TEffectRec on disk');
   At(0, DiskRec.EffectDiskOfs(Ofs(ef.id) - Ofs(ef)), 'TEffectRec.id');
   At(1, DiskRec.EffectDiskOfs(Ofs(ef.duration) - Ofs(ef)), 'TEffectRec.duration');
