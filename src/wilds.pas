@@ -30,10 +30,10 @@ procedure DrawWildWindows;
 procedure DrawTopWindows;
 
 { Show the wide view (#1186), or the 5x5 one: the view buffer is freed and allocated again at the size that view takes,
-  C_AREA.WILD_WIDE_ROWS by WILD_WIDE_CELLS or VIEW_ROWS by VIEW_CELLS, so the wide view costs its extra bytes only while
-  it is shown. When the heap cannot spare the wide buffer, the 5x5 one comes back, as its own freed block holds it, and
-  wideWanted is cleared: Move mode goes on in the 5x5 view. The buffer starts blank and no span is dirty; the caller
-  draws. Nothing happens when that view is already shown. }
+  C_AREA.WILD_WIDE_ROWS by WILD_WIDE_CELLS or VIEW_ROWS by VIEW_CELLS (WideView), so the wide view costs its extra bytes
+  only while it is shown. When the heap cannot spare the wide buffer, the 5x5 one comes back, as its own freed block
+  holds it, and wideWanted is cleared: Move mode goes on in the 5x5 view. The buffer starts blank and no span is dirty;
+  the caller draws. Nothing happens when that view is already shown. }
 procedure ShowWide(wide: Boolean);
 
 { True for a script command that draws nothing outside the message window, or no more than the map view again
@@ -72,8 +72,7 @@ function StepTo(x, y: ShortInt; dir, colOfs: Byte; riverShut: Boolean; var nx, n
 
 implementation
 
-uses Types, Crt, C_AREA, C_ECL, C_MSG, GameDefs, GameVars, Blit, Border, MapTiles,
-  TextRend{$IFDEF FPC}, TpCompat{$ENDIF};
+uses Types, Crt, C_AREA, C_ECL, C_MSG, GameDefs, GameVars, Border, MapTiles, TextRend, WideView;
 
 const
   { 10,9 = western 10,9, in Dragon Den Pass }
@@ -124,20 +123,16 @@ begin
   { the second tile set first, which the wider view is likelier to need: its blocks are small (MapTiles.SHEET_BLOCK),
     but loaded first they still leave the wide buffer the heap's largest block, which that buffer takes apart (from
     70,904 bytes to 34,392 on VGA in the central wilderness) }
-  if wide then
+  if wide then begin
     MapTiles.LoadSecondSheet;
-  Blit.FreePic(GameVars.viewBuffer);
-  wideShown := wide and (MaxAvail >= LongInt(Blit.FrameBytes(C_AREA.WILD_WIDE_ROWS, C_AREA.WILD_WIDE_CELLS)) +
-                                      SizeOf(Types.TImgBuf) - SizeOf(GameVars.viewBuffer^.data));
-  if wideShown then
-    Blit.AllocPic(C_AREA.WILD_WIDE_ROWS, C_AREA.WILD_WIDE_CELLS, 1, 0, GameVars.viewBuffer)
-  else begin
-    Blit.AllocPic(C_AREA.VIEW_ROWS, C_AREA.VIEW_CELLS, 1, 0, GameVars.viewBuffer);
-    if wide then
+    wideShown := WideView.Enter(C_AREA.WILD_WIDE_ROWS, C_AREA.WILD_WIDE_CELLS);
+    { the 5x5 view came back: Move mode goes on in it }
+    if not wideShown then
       wideWanted := False;
+  end else begin
+    WideView.Leave;
+    wideShown := False;
   end;
-  { what was dirty was the freed buffer's }
-  Blit.ClearSpans;
 end;
 
 function KeepsWide(opcode: Byte): Boolean;

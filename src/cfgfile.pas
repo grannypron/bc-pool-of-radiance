@@ -108,9 +108,9 @@ function KeyOf(line: string): Byte;
 
 { Every setting's default: speed 1, every portrait, Auto Join, music and sound setting on, Consolidate Coin off, the
   Journal FOUND, Non-Human Level Cap and Game Level Cap on, Train Anywhere off, Auto End Quick Mode on, Use Magic off,
-  Allow Gear Changes on, Aim Cycles at ENEMIES, Retrieve Thrown on, the Minimap off, the Companion Tools off with their
-  Clue Book notes on, Auto Memorize on, the four Fix settings off, the combat log on with 50 lines, and no version
-  advised. }
+  Allow Gear Changes on, Aim Cycles at ENEMIES, Retrieve Thrown on, the Minimap and Wide View off, the Companion Tools
+  off with their Clue Book notes on, Auto Memorize on, the four Fix settings off, the combat log on with 50 lines, and
+  no version advised. }
 procedure Defaults(var s: TSettings);
 
 { Setting opt (an ON/OFF one) as 1 for on and 0 for off; 0 for any other. }
@@ -233,6 +233,7 @@ begin
     C_OPT.OPT_AIM: KeyName := 'AIMCYCLES';
     C_OPT.OPT_RETRIEVE: KeyName := 'RETRIEVETHROWN';
     C_OPT.OPT_MINIMAP: KeyName := 'MINIMAP';
+    C_OPT.OPT_WIDE_COMBAT: KeyName := 'WIDECOMBAT';
     C_OPT.OPT_COMPANION: KeyName := 'COMPANION';
     C_OPT.OPT_CLUES: KeyName := 'CLUENOTES';
     C_OPT.OPT_AUTO_MEMORIZE: KeyName := 'AUTOMEMORIZE';
@@ -277,6 +278,7 @@ begin
     C_OPT.OPT_AIM: SettingName := 'Aim Cycles';
     C_OPT.OPT_RETRIEVE: SettingName := 'Retrieve Thrown';
     C_OPT.OPT_MINIMAP: SettingName := 'Minimap (F3)';
+    C_OPT.OPT_WIDE_COMBAT: SettingName := 'Wide View';
     C_OPT.OPT_COMPANION: SettingName := 'Companion Tools (F6)';
     C_OPT.OPT_CLUES: SettingName := '  Clue Book Notes';
     C_OPT.OPT_AUTO_MEMORIZE: SettingName := 'Auto Memorize';
@@ -435,7 +437,7 @@ begin
   for opt := C_OPT.OPT_FIRST_FLAG to C_OPT.OPT_LAST_FLAG do
     s.flags[opt] := Ord(not (opt in [C_OPT.OPT_CONSOLIDATE, C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION,
                                      C_OPT.OPT_TRAIN_ANYWHERE, C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL,
-                                     C_OPT.OPT_MINIMAP]));
+                                     C_OPT.OPT_MINIMAP, C_OPT.OPT_WIDE_COMBAT]));
   s.advised := '';
 end;
 

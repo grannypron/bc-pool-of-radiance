@@ -351,9 +351,7 @@ begin
   end;
   CharDisp.PrintNameString(att, verb, 10, False);
   row := 12;
-  CharDisp.DisplayCreatureName(def, 23, row, False);
   CharDisp.LogCreatureName(def);
-  Inc(row);
   if atkType = 1 then
     verb := '(from behind) '
   else
@@ -372,7 +370,7 @@ begin
     verb := verb + 'and Misses';
   CbtLog.NextLine;
   CbtLog.Add(LightGreen, verb);
-  TextRend.DisplayMessageWindow(23, row, 38, row + 3, LightGreen, True, verb);
+  CharDisp.PrintNameLine(def, verb, row);
   row := GameVars.curRow + 1;
   if dmg > 0 then begin
     def^.combatAddr^.castAllowed := 0;
@@ -391,7 +389,7 @@ begin
     if def^.status = C_STATUS.DYING then begin
       CbtLog.NextLine;
       CbtLog.Add(LightGreen, 'and is Dying');
-      TextRend.DisplayString(23, row, LightGreen, 'and is Dying');
+      CharDisp.PrintMsgTail('and is Dying', LightGreen, row);
     end;
     if def^.status in [C_STATUS.DEAD_STATUS, C_STATUS.STONED, C_STATUS.GONE] then
       CharDisp.PrintNameString(def, 'is killed', row, False);
@@ -2084,7 +2082,7 @@ begin
     sel.x := CbtMap.CombatCellX(tgt);
     sel.y := CbtMap.CombatCellY(tgt);
     GameVars.arenaPtr^.cursorOn := False;
-    CbtMap.ScrollView(GameVars.arenaPtr^.ox + 3, GameVars.arenaPtr^.oy + 3, 3, C_DIR.CENTER);
+    CbtMap.ScrollView(CbtMap.CenterX, CbtMap.CenterY, 3, C_DIR.CENTER);
     if weaponMode = 1 then
       if CbtActs.SweepAttack(cur, tgt) then
         done := CharHlp.EndActions(cur)
@@ -2160,7 +2158,7 @@ begin
     if underCursor <> nil then
       CharDisp.CombatPrintCreatureInfo(underCursor)
     else
-      Border.ClearBox(23, 1, 38, 21);
+      CharDisp.ClearCreatureInfo;
     { the arena with the cursor on it, when the minimap is on (#1210) }
     CbtMini.Show(cur, cx, cy);
     if (range < dist) or (GameDefs.terrainInfo[terrIdx].cost = 255) then
@@ -2528,7 +2526,7 @@ begin
     done := CharHlp.EndActions(p);
     p := p^.nextCharAddr;
   end;
-  CbtMap.ScrollView(GameVars.arenaPtr^.ox + 3, GameVars.arenaPtr^.oy + 3, 255, C_DIR.CENTER);
+  CbtMap.ScrollView(CbtMap.CenterX, CbtMap.CenterY, 255, C_DIR.CENTER);
 end;
 
 function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;

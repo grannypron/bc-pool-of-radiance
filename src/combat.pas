@@ -16,7 +16,7 @@ implementation
 
 uses Types, C_TIME, C_COND, GameDefs, GameVars, GameIo, Crt, CombatAi, CombatSt, Magic, C_KEYS,
   C_STATUS, C_IFC, C_GBVM, C_DIR, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
-  TextRend, StrUtil, CharDisp, Dice, CbtLog, LogView, ClassCal, MapTiles, CbtMini, C_ITEM;
+  TextRend, StrUtil, CharDisp, Dice, CbtLog, LogView, ClassCal, MapTiles, CbtMini, C_ITEM, WideView;
 
 const
   { CombatMenu's answer for F7, the combat log (#841): F7's scan code is the character code of 'A', which is Aim }
@@ -47,8 +47,9 @@ procedure SpeedMenu; forward;
 
 procedure TurnOnAuto(creature: Types.PCharRecord); forward;
 
-{ Free the cloud list, the arena, the move-icon sheet and Cloudkill's art, restore the noncombat palette and point the
-  cast-target menu (GameVars.castTargetMenu) back at the noncombat menu. }
+{ Free the cloud list, the arena, the move-icon sheet and Cloudkill's art, give the full-width view's buffer back for
+  the usual one (#1211), restore the noncombat palette and point the cast-target menu (GameVars.castTargetMenu) back at
+  the noncombat menu. }
 procedure CombatDoneCleanup;
 var
   p: Types.PCloudRec;
@@ -62,6 +63,10 @@ begin
   GameVars.arenaPtr := nil;
   Blit.FreePic(GameVars.moveIconSheet);
   MapTiles.FreeCloudkillArt;
+  if CbtMap.wideLayout then begin
+    WideView.Leave;
+    CbtMap.SetLayout(False);
+  end;
   CbtMap.SetNoncombatPalette;
   GameVars.castTargetMenu := Magic.NoncombatCastTargetMenu;
 end;
@@ -228,8 +233,11 @@ begin
                       CharDisp.DisplayCombatInterface;
                     end;
           { the Minimap setting turned over, and written at once, as Ctrl-S writes the Sound setting; the redraw below
-            clears the panel, and the menu draws the map again when it is on }
-          SHOW_MAP: begin
+            clears the panel, and the menu draws the map again when it is on. The full-width view has no panel for it,
+            and says so, the setting left as it is (#1211). }
+          SHOW_MAP: if CbtMap.wideLayout then
+                      TextRend.FlashBottomLine(LightGreen, 'No minimap in the Wide View')
+                    else begin
                       GameVars.minimapOn := Ord(GameVars.minimapOn = 0);
                       Options.SaveOptions;
                     end;
@@ -372,7 +380,7 @@ begin
   if Combat.BandageDying(False) then
     CharDisp.PrintBottomLine('Your Teammate is Dying');
   CharHlp.CountTeams;
-  CbtMap.ScrollView(GameVars.arenaPtr^.ox + 3, GameVars.arenaPtr^.oy + 3, 255, C_DIR.CENTER);
+  CbtMap.ScrollView(CbtMap.CenterX, CbtMap.CenterY, 255, C_DIR.CENTER);
   { decided again here, not kept from CombatMain's mid-round stop: a round-end effect can put a creature back on a side
     (a charm running out) }
   done := CharHlp.SideEmpty;

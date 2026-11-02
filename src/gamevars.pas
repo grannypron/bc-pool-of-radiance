@@ -86,6 +86,9 @@ var
   { the Minimap setting, which F3 on the combat menu turns over: nonzero draws the whole arena in the combat panel
     (CbtMini, #1210) }
   minimapOn: Byte;
+  { the Wide View setting: nonzero gives each fight the full-width combat view, the creature and the messages on three
+    lines under it (CombatSt.CombatStart, CbtMap.SetLayout, #1211) }
+  wideCombatOn: Byte;
   { the Companion Tools setting: nonzero lets F6 open the Tools screen outside combat (phase 8) }
   companionOn: Byte;
   { the Clue Book Notes setting, under the Companion Tools: nonzero shows the Clue Book's map keys on their map (#856) }

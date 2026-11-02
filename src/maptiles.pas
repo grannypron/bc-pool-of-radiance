@@ -35,7 +35,8 @@ procedure Copy2DTile(col, row: ShortInt; tile: Byte);
 procedure Copy2DTileClipped(col, row: ShortInt; tile: Byte);
 
 { Draw combat terrain terr at (col, row) as Copy2DTile draws its tile (GameDefs.terrainInfo), but Cloudkill's cloud
-  (C_TERR.CLOUDKILL) from cloudkillArt, while it is loaded. }
+  (C_TERR.CLOUDKILL) from cloudkillArt, while it is loaded; a tile that runs past the view buffer's right edge is
+  clipped to it (the full-width combat view's 13th column, #1211). }
 procedure DrawTerrain(col, row: ShortInt; terr: Byte);
 
 { Load cloudkillArt for a fight: PoR's tiles have no Cloudkill cloud, so it is the stinking cloud's tile with its light
@@ -130,11 +131,18 @@ begin
 end;
 
 procedure DrawTerrain(col, row: ShortInt; terr: Byte);
+var
+  { the tile runs past the buffer's right edge: the full-width combat view's 13th column (#1211) }
+  clip: Boolean;
 begin
-  if (terr = C_TERR.CLOUDKILL) and (cloudkillArt <> nil) then
-    Blit.BlitTileCell(col, row, 0, 0, cloudkillArt, GameVars.viewBuffer)
-  else
-    MapTiles.Copy2DTile(col, row, GameDefs.terrainInfo[terr].tileId);
+  clip := col + 3 > GameVars.viewBuffer^.width;
+  if (terr = C_TERR.CLOUDKILL) and (cloudkillArt <> nil) then begin
+    if clip then
+      Blit.BlitTileClipped(col, row, 0, 0, cloudkillArt, GameVars.viewBuffer)
+    else
+      Blit.BlitTileCell(col, row, 0, 0, cloudkillArt, GameVars.viewBuffer);
+  end else
+    MapTiles.DrawTile(col, row, GameDefs.terrainInfo[terr].tileId, clip);
 end;
 
 procedure LoadCloudkillArt;

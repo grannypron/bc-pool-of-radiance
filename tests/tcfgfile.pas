@@ -151,7 +151,7 @@ begin
   TestKit.CheckEqualsL(50, s.logLines, 'the default log keeps 50 lines');
   for opt := C_OPT.OPT_FIRST_FLAG to C_OPT.OPT_LAST_FLAG do
     if opt in [C_OPT.OPT_CONSOLIDATE, C_OPT.OPT_MAGIC, C_OPT.OPT_COMPANION, C_OPT.OPT_TRAIN_ANYWHERE,
-               C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL, C_OPT.OPT_MINIMAP] then
+               C_OPT.OPT_FIX_SCROLLS..C_OPT.OPT_FIX_HEAL, C_OPT.OPT_MINIMAP, C_OPT.OPT_WIDE_COMBAT] then
       TestKit.CheckEqualsL(0, CfgFile.Flag(s, opt), CfgFile.KeyName(opt) + ' is off by default')
     else
       TestKit.CheckEqualsL(1, CfgFile.Flag(s, opt), CfgFile.KeyName(opt) + ' is on by default');
@@ -211,7 +211,8 @@ begin
   TestKit.CheckEqualsL(3, CfgFile.SettingLine(C_OPT.OPT_GEAR), 'Allow Gear Changes under Quick Mode, after Use Magic');
   TestKit.CheckEqualsL(5, CfgFile.SettingLine(C_OPT.OPT_RETRIEVE), 'Aim Cycles and Retrieve Thrown after it');
   TestKit.CheckEqualsL(6, CfgFile.SettingLine(C_OPT.OPT_MINIMAP), 'the Minimap after Retrieve Thrown (#1210)');
-  TestKit.CheckEqualsL(8, CfgFile.SettingLine(C_OPT.OPT_LOG_LINES), 'the Combat page ends with the log lines');
+  TestKit.CheckEqualsL(7, CfgFile.SettingLine(C_OPT.OPT_WIDE_COMBAT), 'Wide View after the Minimap (#1211)');
+  TestKit.CheckEqualsL(9, CfgFile.SettingLine(C_OPT.OPT_LOG_LINES), 'the Combat page ends with the log lines');
   TestKit.CheckEqualsS('Minimap (F3)', CfgFile.SettingName(C_OPT.OPT_MINIMAP), 'the Minimap''s label names its key');
   TestKit.CheckEqualsS('Quick Mode', CfgFile.Heading(C_OPT.OPT_QUICK), 'the Quick Mode heading');
   TestKit.CheckEqualsS('Fix', CfgFile.Heading(C_OPT.OPT_FIX_SCROLLS), 'the Fix heading (#1129)');
@@ -278,6 +279,9 @@ begin
   TestKit.Check(ReadText('LEVELCAP=OFF' + CRLF) = CfgFile.CFG_READ, 'LEVELCAP reads (#1121)');
   TestKit.CheckEqualsL(0, CfgFile.Flag(s, C_OPT.OPT_LEVEL_CAP), 'Game Level Cap off');
   TestKit.CheckEqualsS('Game Level Cap', CfgFile.SettingName(C_OPT.OPT_LEVEL_CAP), 'its label');
+  TestKit.Check(ReadText('WIDECOMBAT=ON' + CRLF) = CfgFile.CFG_READ, 'WIDECOMBAT reads (#1211)');
+  TestKit.CheckEqualsL(1, CfgFile.Flag(s, C_OPT.OPT_WIDE_COMBAT), 'Wide View on');
+  TestKit.CheckEqualsS('Wide View', CfgFile.SettingName(C_OPT.OPT_WIDE_COMBAT), 'its label, which no key acts on');
   TestKit.Check(ReadText('TRAINANYWHERE=ON' + CRLF) = CfgFile.CFG_READ, 'TRAINANYWHERE reads (#1212)');
   TestKit.CheckEqualsL(1, CfgFile.Flag(s, C_OPT.OPT_TRAIN_ANYWHERE), 'Train Anywhere on');
   { a setting a key acts on names the key (#1215), and every label fits before the value's column (Options'
@@ -342,6 +346,8 @@ begin
   TestKit.CheckEqualsL(C_OPT.OPT_RETRIEVE, LineNo(C_OPT.OPT_NAME, 'RETRIEVETHROWN=ON'),
                        'Retrieve Thrown on by default');
   TestKit.CheckEqualsL(C_OPT.OPT_MINIMAP, LineNo(C_OPT.OPT_NAME, 'MINIMAP=OFF'), 'the Minimap off by default (#1210)');
+  TestKit.CheckEqualsL(C_OPT.OPT_WIDE_COMBAT, LineNo(C_OPT.OPT_NAME, 'WIDECOMBAT=OFF'),
+                       'Wide View off by default (#1211)');
   TestKit.CheckEqualsL(C_OPT.OPT_AUTO_MEMORIZE, LineNo(C_OPT.OPT_NAME, 'AUTOMEMORIZE=ON'),
                        'Auto Memorize on by default');
   TestKit.CheckEqualsL(C_OPT.OPT_FIX_SCROLLS, LineNo(C_OPT.OPT_NAME, 'FIXSCROLLS=OFF'), 'Use Scrolls off by default');

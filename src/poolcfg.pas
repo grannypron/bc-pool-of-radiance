@@ -857,7 +857,11 @@ begin
     C_OPT.OPT_MINIMAP: AboutText := 'The whole arena as a small|map under the creature''s|' +
                                     'details in combat: walls in|blue, the party light cyan,|' +
                                     'enemies yellow, the fallen|light red and whoever acts|' +
-                                    'white.||F3 in combat turns it on|and off.';
+                                    'white.||F3 in combat turns it on|and off. Not shown in the|Wide View.';
+    C_OPT.OPT_WIDE_COMBAT: AboutText := 'The combat map across the|whole screen, 13 squares by|' +
+                                        '6, with the creature and the|messages on three lines|' +
+                                        'under it. It costs memory: a|fight without enough has the|' +
+                                        'usual view. No minimap in it.';
     C_OPT.OPT_COMPANION: AboutText := 'The Companion Tools: F6 on|the map and camp menus.';
     C_OPT.OPT_CLUES: AboutText := 'The Companion Tools'' notes|from the Clue Book.';
     C_OPT.OPT_AUTO_MEMORIZE: AboutText := 'Rest memorizes each caster''s|usual spells again (those it|' +

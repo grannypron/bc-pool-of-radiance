@@ -16,7 +16,7 @@ implementation
 
 uses Types, Crt, C_AREA, C_NPC, C_COND, GameDefs, GameVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
   MapTiles, Blit, GameIo, C_GBVM, C_DIR, C_SOUND, SoundDrv, CbtMap, CharHlp, TextRend, CharDisp, Dice,
-  EffHndlr, Bestiary;
+  EffHndlr, Bestiary, WideView;
 
 const
   quadDir: array[0..3] of Byte = (
@@ -851,9 +851,10 @@ begin
 end;
 
 { Prepare combat: release the animation and portrait pictures, clear combat state, build the arena, initialize and place
-  creatures, let the paladins lead the NPCs (CbtActs.UseLeadership, #1124), and allocate the moving-icon frames. Centre
-  the view on the first creature, draw the combat interface, trigger start-of-combat effects and calculate the hostile
-  hit-point percentage. }
+  creatures, let the paladins lead the NPCs (CbtActs.UseLeadership, #1124), and allocate the moving-icon frames. Take
+  the full-width view (#1211) when the Wide View setting is on and the heap can spare its buffer (WideView.Enter), the
+  7x7 one otherwise. Centre the view on the first creature, draw the combat interface, trigger start-of-combat effects
+  and calculate the hostile hit-point percentage. }
 procedure CombatStart;
 var
   p: Types.PCharRecord;
@@ -894,8 +895,12 @@ begin
   { the paladins' leadership (#1124): it needs the combat records, and comes before the combat screen is drawn }
   CbtActs.UseLeadership;
   Blit.AllocPic(24, 3, 4, 1, GameVars.moveIconSheet);
-  GameVars.arenaPtr^.ox := CbtMap.CombatCellX(GameVars.creatureList) - 3;
-  GameVars.arenaPtr^.oy := CbtMap.CombatCellY(GameVars.creatureList) - 3;
+  if GameVars.wideCombatOn <> 0 then
+    CbtMap.SetLayout(WideView.Enter(CbtMap.WIDE_ROWS, CbtMap.WIDE_CELLS))
+  else
+    CbtMap.SetLayout(False);
+  GameVars.arenaPtr^.ox := CbtMap.CombatCellX(GameVars.creatureList) - CbtMap.halfX;
+  GameVars.arenaPtr^.oy := CbtMap.CombatCellY(GameVars.creatureList) - CbtMap.halfY;
   CharDisp.DisplayCombatInterface;
   p := GameVars.creatureList;
   while p <> nil do begin

@@ -1,0 +1,82 @@
+# The full-width combat view (#1211), from cloudkill's fixture (saves/cloudkill, slot D: save I's party in Podal Plaza,
+# ANDREA a 9th-level magic-user with Cloudkill memorized). The candidate turns Wide View on, on the Settings screen's
+# Combat page: off, on, off and on again. Three rests draw orcs: the arena is 13 squares across and 6 down, the
+# creature on one line under it and the messages on the two below; STING's Ctrl-Y gives the memory then. F3 says there
+# is no minimap. Andrea casts Cloudkill: her spell list, the aim with the cloud's preview and the orc under the cursor
+# on the info line, then the cloud on the map; Ctrl-Y again. The golden build (one without Wide View) fights the same
+# fight in the 7x7 view, so the fight's screens differ by design: read the text in obj/regress.json, and the memory
+# lines of the two builds there (ignored in the comparison). The messages come and go faster than a checkpoint can
+# catch them.
+boot NORAND
+ignore POOL OF RADIANCE V
+ignore FREE MEMORY|LARGEST BLOCK|COMMIT  |VERSION
+ignore OVERLAY LOADS|OVR BUFFER|HEAP FREE|PICTURES
+wait RADIANCE
+press g
+wait SETTINGS|GAME
+press m
+# down past Auto End Quick Mode, Use Magic, Allow Gear Changes, Aim Cycles, Retrieve Thrown and Minimap to Wide View
+candidate: press down down down down down down
+candidate: checkpoint wide-off
+candidate: press ret
+candidate: checkpoint wide-on
+candidate: press ret
+candidate: checkpoint wide-off-again
+candidate: press ret
+checkpoint combat-settings
+press y
+checkpoint memory-menu
+press esc
+wait RADIANCE
+put saves/cloudkill
+press l d
+wait AREA
+press e
+wait CAMP
+press r d i i i i i r
+wait CAMP
+press r d i i i i i r
+wait CAMP
+press r d i h i i i i i i i i r
+wait MOVE 180
+checkpoint encounter
+press ctrl-y
+checkpoint overlay-loads
+press ret
+checkpoint ovr-buffer
+press ret
+checkpoint heap
+press ret
+checkpoint pictures
+press ret
+wait MOVE
+# no minimap in the full-width view: F3 says so (the golden build turns its minimap on)
+press f3
+checkpoint f3
+wait MOVE 30
+# Gins guards; Andrea's turn
+press d g
+wait-text ANDREA 120
+wait CAST 60
+checkpoint andrea
+press c
+wait CAST:
+press end end end end end
+checkpoint cast-list
+press c
+# the spell takes its time: Talonia guards, then Andrea aims
+wait-text TALONIA 120
+wait MOVE 60
+press d g
+wait AIM 120
+checkpoint aim
+press t
+wait MOVE 120
+checkpoint cloud
+press ctrl-y
+press ret
+press ret
+checkpoint heap-after
+press ret
+press ret
+wait MOVE
