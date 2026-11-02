@@ -59,8 +59,9 @@ type
 { The POOLOPT.CFG key of setting key: SPEED, ALLPORTRAITS ... LOGLINES, then ADVISED (C_OPT.KEY_ADVISED); '' for none. }
 function KeyName(key: Byte): TName;
 
-{ The label of setting opt on the Settings screen, a sub-setting's indented two spaces under its setting. Train
-  Anywhere's names its key, F4 (#1212). }
+{ The label of setting opt on the Settings screen, a sub-setting's indented two spaces under its setting. A setting a
+  key acts on outside the Settings screen names the key after it (#1215): Train Anywhere's F4, Sound's Ctrl-S, the
+  Minimap's F3, the Companion Tools' F6 and the Combat Log's F7. }
 function SettingName(opt: Byte): TName;
 
 { The page setting opt is on: C_OPT.OPT_PAGE_SOUND for the music and the sound (OPT_FIRST_SOUND to OPT_LAST_SOUND,
@@ -263,7 +264,7 @@ begin
     C_OPT.OPT_MUSIC: SettingName := 'Music';
     C_OPT.OPT_TITLE_MUSIC: SettingName := '  Title Music';
     C_OPT.OPT_BATTLE_MUSIC: SettingName := '  Battle Music';
-    C_OPT.OPT_SOUND: SettingName := 'Sound';
+    C_OPT.OPT_SOUND: SettingName := 'Sound (Ctrl-S)';
     C_OPT.OPT_FOOTSTEPS: SettingName := '  Footsteps';
     C_OPT.OPT_RANGED: SettingName := '  Ranged Weapon Usage';
     C_OPT.OPT_MELEE: SettingName := '  Melee Attacks';
@@ -276,14 +277,14 @@ begin
     C_OPT.OPT_AIM: SettingName := 'Aim Cycles';
     C_OPT.OPT_RETRIEVE: SettingName := 'Retrieve Thrown';
     C_OPT.OPT_MINIMAP: SettingName := 'Minimap (F3)';
-    C_OPT.OPT_COMPANION: SettingName := 'Companion Tools';
+    C_OPT.OPT_COMPANION: SettingName := 'Companion Tools (F6)';
     C_OPT.OPT_CLUES: SettingName := '  Clue Book Notes';
     C_OPT.OPT_AUTO_MEMORIZE: SettingName := 'Auto Memorize';
     C_OPT.OPT_FIX_SCROLLS: SettingName := '  Use Scrolls';
     C_OPT.OPT_FIX_POTIONS: SettingName := '  Use Potions';
     C_OPT.OPT_FIX_CURE: SettingName := '  Use Paladin''s Cure';
     C_OPT.OPT_FIX_HEAL: SettingName := '  Use Paladin''s Heal';
-    C_OPT.OPT_COMBAT_LOG: SettingName := 'Combat Log';
+    C_OPT.OPT_COMBAT_LOG: SettingName := 'Combat Log (F7)';
     C_OPT.OPT_LOG_LINES: SettingName := '  Log Lines';
   else
     SettingName := '';

@@ -280,9 +280,12 @@ begin
   TestKit.CheckEqualsS('Game Level Cap', CfgFile.SettingName(C_OPT.OPT_LEVEL_CAP), 'its label');
   TestKit.Check(ReadText('TRAINANYWHERE=ON' + CRLF) = CfgFile.CFG_READ, 'TRAINANYWHERE reads (#1212)');
   TestKit.CheckEqualsL(1, CfgFile.Flag(s, C_OPT.OPT_TRAIN_ANYWHERE), 'Train Anywhere on');
-  { Train Anywhere's label names its key, and every label fits before the value's column (Options' SETTING_COL 24 from
-    LABEL_COL 2, POOLCFG's 26 from 4: 21 characters and a space) }
+  { a setting a key acts on names the key (#1215), and every label fits before the value's column (Options'
+    SETTING_COL 24 from LABEL_COL 2, POOLCFG's 26 from 4: 21 characters and a space) }
   TestKit.CheckEqualsS('Train Anywhere (F4)', CfgFile.SettingName(C_OPT.OPT_TRAIN_ANYWHERE), 'its label names F4');
+  TestKit.CheckEqualsS('Combat Log (F7)', CfgFile.SettingName(C_OPT.OPT_COMBAT_LOG), 'the Combat Log''s F7');
+  TestKit.CheckEqualsS('Companion Tools (F6)', CfgFile.SettingName(C_OPT.OPT_COMPANION), 'the Companion Tools'' F6');
+  TestKit.CheckEqualsS('Sound (Ctrl-S)', CfgFile.SettingName(C_OPT.OPT_SOUND), 'Sound''s Ctrl-S');
   bad := 0;
   for opt := 1 to C_OPT.OPT_COUNT do
     if Length(CfgFile.SettingLabel(s, opt)) > 21 then
