@@ -1,6 +1,6 @@
 # Without DEMO.DAX there is no demo (#1109): started with DEMO, and then left alone past the main menu's thirty seconds,
 # the main menu stays up with no message and no disk prompt. regress.sh stages DEMO.DAX only for scenarios named demo*,
-# so this one runs without it, as an install without the file does.
+# and runs those apart from the rest (#1233), so this one runs without it, as an install without the file does.
 boot NORAND DEMO
 ignore POOL OF RADIANCE V
 wait RADIANCE

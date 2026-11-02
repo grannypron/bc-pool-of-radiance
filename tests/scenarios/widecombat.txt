@@ -1,12 +1,10 @@
 # The full-width combat view (#1211), from cloudkill's fixture (saves/cloudkill, slot D: save I's party in Podal Plaza,
-# ANDREA a 9th-level magic-user with Cloudkill memorized). The candidate turns Wide View on, on the Settings screen's
-# Combat page: off, on, off and on again. Three rests draw orcs: the arena is 13 squares across and 6 down, the
-# creature on one line under it and the messages on the two below; STING's Ctrl-Y gives the memory then. F3 says there
-# is no minimap. Andrea casts Cloudkill: her spell list, the aim with the cloud's preview and the orc under the cursor
-# on the info line, then the cloud on the map; Ctrl-Y again. The golden build (one without Wide View) fights the same
-# fight in the 7x7 view, so the fight's screens differ by design: read the text in obj/regress.json, and the memory
-# lines of the two builds there (ignored in the comparison). The messages come and go faster than a checkpoint can
-# catch them.
+# ANDREA a 9th-level magic-user with Cloudkill memorized). Wide View is turned on, on the Settings screen's Combat
+# page: off, on, off and on again. Three rests draw orcs: the arena is 13 squares across and 6 down, the creature on
+# one line under it and the messages on the two below; STING's Ctrl-Y gives the memory then. F3 says there is no
+# minimap. Andrea casts Cloudkill: her spell list, the aim with the cloud's preview and the orc under the cursor on the
+# info line, then the cloud on the map; Ctrl-Y again. The memory lines are ignored in the comparison: read them in
+# obj/regress.json. The messages come and go faster than a checkpoint can catch them.
 boot NORAND
 ignore POOL OF RADIANCE V
 ignore FREE MEMORY|LARGEST BLOCK|COMMIT  |VERSION
@@ -16,13 +14,13 @@ press g
 wait SETTINGS|GAME
 press m
 # down past Auto End Quick Mode, Use Magic, Allow Gear Changes, Aim Cycles, Retrieve Thrown and Minimap to Wide View
-candidate: press down down down down down down
-candidate: checkpoint wide-off
-candidate: press ret
-candidate: checkpoint wide-on
-candidate: press ret
-candidate: checkpoint wide-off-again
-candidate: press ret
+press down down down down down down
+checkpoint wide-off
+press ret
+checkpoint wide-on
+press ret
+checkpoint wide-off-again
+press ret
 checkpoint combat-settings
 press y
 checkpoint memory-menu
@@ -50,7 +48,7 @@ press ret
 checkpoint pictures
 press ret
 wait MOVE
-# no minimap in the full-width view: F3 says so (the golden build turns its minimap on)
+# no minimap in the full-width view: F3 says so
 press f3
 checkpoint f3
 wait MOVE 30

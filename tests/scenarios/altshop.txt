@@ -2,8 +2,8 @@
 # Alt-2 opens Anna's items, with Sell and Id on the line; Alt-3 there switches to Gins's in place; Gins sells her first
 # clerical scroll; Escape gives the counter back with Gins current, and View shows the 500 gold pieces in her purse
 # (purse-before has it without them). In the Buy list Alt-1 opens Talonia's items and Escape gives the list back; in
-# View Alt-4 opens Spawn's items and Escape shows Spawn's sheet. A golden build without #1195 does nothing on these Alt
-# keys (and sells nothing), so most checkpoints differ by design.
+# View Alt-4 opens Spawn's items and Escape shows Spawn's sheet. The offer is waited for (IS IT A DEAL) before its
+# checkpoint, so the checkpoint does not race the shop drawing it.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
@@ -29,10 +29,10 @@ press alt-3
 wait SELL|BUY|EXIT 20
 checkpoint items-3
 # The fifth line, the first scroll: Sell, and take the offer.
-candidate: press down down down down s
-candidate: wait DEAL 20
+press down down down down s
+wait DEAL 20
 checkpoint offer
-candidate: press y
+press y
 wait SELL|BUY|EXIT 20
 checkpoint sold
 press esc

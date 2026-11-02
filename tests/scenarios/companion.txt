@@ -5,10 +5,9 @@ ignore POOL OF RADIANCE V
 wait RADIANCE
 # Companion Tools is the Game page's eleventh setting, after the portraits, Auto Join, Consolidate Coin (#1179), the
 # Journal (#1090), the two level caps (#1176, #1121) and Train Anywhere (#1212), Quick Mode having moved to the Combat
-# page (#1180): move down 10 times from Game Speed. The golden build has it eighth. Counting from the top works with
-# every memory size, the combat log's lines being on another page.
-golden: press g down down down down down down down ret esc
-candidate: press g down down down down down down down down down down ret esc
+# page (#1180): move down 10 times from Game Speed. Counting from the top works with every memory size, the combat
+# log's lines being on another page.
+press g down down down down down down down down down down ret esc
 wait RADIANCE
 # Load the slot directly by pressing its letter (#652).
 press l a
