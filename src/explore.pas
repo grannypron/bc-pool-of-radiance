@@ -295,6 +295,15 @@ begin
     FxEngine.AdvanceTime(1, C_TIME.MINUTES);
 end;
 
+{ End the wilderness menu's Move mode (#1159) and its wide view (#1186): the 5x5 view's buffer comes back; the caller
+  draws the screen. }
+procedure EndMoveMode;
+begin
+  moveMode := False;
+  Wilds.wideWanted := False;
+  Wilds.ShowWide(False);
+end;
+
 { MovePartyWilderness: one step toward gFacing on the 44x36 wilderness map, held to the region (Wilds.StepTo). Impassable
   terrain blocks, and so does a diagonal between two cells that are not open (#1159); river glyphs block with a message
   until zone0^.yarashPyramidLeft is nonzero. A step advances the clock 12 hours, a diagonal one 18 (#1159). }
@@ -324,9 +333,11 @@ end;
 function AskQuickLoad: Boolean;
 begin
   AskQuickLoad := SaveLoad.QuickLoadable;
-  if SaveLoad.QuickLoadable then
-    quickLoadAsked := True
-  else begin
+  if SaveLoad.QuickLoadable then begin
+    quickLoadAsked := True;
+    { the loaded game starts out of Move mode, with the view buffer its scripts draw into }
+    Explore.EndMoveMode;
+  end else begin
     TextRend.DisplayAndPause(Yellow, 'There is no quick save.');
     TextRend.ClearBottomLine;
   end;
@@ -337,33 +348,35 @@ var
   shown: Boolean;
   member: Types.PCharRecord;
 begin
-  shown := True;
+  member := nil;
   case c of
-    C_KEYS.F1: KeyHelp.ShowKeys(quickKeys);
+    C_KEYS.F1, C_KEYS.F2: shown := True;
     { a party member's items (#1175); with no member n, nothing }
     C_KEYS.ALT_1..C_KEYS.ALT_8: begin
                                   member := Party.MemberAt(Ord(c) - Ord(C_KEYS.ALT_1) + 1);
-                                  if member <> nil then
-                                    ViewChar.MemberItems(member)
-                                  else
-                                    shown := False;
+                                  shown := member <> nil;
                                 end;
-    C_KEYS.F2: BeastMnu.BestiaryMenu;
-    C_KEYS.F6: if GameVars.companionOn <> 0 then
-                 CompTool.ToolsMenu
-               else
-                 shown := False;
+    C_KEYS.F6: shown := GameVars.companionOn <> 0;
   else begin
     SideScreen := False;
     Exit;
   end;
   end;
   SideScreen := True;
-  if shown then
-    if wild then
-      CharDisp.DisplayWildernessInterface
-    else
-      CharDisp.DisplayNoncombatInterface;
+  if not shown then Exit;
+  { the screens draw into the 5x5 view's buffer (a portrait on the items screen), so the wide view goes until the screen
+    is drawn again below (#1186) }
+  Wilds.ShowWide(False);
+  case c of
+    C_KEYS.F1: KeyHelp.ShowKeys(quickKeys);
+    C_KEYS.ALT_1..C_KEYS.ALT_8: ViewChar.MemberItems(member);
+    C_KEYS.F2: BeastMnu.BestiaryMenu;
+    C_KEYS.F6: CompTool.ToolsMenu;
+  end;
+  if wild then
+    CharDisp.DisplayWildernessInterface
+  else
+    CharDisp.DisplayNoncombatInterface;
 end;
 
 { MapMainMenu: the 3D / wilderness command loop. Returns the key that ended it: 'E' (Encamp), 'L' (Look: sets
@@ -375,7 +388,9 @@ end;
   character not Okay. The wilderness menu's Move, as Pools of Darkness's, turns the bottom line to Exit: there the
   arrows and Home, Page Up, End and Page Down (the keypad's 7, 9, 1 and 3) set the facing in all eight directions and
   end the menu for the step, until Exit or Escape (#1159); the mode lasts between steps while the party stays in the
-  wilderness. }
+  wilderness. Move mode shows the wide view across the top of the screen, the status line before Exit on the bottom
+  line (#1186); a script that narrows it during a step (Wilds.KeepsWide) leaves it narrow until the menu comes back,
+  which widens it again. }
 function MapMainMenu: Char;
 const
   { 3D exploration menu }
@@ -434,7 +449,7 @@ begin
   GameVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
   wild := GameVars.gLocType in [C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST];
   if not wild then
-    moveMode := False;
+    Explore.EndMoveMode;
   if wild or (GameVars.gLocType = C_AREA.LOC_3D_MAP) then begin
     if wild and (GameVars.locTypePrev < C_AREA.LOC_WILD_WEST) then begin
       MapTiles.LoadWildIcons;
@@ -445,7 +460,14 @@ begin
       MenuCore.arrowsToCaller := True;
       MenuCore.quickKeysToCaller := True;
       MenuCore.helpToCaller := True;
-      if moveMode then
+      { Move mode's wide view, on Move and again after a script narrowed it during a step }
+      if Wilds.wideWanted then
+        CharDisp.SetWildView(True);
+      { the status line before Exit while the wide view hides the party window, in the window's light green }
+      if moveMode and Wilds.wideShown then
+        c := MenuCore.MenuHorizontal(CharDisp.MiscInfoText + ' ', menuMove, LightGreen, LightGreen, White, True, False,
+                                     ext)
+      else if moveMode then
         c := MenuCore.MenuHorizontal('', menuMove, LightMagenta, LightGreen, White, True, False, ext)
       else if wild then
         c := MenuCore.MenuHorizontal('', menuWild, LightMagenta, LightGreen, White, True, False, ext)
@@ -453,12 +475,17 @@ begin
         c := MenuCore.MenuHorizontal('', menu3D, LightMagenta, LightGreen, White, True, False, ext);
       if not ext and moveMode then begin
         { Exit or Escape }
-        if c in [C_KEYS.NONE, 'E'] then
-          moveMode := False;
+        if c in [C_KEYS.NONE, 'E'] then begin
+          CharDisp.SetWildView(False);
+          Explore.EndMoveMode;
+        end;
       end else if not ext then begin
         case c of
-          'M': if wild then
+          { the next pass shows the wide view }
+          'M': if wild then begin
                  moveMode := True;
+                 Wilds.wideWanted := True;
+               end;
           { STING maps anywhere, as Curse's debug mode does; elsewhere the Journal's map of the area allows it (#1090) }
           'A': if JrnlSeen.AreaMapAllowed or GameVars.stingArg then begin
                  GameVars.automapOn := not GameVars.automapOn;
@@ -581,7 +608,7 @@ end;
 procedure ResetGame;
 begin
   FillChar(doorOpen, SizeOf(doorOpen), 1);
-  moveMode := False;
+  Explore.EndMoveMode;
 end;
 
 begin

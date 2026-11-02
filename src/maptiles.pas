@@ -29,6 +29,9 @@ procedure Load24x24Set(name: string; mult: Byte);
 
 procedure Copy2DTile(col, row: ShortInt; tile: Byte);
 
+{ Copy2DTile, but the tile is clipped to the view buffer: the wide wilderness view's last tile is cut off (#1186). }
+procedure Copy2DTileClipped(col, row: ShortInt; tile: Byte);
+
 { Draw combat terrain terr at (col, row) as Copy2DTile draws its tile (GameDefs.terrainInfo), but Cloudkill's cloud
   (C_TERR.CLOUDKILL) from cloudkillArt, while it is loaded. }
 procedure DrawTerrain(col, row: ShortInt; terr: Byte);
@@ -44,6 +47,9 @@ procedure FreeCloudkillArt;
   Only the wilderness and ending need it, and combat frees it. Returns nil if
   it cannot be loaded. }
 function SecondSheet: Types.PImgBuf;
+
+{ Load the second tile set now, if it is not loaded, as SecondSheet would when it is next needed. }
+procedure LoadSecondSheet;
 
 { Free the second tile set, for SecondSheet to load again when it is next needed. }
 procedure FreeSecondSheet;
@@ -92,15 +98,31 @@ begin
   Blit.FreePic(pic);
 end;
 
-{ Draw one 24x24 map tile into the view buffer at (col, row); tile IDs 128 and up come from the second tile set. Nothing
-  is drawn from a tile set that is not loaded. }
+{ Draw one 24x24 map tile into the view buffer at (col, row), clipped to it when clip is set; tile IDs 128 and up come
+  from the second tile set. Nothing is drawn from a tile set that is not loaded. }
+procedure DrawTile(col, row: ShortInt; tile: Byte; clip: Boolean);
+var
+  sheet: Types.PImgBuf;
+begin
+  if tile > C_TILE.ID_MASK then
+    sheet := MapTiles.SecondSheet
+  else
+    sheet := GameVars.mapTilePtr;
+  if sheet = nil then Exit;
+  if clip then
+    Blit.BlitTileClipped(col, row, tile and C_TILE.ID_MASK, 0, sheet, GameVars.viewBuffer)
+  else
+    Blit.BlitTileCell(col, row, tile and C_TILE.ID_MASK, 0, sheet, GameVars.viewBuffer);
+end;
+
 procedure Copy2DTile(col, row: ShortInt; tile: Byte);
 begin
-  if tile > C_TILE.ID_MASK then begin
-    if MapTiles.SecondSheet <> nil then
-      Blit.BlitTileCell(col, row, tile and C_TILE.ID_MASK, 0, mapTilePtr2, GameVars.viewBuffer);
-  end else if GameVars.mapTilePtr <> nil then
-    Blit.BlitTileCell(col, row, tile, 0, GameVars.mapTilePtr, GameVars.viewBuffer);
+  MapTiles.DrawTile(col, row, tile, False);
+end;
+
+procedure Copy2DTileClipped(col, row: ShortInt; tile: Byte);
+begin
+  MapTiles.DrawTile(col, row, tile, True);
 end;
 
 procedure DrawTerrain(col, row: ShortInt; terr: Byte);
@@ -142,9 +164,14 @@ end;
 
 function SecondSheet: Types.PImgBuf;
 begin
+  MapTiles.LoadSecondSheet;
+  SecondSheet := mapTilePtr2;
+end;
+
+procedure LoadSecondSheet;
+begin
   if mapTilePtr2 = nil then
     Blit.LoadPic('sqrpaci', 2, False, 0, mapTilePtr2);
-  SecondSheet := mapTilePtr2;
 end;
 
 procedure FreeSecondSheet;

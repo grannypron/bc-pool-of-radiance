@@ -11,8 +11,8 @@ procedure YarashComplete(animate: Boolean);
 
 implementation
 
-uses Types, Crt, C_TILE, C_MSG, GameDefs, GameVars, CharHlp, Wilds, Portrait, C_GBVM, C_IFC, Blit, TextRend, CharDisp,
-  MapTiles;
+uses Types, Crt, C_AREA, C_TILE, C_MSG, GameDefs, GameVars, CharHlp, Wilds, Portrait, C_GBVM, C_IFC, Blit, TextRend,
+  CharDisp, MapTiles;
 
 { Play FINAL picture picId at (col, row) for nCycles passes through its frames; nothing is played if it does not load. }
 procedure PlayFinalAnim(col, row: Integer; picId, nCycles: Byte);
@@ -162,18 +162,18 @@ begin
   blueGreenTo := greenTo;
   blueGreenTo[Black] := Blue;
   if animate then begin
-    Wilds.BuildWildernessMap(17, 15);
+    Wilds.BuildWildernessMap(17, 15, C_AREA.WILD_VIEW_LAST);
     Blit.FlushView;
     { 8 = High(yarViewX) = High(yarViewY) }
     for step := 0 to 8 do begin
       RemapPyramid(True);
-      Wilds.BuildWildernessMap(yarViewX[step], yarViewY[step]);
+      Wilds.BuildWildernessMap(yarViewX[step], yarViewY[step], C_AREA.WILD_VIEW_LAST);
       Blit.FlushView;
     end;
   end;
   RemapPyramid(False);
   if animate then begin
-    Wilds.BuildWildernessMap(23, 25);
+    Wilds.BuildWildernessMap(23, 25, C_AREA.WILD_VIEW_LAST);
     Blit.FlushView;
     TextRend.PauseOnly;
     TextRend.PauseOnly;

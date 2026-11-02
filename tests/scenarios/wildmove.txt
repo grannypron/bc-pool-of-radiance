@@ -1,7 +1,10 @@
-# The wilderness menu's Move (#1159), from save G in the central wilderness at 27,27 (saves/wild): Move turns the
-# bottom line to Exit; Page Up steps north-east and Home north-west, each 18 hours, and the Right arrow east, 12 hours;
-# Escape gives the menu back, where Home picks the previous character again. A golden build has no Move, so it fails
-# until the goldens are recorded from a build with it.
+# The wilderness menu's Move (#1159) and its wide view (#1186), from save G in the central wilderness at 27,27
+# (saves/wild). Move turns the bottom line to the status and Exit and the top of the screen to one map 13 tiles across,
+# the party list gone. A step west reaches Phlan's eastern edge, whose script narrows the view for its picture and
+# menu, the party list back; LEAVE, and the menu widens the view again. Page Up steps north-east and Home north-west,
+# each 18 hours, and the Right arrow east, 12 hours; F1's keys and Alt-2's items come back to the wide view; Escape
+# gives the menu and the 5x5 view back, where Home picks the previous character again. A golden build has no Move, so
+# it fails until the goldens are recorded from a build with it.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
@@ -10,17 +13,33 @@ press l g
 wait ^(MOVE )?CAST VIEW ENCAMP 60
 checkpoint menu
 press m
-wait ^EXIT 20
+wait EXIT$ 20
 checkpoint move
+press left
+wait LEAVE 60
+checkpoint phlan
+press l
+wait EXIT$ 60
+checkpoint phlan-left
 press pgup
-wait ^EXIT 60
+wait EXIT$ 60
 checkpoint northeast
 press home
-wait ^EXIT 60
+wait EXIT$ 60
 checkpoint northwest
 press right
-wait ^EXIT 60
+wait EXIT$ 60
 checkpoint east
+press f1
+wait HELP 20
+press esc
+wait EXIT$ 20
+checkpoint keys-closed
+press alt-2
+wait TRADE 20
+press esc
+wait EXIT$ 20
+checkpoint items-closed
 press esc
 wait ^(MOVE )?CAST VIEW ENCAMP 20
 checkpoint menu-again

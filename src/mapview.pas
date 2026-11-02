@@ -29,16 +29,9 @@ begin
   row := Integer(GameVars.zone0^.partyY.value);
 end;
 
-{ The corner of the 5x5 view centered on map cell cell, along a map side whose last cell is last, moved inside the map
-  as Wilds.BuildWildernessMap moves it. }
-function CenteredCorner(cell, last: Integer): Integer;
-begin
-  CenteredCorner := Wilds.ViewCorner(cell - C_AREA.WILD_VIEW_LAST div 2, last);
-end;
-
-{ Draw the party icon at its cell in the 5x5 view. The view is centered on the party except near a map edge, where it
-  is moved inside the map (CenteredCorner) and the icon moves off center. Nothing is drawn outside a wilderness
-  location. }
+{ Draw the party icon at its cell in the view shown, the 5x5 one or Move mode's wide one (Wilds.ViewLast, #1186). The
+  view is centered on the party except near a map edge, where it is moved inside the map (Wilds.CenteredCorner) and the
+  icon moves off center. Nothing is drawn outside a wilderness location. }
 procedure DisplayWildMapView;
 var
   col: Integer;
@@ -46,8 +39,9 @@ var
 begin
   if not (GameVars.gLocType in [C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST]) then Exit;
   MapView.PartyCell(GameVars.gLocType, col, row);
-  MapTiles.DrawIconAnimSprite(col - MapView.CenteredCorner(col, C_AREA.WILD_LAST_COL),
-                              row - MapView.CenteredCorner(row, C_AREA.WILD_LAST_ROW), GameVars.gFacing,
+  MapTiles.DrawIconAnimSprite(col - Wilds.CenteredCorner(col, C_AREA.WILD_LAST_COL, Wilds.ViewLast),
+                              row - Wilds.CenteredCorner(row, C_AREA.WILD_LAST_ROW, C_AREA.WILD_VIEW_LAST),
+                              GameVars.gFacing,
                               wildAnimFrame mod 2, wildAnimFrame div 2 + MapTiles.FIRST_WILD_ICON);
   wildAnimFrame := (wildAnimFrame + 1) mod 6;
   Blit.FlushView;
@@ -56,8 +50,8 @@ end;
 { Draw the current map view. For the 3D view, take the sky or ceiling color from the zone (its alternate color when the
   cell's event value is above $7F; a selector counts modulo 8), recompute the horizon line, horizon band and floor
   colors from their selectors while picRegionW is set, and pass all four to View3D.SetView3DColors before
-  View3D.Display3DMapView draws. For the wilderness, center the 5x5 view on the party, moved inside the map, then draw
-  the party icon. }
+  View3D.Display3DMapView draws. For the wilderness, center the view shown (5x5, or Move mode's wide one) on the party,
+  moved inside the map, then draw the party icon. }
 procedure DisplayMapView;
 const
   { Display color for each zone sky/ceiling selector, counted modulo 8. }
@@ -129,8 +123,8 @@ begin
     end;
     C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST: begin
       MapView.PartyCell(loc, col, row);
-      Wilds.BuildWildernessMap(MapView.CenteredCorner(col, C_AREA.WILD_LAST_COL),
-                               MapView.CenteredCorner(row, C_AREA.WILD_LAST_ROW));
+      Wilds.BuildWildernessMap(Wilds.CenteredCorner(col, C_AREA.WILD_LAST_COL, Wilds.ViewLast),
+                               Wilds.CenteredCorner(row, C_AREA.WILD_LAST_ROW, C_AREA.WILD_VIEW_LAST), Wilds.ViewLast);
       MapView.DisplayWildMapView;
     end;
   end;

@@ -21,7 +21,7 @@ uses Types, C_AREA, C_NPC, C_MSG, GameDefs, GameVars, Crt, Temple, PostCbt, Comb
   DaxIo, GameIo, C_ECL, C_LEVEL, C_IFC, C_GBVM, C_SOUND, C_MONEY, C_STATUS, C_TIME, VaultMnu, EclTrace, Border,
   Camp, EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal, Bestiary, Sage, MagicShp,
-  JrnlSeen{$IFDEF FPC}, TpRand{$ENDIF};
+  JrnlSeen, Wilds{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { stop the VM and return control to the player }
@@ -389,6 +389,9 @@ var
 begin
   EclVars.LoadEclVars(1);
   picId := EclVars.GetEclVar(1);
+  { a picture goes in the 5x5 view's window, not over Move mode's wide view (#1186) }
+  if picId <> 255 then
+    CharDisp.SetWildView(False);
   if (GameVars.zone0^.view3dFlag = 0) and (picId <> 255) then
     Border.DrawWindow(3, 3, 13, 13, 0, White, '');
   if picId <> 255 then begin
@@ -1599,10 +1602,15 @@ begin
           GameVars.sprShown := False;
         end;
     end;
-    C_GBVM.CALL_MIRROR_DUEL:
+    { a fight gets the usual screen, not Move mode's wide view (#1186) }
+    C_GBVM.CALL_MIRROR_DUEL: begin
+      CharDisp.SetWildView(False);
       EclMenu.CharFightsAlone(1);
-    C_GBVM.CALL_FIGHT_ALONE:
+    end;
+    C_GBVM.CALL_FIGHT_ALONE: begin
+      CharDisp.SetWildView(False);
       EclMenu.CharFightsAlone(0);
+    end;
     C_GBVM.CALL_SOUND: begin
       case EclVars.sndEffect of
         8: SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.STEP], C_SOUND.GROUP_FOOTSTEPS);
@@ -1780,6 +1788,10 @@ begin
     { STING Ctrl-L's trace log (#612), as Curse writes it }
     if GameVars.debugTraceEnabled then
       WriteLn(GameIo.debugFile, EclTrace.OpName(GameVars.curOpcode));
+    { Move mode's wide view (#1186) stays for a command that draws no more than the message window, and goes for any
+      other: a menu, a monster, combat or a new area gets the usual screen, with the party list }
+    if Wilds.wideShown and not Wilds.KeepsWide(GameVars.curOpcode) then
+      CharDisp.SetWildView(False);
     EclVm.ExecNextEclCmd;
   end;
   eclStop := 0;
