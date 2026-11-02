@@ -8,6 +8,8 @@ interface
 uses Types;
 
 const
+  { the column of an inventory label's weapon-set digit (ItemLabel, #1209): the Items screen's list ends there }
+  SET_LABEL_COL = 38;
   { TCharRecord.charType of the undead }
   UNDEAD_TYPE = 4;
 
@@ -21,6 +23,11 @@ procedure ArmorAdjustHelper(creature: Types.PCharRecord; item: Types.PItemRec; a
 procedure EncumbranceAdjust(creature: Types.PCharRecord);
 
 procedure ItemLabel(item: Types.PItemRec; isInv: Boolean);
+
+{ True when item may be tagged for a weapon set (#1209): a weapon (slot WEAPON, held in a hand or two: ITEMS gives some
+  unused types slot 0 and no hands), a shield, arrows or quarrels. Armour, rings and the rest are not: a set is readied
+  in combat at a keystroke, and no edition changes armour that fast. }
+function SetTaggable(item: Types.PItemRec): Boolean;
 
 { The item's identified name parts, from 3 down to 1, made plural for count: no marker, quantity or trailing space. }
 function ItemName(item: Types.PItemRec; count: Byte): string;
@@ -73,8 +80,8 @@ procedure AppendItemCopy(var list: Types.PItemRec; item: Types.PItemRec);
 function SameStack(item, other: Types.PItemRec): Boolean;
 
 { Merge every one of creature's stacks that can join item's (SameStack) into it, as the item menu's Join does. Stacks
-  cap at 255; the rest carries on in the stack it came from. A readied stack's mark goes to the stack it joins. Items of
-  quantity 0 are no stacks and are left alone. }
+  cap at 255; the rest carries on in the stack it came from. A readied stack's mark goes to the stack it joins, and so
+  does a weapon set when the stack it joins has none. Items of quantity 0 are no stacks and are left alone. }
 procedure JoinStacks(creature: Types.PCharRecord; item: Types.PItemRec);
 
 { True when one of creature's stacks has room for all of item's (SameStack, at most 255 together): with Auto Join on
@@ -849,7 +856,9 @@ end;
 
 { Build the item label in item^.name: the ' Yes  '/' No   ' equipped marker (inventory listings only), a '*' when
   any creature in the list has Detect Magic and the item has a plus, a save bonus or a curse, the quantity when nonzero,
-  then ItemName for the quantity and a space. CharDisp.PrintItemLabel also prints it. }
+  then ItemName for the quantity and a space. CharDisp.PrintItemLabel also prints it. An inventory label of an item
+  tagged for a weapon set (#1209) ends in the set's digit at SET_LABEL_COL, under the Items screen's 'Set', the name
+  cut to make room. }
 procedure ItemLabel(item: Types.PItemRec; isInv: Boolean);
 var
   effect: Types.PEffectRec;
@@ -879,6 +888,23 @@ begin
   name := CharHlp.ItemName(item, item^.quantity);
   if name <> '' then
     item^.name := item^.name + name + ' ';
+  if isInv and (item^.weaponSet <> C_ITEM.SET_NONE) then begin
+    { a space at least between the name and the digit }
+    if Length(item^.name) > SET_LABEL_COL - 2 then
+      item^.name[0] := Char(SET_LABEL_COL - 2);
+    while Length(item^.name) < SET_LABEL_COL - 1 do
+      item^.name := item^.name + ' ';
+    item^.name := item^.name + Char(Ord('0') + item^.weaponSet);
+  end;
+end;
+
+function SetTaggable(item: Types.PItemRec): Boolean;
+var
+  base: Types.PBaseItemRec;
+begin
+  base := CharHlp.BaseItem(item^.itemType);
+  SetTaggable := ((base^.slot = C_EQUIP.WEAPON) and (base^.hands > 0)) or (base^.slot = C_EQUIP.SHIELD) or
+                 (item^.itemType = C_ITEM.ARROW) or (item^.itemType = C_ITEM.QUARREL);
 end;
 
 { ItemLabel, not as inventory, every item of list: the treasure pool's or a shop's, for its menu. }
@@ -1265,6 +1291,8 @@ begin
         Inc(qty, cur^.quantity);
         if cur^.equipped <> 0 then
           dst^.equipped := cur^.equipped;
+        if dst^.weaponSet = C_ITEM.SET_NONE then
+          dst^.weaponSet := cur^.weaponSet;
         CharHlp.RemoveItem(creature, cur);
       end else begin
         dst^.quantity := 255;

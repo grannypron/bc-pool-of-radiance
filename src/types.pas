@@ -415,7 +415,12 @@ type
         { effect id }
         effect: Byte;
         { special-item id }
-        special: Byte);
+        special: Byte;
+        { The weapon set the player tagged the item for (#1209): C_ITEM.SET_NONE, or SET_FIRST..SET_LAST, which 1 and 2
+          ready in combat (FxEngine.ReadySet). The port's own, past SSI's 63 bytes: DiskRec never writes it and reads
+          it as SET_NONE, and the .chx file keeps it (CharExt). In this variant only because a field may not follow
+          the variant part; spells, 3 bytes, never reach it. }
+        weaponSet: Byte);
       1: (
         { scroll spell slots }
         spells: array[1..3] of Byte);
