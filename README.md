@@ -70,3 +70,131 @@ Special thanks to:
 - SNEG for handling the rights work and negotiations that allowed the Gold Box games to return to sale.
 
 Thanks as well to everyone who has tested the game, reported a strange old bug, compared a rule against the manuals, or kept a save file around long enough to prove something was wrong.
+
+## Screenshots
+
+A selection of the changes this project has made to the game.
+
+**Aiming fireball.**
+
+![Aiming fireball.](docs/screenshots/aiming-fireball.png)
+
+**Aiming lightning bolt.**
+
+![Aiming lightning bolt.](docs/screenshots/aiming-lightning-bolt.png)
+
+**Aiming stinking cloud.**
+
+![Aiming stinking cloud.](docs/screenshots/aiming-stinking-cloud.png)
+
+**Aligned weapon damage.**
+
+![Aligned weapon damage.](docs/screenshots/aligned-weapon-damage.png)
+
+**Bestiary.**
+
+![Bestiary.](docs/screenshots/bestiary.png)
+
+**Cast includes usable scrolls.**
+
+![Cast includes usable scrolls.](docs/screenshots/cast-includes-usable-scrolls.png)
+
+**In game character editor.**
+
+![In game character editor.](docs/screenshots/in-game-character-editor.png)
+
+**New combat icon editor.**
+
+![New combat icon editor.](docs/screenshots/new-combat-icon-editor.png)
+
+**In game area map.**
+
+![In game area map.](docs/screenshots/in-game-area-map.png)
+
+**Damaged character file notice.**
+
+![Damaged character file notice.](docs/screenshots/damaged-character-file-notice.png)
+
+**Data Builder UI.**
+
+![Data Builder UI.](docs/screenshots/data-builder-ui.png)
+
+**Dual class UI.**
+
+![Dual class UI.](docs/screenshots/dual-class-ui.png)
+
+**Camp has the Fix option.**
+
+![Camp has the Fix option.](docs/screenshots/camp-has-the-fix-option.png)
+
+**Improved appraise interface.**
+
+![Improved appraise interface.](docs/screenshots/improved-appraise-interface.png)
+
+**In game journal.**
+
+![In game journal.](docs/screenshots/in-game-journal.png)
+
+**Characters ready to level are shown in magenta.**
+
+![Characters ready to level are shown in magenta.](docs/screenshots/characters-ready-to-level-are-shown-in-magenta.png)
+
+**New memorize UI includes basic spell info.**
+
+![New memorize UI includes basic spell info.](docs/screenshots/new-memorize-ui-includes-basic-spell-info.png)
+
+**New Load/Save game UI.**
+
+![New Load/Save game UI.](docs/screenshots/new-load-save-game-ui.png)
+
+**Paladins can Heal and Cure.**
+
+![Paladins can Heal and Cure.](docs/screenshots/paladins-can-heal-and-cure.png)
+
+**New portrait picker UI.**
+
+![New portrait picker UI.](docs/screenshots/new-portrait-picker-ui.png)
+
+**Quest tracker in game, accessible via the Journal.**
+
+![Quest tracker in game, accessible via the Journal.](docs/screenshots/quest-tracker-in-game-accessible-via-the-journal.png)
+
+**Quick combat indicators include how to stop it, and whether magic is enabled.**
+
+![Quick combat indicators include how to stop it, and whether magic is enabled.](docs/screenshots/quick-combat-indicators-include-how-to-stop-it-and-whether-magic-is-enabled.png)
+
+**Racial ability score modifiers and class limits are shown during selection.**
+
+![Racial ability score modifiers and class limits are shown during selection.](docs/screenshots/racial-ability-score-modifiers-and-class-limits-are-shown-during-selection.png)
+
+**Saving throws are now viewable.**
+
+![Saving throws are now viewable.](docs/screenshots/saving-throws-are-now-viewable.png)
+
+**New Scribe UI.**
+
+![New Scribe UI.](docs/screenshots/new-scribe-ui.png)
+
+**Settings screen gives players control.**
+
+![Settings screen gives players control.](docs/screenshots/settings-screen-gives-players-control.png)
+
+**Spell descriptions and information are accessible from in game.**
+
+![Spell descriptions and information are accessible from in game.](docs/screenshots/spell-descriptions-and-information-are-accessible-from-in-game.png)
+
+**Game statistics.**
+
+![Game statistics.](docs/screenshots/game-statistics.png)
+
+**More game statistics.**
+
+![More game statistics.](docs/screenshots/more-game-statistics.png)
+
+**The Turn Undead table is visible for clerics and paladins.**
+
+![The Turn Undead table is visible for clerics and paladins.](docs/screenshots/the-turn-undead-table-is-visible-for-clerics-and-paladins.png)
+
+**A Vault has been added to New Phlan.**
+
+![A Vault has been added to New Phlan.](docs/screenshots/a-vault-has-been-added-to-new-phlan.png)
